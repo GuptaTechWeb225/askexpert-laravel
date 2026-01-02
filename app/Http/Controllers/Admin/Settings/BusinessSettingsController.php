@@ -34,9 +34,7 @@ class BusinessSettingsController extends BaseController
         private readonly AnalyticScriptRepositoryInterface  $analyticScriptRepo,
         private readonly SocialMediaRepositoryInterface     $socialMediaRepo,
         private readonly BusinessSettingService             $businessSettingService,
-    )
-    {
-    }
+    ) {}
 
     /**
      * @param Request|null $request
@@ -75,7 +73,7 @@ class BusinessSettingsController extends BaseController
             'loader_gif' => $this->getSettings(object: $web, type: 'loader_gif')->value ?? '',
             'default_location' => $this->getSettings(object: $web, type: 'default_location')->value ?? '',
         ];
-      
+
 
         return view(BusinessSettings::INDEX[VIEW], [
             'businessSetting' => $businessSetting,
@@ -99,7 +97,7 @@ class BusinessSettingsController extends BaseController
         $this->businessSettingRepo->updateOrInsert(type: 'shop_address', value: $request['shop_address']);
         $this->businessSettingRepo->updateOrInsert(type: 'country_code', value: $request['country_code']);
 
-       
+
         $colors = json_encode(['primary' => $request['primary'], 'secondary' => $request['secondary'], 'primary_light' => $request['primary_light'] ?? '#CFDFFB']);
         $this->businessSettingRepo->updateOrInsert(type: 'colors', value: $colors);
 
@@ -165,7 +163,8 @@ class BusinessSettingsController extends BaseController
         if (env('APP_MODE') == 'demo') {
             if ($request->ajax()) {
                 return response()->json([
-                    'message' => translate('you_can_not_update_this_on_demo_mode'), 401
+                    'message' => translate('you_can_not_update_this_on_demo_mode'),
+                    401
                 ]);
             } else {
                 Toastr::error(translate('you_can_not_update_this_on_demo_mode'));
@@ -312,7 +311,7 @@ class BusinessSettingsController extends BaseController
 
         if (empty($request['script_id']) && $request['is_active'] == 1) {
             $type = str_replace(' ', '_', ucwords(str_replace('_', ' ', $request['type'])));
-            Toastr::error(translate('Please_ensure_you_have_filled_in_the_'.$type.'_script_ID.'));
+            Toastr::error(translate('Please_ensure_you_have_filled_in_the_' . $type . '_script_ID.'));
             return back();
         }
 
@@ -335,6 +334,19 @@ class BusinessSettingsController extends BaseController
         return view(BusinessSettings::PRODUCT_SETTINGS[VIEW], compact('digitalProduct', 'brand', 'stockLimit'));
     }
 
+    public function pythoConfig(): View
+    {
+        $baseUrl = $this->businessSettingRepo->getFirstWhere(params: ['type' => 'base_url_python']);
+        return view('admin-views.business-settings.python', compact('baseUrl'));
+    }
+
+    public function pythonUpdate(Request $request): RedirectResponse
+    {
+        $this->businessSettingRepo->updateOrInsert(type: 'base_url_python', value: $request->get('base_url_python', 'http://127.0.0.1:8000'));
+        clearWebConfigCacheKeys();
+        Toastr::success(translate('updated_successfully'));
+        return back();
+    }
     public function updateProductSettings(Request $request): RedirectResponse
     {
         $this->businessSettingRepo->updateOrInsert(type: 'stock_limit', value: $request->get('stock_limit', 0));
@@ -353,11 +365,14 @@ class BusinessSettingsController extends BaseController
 
     public function updateAnnouncement(Request $request): RedirectResponse
     {
-        $value = json_encode(['status' => $request['announcement_status'], 'color' => $request['announcement_color'],
-            'text_color' => $request['text_color'], 'announcement' => $request['announcement'],]);
+        $value = json_encode([
+            'status' => $request['announcement_status'],
+            'color' => $request['announcement_color'],
+            'text_color' => $request['text_color'],
+            'announcement' => $request['announcement'],
+        ]);
         $this->businessSettingRepo->updateOrInsert(type: 'announcement', value: $value);
         Toastr::success(translate('announcement_updated_successfully'));
         return back();
     }
-
 }

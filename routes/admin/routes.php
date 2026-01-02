@@ -552,6 +552,13 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
             });
         });
 
+        Route::group(['prefix' => 'pythonapi', 'as' => 'pythonapi.', 'middleware' => ['module:system_settings']], function () {
+            Route::controller(BusinessSettingsController::class)->group(function () {
+                Route::get('/', 'pythoConfig')->name('index');
+                Route::post('update', 'pythonUpdate')->name('update');
+            });
+        });
+
 
 
         Route::group(['prefix' => 'payment-method', 'as' => 'payment-method.', 'middleware' => ['module:system_settings']], function () {

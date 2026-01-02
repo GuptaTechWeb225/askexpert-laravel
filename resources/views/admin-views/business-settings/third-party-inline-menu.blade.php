@@ -29,5 +29,8 @@
         <li class="{{ Request::is('admin/firebase-otp-verification/'.FirebaseOTPVerification::INDEX[URI]) ?'active':'' }}">
             <a href="{{route('admin.firebase-otp-verification.index')}}" class="text-capitalize">{{translate('Firebase_Auth')}}</a>
         </li>
+              <li class="{{ Request::is('admin/business-settings/pythonapi') ?'active':'' }}"><a class="text-capitalize"
+                                                                                      href="{{route('admin.business-settings.pythonapi.index')}}">{{translate('python_Api')}}</a>
+        </li>
     </ul>
 </div>
