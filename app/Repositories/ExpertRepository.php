@@ -120,6 +120,9 @@ class ExpertRepository implements ExpertRepositoryInterface
             ->when(isset($filters['status']) && !empty($filters['status']), function ($query) use ($filters) {
                 return $query->where('status', $filters['status']);
             })
+            ->when(isset($filters['is_online']) && !empty($filters['is_online']), function ($query) use ($filters) {
+                return $query->where('is_online', $filters['is_online']);
+            })
             ->when(!empty($orderBy), function ($query) use ($orderBy) {
                 $query->orderBy(array_key_first($orderBy), array_values($orderBy)[0]);
             });

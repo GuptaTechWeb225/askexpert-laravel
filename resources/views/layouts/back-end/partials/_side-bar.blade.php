@@ -1,36 +1,11 @@
 @php
-use App\Enums\ViewPaths\Admin\BusinessSettings;
-use App\Enums\ViewPaths\Admin\Currency;
+
 use App\Enums\ViewPaths\Admin\Customer;
 use App\Enums\ViewPaths\Admin\Dashboard;
-use App\Enums\ViewPaths\Admin\DatabaseSetting;
-use App\Enums\ViewPaths\Admin\Employee;
-use App\Enums\ViewPaths\Admin\EnvironmentSettings;
-use App\Enums\ViewPaths\Admin\Restaurant;
-use App\Enums\ViewPaths\Admin\FeaturesSection;
-use App\Enums\ViewPaths\Admin\GoogleMapAPI;
-use App\Enums\ViewPaths\Admin\HelpTopic;
-use App\Enums\ViewPaths\Admin\Mail;
 use App\Enums\ViewPaths\Admin\Pages;
-use App\Enums\ViewPaths\Admin\Transaction;
-use App\Enums\ViewPaths\Admin\PushNotification;
-use App\Enums\ViewPaths\Admin\Recaptcha;
-use App\Enums\ViewPaths\Admin\SiteMap;
-use App\Enums\ViewPaths\Admin\SMSModule;
-use App\Enums\ViewPaths\Admin\SocialLoginSettings;
 use App\Enums\ViewPaths\Admin\SocialMedia;
-use App\Enums\ViewPaths\Admin\ThemeSetup;
-use App\Enums\ViewPaths\Admin\FirebaseOTPVerification;
-use App\Enums\ViewPaths\Admin\SocialMediaChat;
-use App\Enums\ViewPaths\Admin\PaymentMethod;
-use App\Enums\ViewPaths\Admin\SEOSettings;
-use App\Enums\ViewPaths\Admin\ErrorLogs;
-use App\Enums\ViewPaths\Admin\StorageConnectionSettings;
-use App\Enums\ViewPaths\Admin\SystemSetup;
-use App\Enums\ViewPaths\Admin\Plan;
 use App\Enums\ViewPaths\Admin\Expert;
 use App\Utils\Helpers;
-use App\Enums\EmailTemplateKey;
 $eCommerceLogo = getWebConfig(name: 'company_web_logo');
 @endphp
 <div id="sidebarMain" class="d-none">
@@ -73,7 +48,7 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                             <small class="nav-subtitle" title="">User Management</small>
                             <small class="tio-more-horizontal nav-subtitle-replacer"></small>
                         </li>
-                           <li class="navbar-vertical-aside-has-menu {{Request::is('admin/customer/'.Customer::LIST[URI]) || Request::is('admin/customer/'.Customer::VIEW[URI].'*')?'active':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('admin/customer/'.Customer::LIST[URI]) || Request::is('admin/customer/'.Customer::VIEW[URI].'*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link" title="Customer Management" href="{{ route('admin.customer.list') }}">
                                 <i class="tio-users-switch nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">Customer Management</span>
@@ -87,7 +62,7 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                             </a>
                         </li>
 
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('admin/customer/'.Customer::ANALYTICS[URI])?'active':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('admin/refunds')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link" title="Refund Requests" href="{{ route('admin.refunds.index') }}">
                                 <i class="tio-money nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">Refund Requests</span>
@@ -95,8 +70,6 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                         </li>
                         @endif
 
-                        <!-- Expert Applications -->
-                        @if(Helpers::module_permission_check('restaurant_management'))
                         <li class="nav-item">
                             <small class="nav-subtitle" title="">Expert Management</small>
                             <small class="tio-more-horizontal nav-subtitle-replacer"></small>
@@ -109,17 +82,13 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                             </a>
                         </li>
 
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('admin/restaurant/'.Restaurant::RESTAURANT_REQUEST[URI]) || Request::is('admin/restaurant/'.Restaurant::RESTAURANT_REQUEST_DETAILS[URI])?'active':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('admin/expert-payouts*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link" title="Revenue & Payouts" href="{{ route('admin.expert-payouts.index') }}">
                                 <i class="tio-money-vs nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">Revenue & Payouts</span>
                             </a>
                         </li>
 
-                     
-                        @endif
-
-                        <!-- Expert Management & Categories -->
                         @if(Helpers::module_permission_check('plan_management'))
                         <li class="nav-item">
                             <small class="nav-subtitle" title="">Expert & Categories</small>
@@ -247,7 +216,7 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                                         </span>
                                     </a>
                                 </li>
-                                 <li
+                                <li
                                     class="nav-item {{ Request::is('admin/business-settings/'.SocialMedia::VIEW[URI]) ? 'active' : '' }}">
                                     <a class="nav-link"
                                         href="{{route('admin.business-settings.social-media')}}"
@@ -260,7 +229,7 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                             </ul>
                         </li>
 
-                          <li class="navbar-vertical-aside-has-menu">
+                        <li class="navbar-vertical-aside-has-menu">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:" title="Setting">
                                 <i class="tio-settings nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">Configurations</span>
@@ -281,12 +250,12 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                                         </span>
                                     </a>
                                 </li>
-                              
+
                             </ul>
                         </li>
                         @endif
 
-                      
+
                         <li class="nav-item pt-5"></li>
                     </ul>
                 </div>

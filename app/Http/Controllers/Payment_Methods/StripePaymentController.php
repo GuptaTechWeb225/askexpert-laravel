@@ -55,47 +55,49 @@ class StripePaymentController extends Controller
         return view('payment.stripe', compact('data', 'config'));
     }
 
-    public function payment_process_3d(Request $request): JsonResponse
-    {
-        $data = $this->payment::where(['id' => $request['payment_id']])->where(['is_paid' => 0])->first();
-        if (!isset($data)) {
-            return response()->json($this->response_formatter(GATEWAYS_DEFAULT_204), 200);
-        }
-        $payment_amount = $data['payment_amount'];
-
-        Stripe::setApiKey($this->config_values->api_key);
-        header('Content-Type: application/json');
-        $currency_code = $data->currency_code;
-
-        if ($data['additional_data'] != null) {
-            $business = json_decode($data['additional_data']);
-            $business_name = $business->business_name ?? "my_business";
-            $business_logo = $business->business_logo ??  url('/');
-        } else {
-            $business_name = "my_business";
-            $business_logo = url('/');
-        }
-
-        $checkout_session = Session::create([
-            'payment_method_types' => ['card'],
-            'line_items' => [[
-                'price_data' => [
-                    'currency' => $currency_code ?? 'usd',
-                    'unit_amount' => round($payment_amount, 2) * 100,
-                    'product_data' => [
-                        'name' => $business_name,
-                        'images' => [$business_logo],
-                    ],
-                ],
-                'quantity' => 1,
-            ]],
-            'mode' => 'payment',
-            'success_url' => url('/') . '/payment/stripe/success?session_id={CHECKOUT_SESSION_ID}&payment_id=' . $data->id,
-            'cancel_url' => url()->previous(),
-        ]);
-
-        return response()->json(['id' => $checkout_session->id]);
+   public function payment_process_3d(Request $request): JsonResponse
+{
+    $data = $this->payment::where(['id' => $request['payment_id']])->where(['is_paid' => 0])->first();
+    if (!isset($data)) {
+        return response()->json($this->response_formatter(GATEWAYS_DEFAULT_204), 200);
     }
+    
+    $payment_amount = $data['payment_amount'];
+    Stripe::setApiKey($this->config_values->api_key);
+    $currency_code = $data->currency_code;
+
+    $pricing_paragraph = "Expert Consultation Service"; // Default
+    $business_name = "Expert Help"; // Default
+
+    if ($data['additional_data'] != null) {
+        $additional = json_decode($data['additional_data']);
+        // Yahan se paragraph uthaya jo humne startChat mein banaya tha
+        $pricing_paragraph = $additional->pricing_paragraph ?? $pricing_paragraph;
+        $business_name = $additional->product_title ?? "Expert Help";
+        $business_logo = $additional->category_image ?? url('/');
+    }
+
+    $checkout_session = Session::create([
+        'payment_method_types' => ['card'],
+        'line_items' => [[
+            'price_data' => [
+                'currency' => $currency_code ?? 'usd',
+                'unit_amount' => round($payment_amount, 2) * 100,
+                'product_data' => [
+                    'name' => $business_name,
+                    'description' => $pricing_paragraph, // YE WAHI PARAGRAPH HAI
+                    'images' => [isset($business_logo) ? $business_logo : url('/')],
+                ],
+            ],
+            'quantity' => 1,
+        ]],
+        'mode' => 'payment',
+        'success_url' => url('/') . '/payment/stripe/success?session_id={CHECKOUT_SESSION_ID}&payment_id=' . $data->id,
+        'cancel_url' => url()->previous(),
+    ]);
+
+    return response()->json(['id' => $checkout_session->id]);
+}
 
     public function success(Request $request)
     {

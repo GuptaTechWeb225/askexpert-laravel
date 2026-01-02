@@ -69,13 +69,6 @@ class AskExpertController extends Controller
         $expert = $availabilityService->findAvailableExpert(
             collect($result['recommendations'])->pluck('expert_id')->toArray()
         );
-
-        // if (!$expert) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'No expert available'
-        //     ]);
-        // }
         $expertId = $expert?->id;
 
         $needsJoining = !$user->hasPaidJoiningFee();
@@ -164,6 +157,18 @@ class AskExpertController extends Controller
                 ]);
             }
 
+            $pricing_paragraph = "";
+
+            if ($needsJoining || $needsMembership) {
+                $pricing_paragraph = "Ask your question now for a $" . number_format($category->joining_fee, 2) . " one-time joining fee, " .
+                    "$" . number_format($category->monthly_subscription_fee, 2) . "/mo membership, " .
+                    "and $" . number_format($category->expert_fee, 2) . " expert consultation fee. " .
+                    "Cancel your membership anytime or continue for $" . number_format($category->monthly_subscription_fee, 2) . "/mo thereafter.";
+            } else {
+                $pricing_paragraph = "Ask your question now for a $" . number_format($category->expert_fee, 2) . " expert consultation fee. " .
+                    "Your active membership covers the rest of the platform benefits.";
+            }
+
             $paymentRequest = PaymentRequest::create([
                 'id' => Str::uuid(),
                 'payer_id' => $user->id,
@@ -179,16 +184,22 @@ class AskExpertController extends Controller
                 'is_paid' => 0,
                 'additional_data' => json_encode([
                     'user_id' => $user->id,
+                    'question' => $request->question,
                     'expert_id' => $expertId,
                     'category_id' => $category->id,
-                    'stripe_subscription_id' => $subscriptionToExtend?->stripe_subscription_id ?? $subscription?->id,
-                    'stripe_customer_id' => $stripeCustomer->id,
-                    'question' => $request->question,
                     'needs_joining' => $needsJoining,
                     'needs_membership' => $needsMembership,
-                    'joining_fee' => $category->joining_fee,
-                    'membership_fee' => $category->monthly_subscription_fee,
-                    'expert_fee' => $category->expert_fee
+                    'joining_fee' => $needsJoining ? $category->joining_fee : 0,
+                    'membership_fee' => $needsMembership ? $category->monthly_subscription_fee : 0,
+                    'expert_fee' => $category->expert_fee,
+                    'category_name' => $category->name,
+                    'category_specialty' => $category->primary_specialty ?? $category->name,
+                    'product_title' => $category->name,
+                    'headline' => "Get expert help for your " . strtolower($category->primary_specialty ?? $category->name) . " issue",
+                    'pricing_paragraph' => $pricing_paragraph, 
+                    'category_image' => $category->card_image_url ?? asset('default-category-image.jpg'),
+                    'stripe_subscription_id' => $subscriptionToExtend?->stripe_subscription_id ?? $subscription?->id,
+                    'stripe_customer_id' => $stripeCustomer->id,
                 ]),
             ]);
 

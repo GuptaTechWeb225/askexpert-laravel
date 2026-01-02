@@ -38,7 +38,7 @@
             <a class="business-analytics card">
                 <h5 class="business-analytics__subtitle">{{translate('Online Expert Now')}}</h5>
                 <div class="mt-2 d-flex justify-content-between align-items-center w-100">
-                    <h2 class="business-analytics__title">{{ $totalExperts }}</h2>
+                    <h2 class="business-analytics__title">{{ $onlineExperts }}</h2>
                     <img src="{{dynamicAsset(path: 'public/assets/back-end/img/categories/customer-icon-2.png')}}" width="45" height="45" class="" alt="">
                 </div>
 
@@ -48,7 +48,7 @@
             <a class="business-analytics card">
                 <h5 class="business-analytics__subtitle">{{translate('Pending Applications')}}</h5>
                 <div class="mt-2 d-flex justify-content-between align-items-center w-100">
-                    <h2 class="business-analytics__title">{{ $totalExperts }}</h2>
+                    <h2 class="business-analytics__title">{{ $pendingExperts }}</h2>
                     <img src="{{dynamicAsset(path: 'public/assets/back-end/img/categories/admin-dash-card-4.png')}}" width="45" height="45" class="" alt="">
                 </div>
             </a>
@@ -57,7 +57,7 @@
             <a class="business-analytics card">
                 <h5 class="business-analytics__subtitle">{{translate('Blocked Experts')}}</h5>
                 <div class="mt-2 d-flex justify-content-between align-items-center w-100">
-                    <h2 class="business-analytics__title">{{ $totalExperts }}</h2>
+                    <h2 class="business-analytics__title">{{ $blockExperts }}</h2>
                     <img src="{{dynamicAsset(path: 'public/assets/back-end/img/categories/customer-icon-3.png')}}" width="45" height="45" class="" alt="">
                 </div>
 
@@ -169,7 +169,7 @@
                         </td>
                         <td>{{ $business->category->name ?? 'N/A' }}</td>
                         <td> {{ $business->created_at->format('d M Y, h:i A') ?? 'N/A' }}</td>
-                        <td><i class="fa-solid fa-star text--primary"></i> 4.2</td>
+                        <td>{{ $business->average_rating }} <i class="fa-solid fa-star text--primary"></i> </td>
                         <td>
                             <form action="{{route('admin.expert.status')}}" method="post"
                                 id="business-status{{$business['id']}}-form" class="business-status-form">

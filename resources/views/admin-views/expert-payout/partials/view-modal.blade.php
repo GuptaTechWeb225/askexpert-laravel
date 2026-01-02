@@ -10,5 +10,5 @@
     <p><strong>Pending Payout:</strong> ${{ number_format($pendingAmount, 2) }}</p>
 </div>
 <div class="modal-footer">
-    <a href="{{ route('admin.expert-payouts.setup', $expert->id) }}" class="btn btn-primary">Go to Payout Setup</a>
+    <a href="{{ route('admin.expert-payouts.setup', $expert->id) }}" class="btn btn--primary">Go to Payout Setup</a>
 </div>

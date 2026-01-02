@@ -79,10 +79,22 @@ class ExpertController extends Controller
             filters: ['status' => 'approved', 'avoid_walking_customer' => 1],
             dataLimit: 'all'
         )->count();
+        $onlineExperts = $this->expertRepo->getListWhereBetween(
+            filters: ['is_online' => true, 'avoid_walking_customer' => 1],
+            dataLimit: 'all'
+        )->count();
+        $pendingExperts = $this->expertRepo->getListWhereBetween(
+            filters: ['status' => 'pending', 'avoid_walking_customer' => 1],
+            dataLimit: 'all'
+        )->count();
+        $blockExperts = $this->expertRepo->getListWhereBetween(
+            filters: ['is_active' => false, 'avoid_walking_customer' => 1],
+            dataLimit: 'all'
+        )->count();
 
         $categories = ExpertCategory::all();
 
-        return view(Expert::EXPERTS[VIEW], compact('experts', 'totalExperts', 'categories'));
+        return view(Expert::EXPERTS[VIEW], compact('experts', 'totalExperts', 'categories','onlineExperts','pendingExperts','blockExperts'));
     }
 
 
@@ -105,9 +117,10 @@ class ExpertController extends Controller
 
     public function expertView(Request $request, $id): View|RedirectResponse
     {
-        $expert = $this->expertRepo->getFirstWhere(
-            params: ['id' => $id],
-        );
+      $expert = $this->expertRepo->getFirstWhere(
+        params: ['id' => $id],
+        relations: ['reviews.user', 'category'] // Relations load karein
+    );
         return view(Expert::EXPERT_VIEW[VIEW], compact('expert'));
         Toastr::error(translate('Expert_Not_Found'));
 

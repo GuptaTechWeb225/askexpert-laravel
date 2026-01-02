@@ -53,7 +53,7 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <button type="button" class="btn btn-sm btn-primary pay-single" data-id="{{ $earning->id }}" data-amount="{{ number_format($earning->total_amount, 2, '.', '') }}">
+                                    <button type="button" class="btn btn-sm btn--primary pay-single" data-id="{{ $earning->id }}" data-amount="{{ number_format($earning->total_amount, 2, '.', '') }}">
                                         Pay Now
                                     </button>
                                 </td>
@@ -92,7 +92,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Confirm & Pay</button>
+                    <button type="submit" class="btn btn--primary">Confirm & Pay</button>
                 </div>
             </form>
         </div>
@@ -135,7 +135,6 @@
             openPayModal(ids, total);
         });
 
-        // Single Pay
         $('.pay-single').click(function() {
             let id = $(this).data('id');
             let amount = parseFloat($(this).data('amount')) || 0;
@@ -144,25 +143,16 @@
 
         function openPayModal(ids, total) {
             let safeTotal = parseFloat(total) || 0;
-
-            // Clear previous hidden inputs
             $('#payModal .earning-ids-container').remove();
-
-            // Create new container for earning_ids[]
             let container = $('<div class="earning-ids-container"></div>');
-
-            // Add hidden input for each ID as earning_ids[]
             ids.forEach(function(id) {
                 container.append(`<input type="hidden" name="earning_ids[]" value="${id}">`);
             });
 
-            // Append to form
             $('#payForm').append(container);
 
-            // Update total display
             $('#payTotal').text(safeTotal.toFixed(2));
 
-            // Show modal
             $('#payModal').modal('show');
         }
 

@@ -99,7 +99,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Education Degree</label>
-                           <button type="button" class="d-block w-100 btn  border border-primary border-2 rounded-3 p-2 text-center" data-toggle="modal"
+                            <button type="button" class="d-block w-100 btn  border border-primary border-2 rounded-3 p-2 text-center" data-toggle="modal"
                                 data-target="#registrationModal{{$expert->id}}">View Degree</button>
                         </div>
 
@@ -110,7 +110,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Certification</label>
-                             <button type="button" class="d-block w-100 btn  border border-primary border-2 rounded-3 p-2 text-center" data-toggle="modal"
+                            <button type="button" class="d-block w-100 btn  border border-primary border-2 rounded-3 p-2 text-center" data-toggle="modal"
                                 data-target="#vatModal{{$expert->id}}">View Certification</button>
                         </div>
 
@@ -124,7 +124,7 @@
                             <label class="">Ratings</label>
                             <div class="border border-1 border-primary rounded px-3 py-2 fs-5 fw-bold d-flex align-items-center gap-2">
                                 <img src="{{ asset('assets/back-end/img/rating.png') }}" alt="Rating" class="mb-0" style="width: 24px; height: 24px;">
-                                <span>Average Ratings <span>4.7 / 5</span></span>
+                                <span>Average Ratings <span>{{ $expert->average_rating }} / 5</span></span>
                             </div>
                         </div>
                     </div>
@@ -133,91 +133,91 @@
         </div>
     </div>
 
-      <div class="modal fade" id="registrationModal{{$expert->id}}" tabindex="-1"
-                        role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Education Degree</h5>
-                                    <button type="button" class="close" data-dismiss="modal"
-                                        aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                </div>
-                                <div class="modal-body text-center">
-                                    @php $ext = strtolower(getFileType($expert->education_degree)); @endphp
+    <div class="modal fade" id="registrationModal{{$expert->id}}" tabindex="-1"
+        role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Education Degree</h5>
+                    <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body text-center">
+                    @php $ext = strtolower(getFileType($expert->education_degree)); @endphp
 
-                                    @if(in_array($ext, ['jpg','jpeg','png','gif']))
-                                    <img src="{{ asset('storage/' . $expert->education_degree) }}" class="img-fluid" alt="Education Degree">
-                                    @elseif(in_array($ext, ['pdf']))
-                                    <iframe src="{{ asset('storage/' . $expert->education_degree) }}" width="100%" height="500px"></iframe>
-                                    @elseif(in_array($ext, ['doc','docx']))
-                                    <a href="{{ asset('storage/' . $expert->education_degree) }}" target="_blank" class="btn btn-primary">
-                                        Download Document
-                                    </a>
-                                    @else
-                                    <span class="text-danger">File format not supported</span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @if(in_array($ext, ['jpg','jpeg','png','gif']))
+                    <img src="{{ asset('storage/' . $expert->education_degree) }}" class="img-fluid" alt="Education Degree">
+                    @elseif(in_array($ext, ['pdf']))
+                    <iframe src="{{ asset('storage/' . $expert->education_degree) }}" width="100%" height="500px"></iframe>
+                    @elseif(in_array($ext, ['doc','docx']))
+                    <a href="{{ asset('storage/' . $expert->education_degree) }}" target="_blank" class="btn btn-primary">
+                        Download Document
+                    </a>
+                    @else
+                    <span class="text-danger">File format not supported</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <!-- Modal for Resume -->
-                    <div class="modal fade" id="taxModal{{$expert->id}}" tabindex="-1" role="dialog"
-                        aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Resume</h5>
-                                    <button type="button" class="close" data-dismiss="modal"
-                                        aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                </div>
-                                <div class="modal-body text-center">
-                                    @php $ext = strtolower(getFileType($expert->resume)); @endphp
+    <!-- Modal for Resume -->
+    <div class="modal fade" id="taxModal{{$expert->id}}" tabindex="-1" role="dialog"
+        aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Resume</h5>
+                    <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body text-center">
+                    @php $ext = strtolower(getFileType($expert->resume)); @endphp
 
-                                    @if(in_array($ext, ['jpg','jpeg','png','gif']))
-                                    <img src="{{ asset('storage/' . $expert->resume) }}" class="img-fluid" alt="Resume">
-                                    @elseif(in_array($ext, ['pdf']))
-                                    <iframe src="{{ asset('storage/' . $expert->resume) }}" width="100%" height="500px"></iframe>
-                                    @elseif(in_array($ext, ['doc','docx']))
-                                    <a href="{{ asset('storage/' . $expert->resume) }}" target="_blank" class="btn btn-primary">
-                                        Download Document
-                                    </a>
-                                    @else
-                                    <span class="text-danger">File format not supported</span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @if(in_array($ext, ['jpg','jpeg','png','gif']))
+                    <img src="{{ asset('storage/' . $expert->resume) }}" class="img-fluid" alt="Resume">
+                    @elseif(in_array($ext, ['pdf']))
+                    <iframe src="{{ asset('storage/' . $expert->resume) }}" width="100%" height="500px"></iframe>
+                    @elseif(in_array($ext, ['doc','docx']))
+                    <a href="{{ asset('storage/' . $expert->resume) }}" target="_blank" class="btn btn-primary">
+                        Download Document
+                    </a>
+                    @else
+                    <span class="text-danger">File format not supported</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <!-- Modal for Certification -->
-                    <div class="modal fade" id="vatModal{{$expert->id}}" tabindex="-1" role="dialog"
-                        aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Certification</h5>
-                                    <button type="button" class="close" data-dismiss="modal"
-                                        aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                </div>
-                                <div class="modal-body text-center">
-                                    @php $ext = strtolower(getFileType($expert->certification)); @endphp
+    <!-- Modal for Certification -->
+    <div class="modal fade" id="vatModal{{$expert->id}}" tabindex="-1" role="dialog"
+        aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Certification</h5>
+                    <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body text-center">
+                    @php $ext = strtolower(getFileType($expert->certification)); @endphp
 
-                                    @if(in_array($ext, ['jpg','jpeg','png','gif']))
-                                    <img src="{{ asset('storage/' . $expert->certification) }}" class="img-fluid" alt="Certification">
-                                    @elseif(in_array($ext, ['pdf']))
-                                    <iframe src="{{ asset('storage/' . $expert->certification) }}" width="100%" height="500px"></iframe>
-                                    @elseif(in_array($ext, ['doc','docx']))
-                                    <a href="{{ asset('storage/' . $expert->certification) }}" target="_blank" class="btn btn-primary">
-                                        Download Document
-                                    </a>
-                                    @else
-                                    <span class="text-danger">File format not supported</span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @if(in_array($ext, ['jpg','jpeg','png','gif']))
+                    <img src="{{ asset('storage/' . $expert->certification) }}" class="img-fluid" alt="Certification">
+                    @elseif(in_array($ext, ['pdf']))
+                    <iframe src="{{ asset('storage/' . $expert->certification) }}" width="100%" height="500px"></iframe>
+                    @elseif(in_array($ext, ['doc','docx']))
+                    <a href="{{ asset('storage/' . $expert->certification) }}" target="_blank" class="btn btn-primary">
+                        Download Document
+                    </a>
+                    @else
+                    <span class="text-danger">File format not supported</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="row g-2">
 
@@ -228,7 +228,7 @@
                     <div class="d-flex flex-wrap gap-2">
                         <div class="row">
                             <div class="col-auto">
-                               
+
                             </div>
                         </div>
 
@@ -247,10 +247,38 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @foreach($expert->reviews as $key => $review)
+                            <tr>
+                                <td>{{ $key + 1 }}</td>
+                                <td>#{{ $review->id }}</td>
+                                <td>
+                                    @if($review->user)
+                                    {{ $review->user->f_name }} {{ $review->user->l_name }}
+                                    @else
+                                    <span class="text-muted">{{ translate('Customer_not_found') }}</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <label class="badge badge-soft-warning mb-0">
+                                        <span class="font-weight-bold">{{ $review->rating }}</span>
+                                        <i class="tio-star"></i>
+                                    </label>
+                                </td>
+                                <td>
+                                    <div class="text-wrap" style="max-width: 300px;">
+                                        {{ $review->review ?? translate('No_comment_provided') }}
+                                    </div>
+                                </td>
+                                <td>{{ $review->created_at->format('d M Y, h:i A') }}</td>
+                            </tr>
+                            @endforeach
                         </tbody>
                     </table>
                 </div>
-                @include('layouts.back-end._empty-state',['text'=>'no_Question_history_found'],['image'=>'default'])
+                @if (($expert->reviews->count())==0)
+                                            @include('layouts.back-end._empty-state',['text'=>'no_Question_history_found'],['image'=>'default'])
+
+                @endif
             </div>
         </div>
     </div>
