@@ -17,12 +17,11 @@
 </div>
 @endif
 <style>
-    /* Add this to your custom CSS or in blade under <style> */
 .hs-unfold-content.dropdown-unfold {
-    position: absolute !important; /* make sure it can escape table boundaries */
-    z-index: 1050 !important;      /* Bootstrap modal z-index is 1050, dropdown should be higher if needed */
+    position: absolute !important;
+    z-index: 1050 !important;
+    margin-left: -220px;
 }
-
 </style>
 <div class="content container-fluid">
     <div class="mb-4">
@@ -81,8 +80,8 @@
     </div>
     <div class="card">
         <div class="card-header gap-3 align-items-center">
-             <h5 class="mb-0 mr-auto">
-              
+            <h5 class="mb-0 mr-auto">
+
             </h5>
             <form action="{{ url()->current() }}" method="GET">
                 <input type="hidden" name="expert_joining_date" value="{{request('expert_joining_date')}}">
@@ -152,32 +151,32 @@
                             <span class="badge badge-soft-warning">Waiting</span>
                             @endif
                         </td>
-                       <td class="text-center">
-    <div class="hs-unfold">
-        <a class="js-hs-unfold-invoker text-dark"
-           href="javascript:"
-           data-hs-unfold-options='{
-                "target": "#sessionDropdown{{ $session->id }}",
-                "type": "css-animation",
-                 "smartPositionOff": true
-           }'>
-            <i class="fa-solid fa-ellipsis-vertical"></i>
-        </a>
+                        <td class="text-center">
+                            <div class="hs-unfold">
+                                <a class="js-hs-unfold-invoker text-dark"
+                                    href="javascript:"
+                                    data-hs-unfold-options='{
+                                            "target": "#sessionDropdown{{ $session->id }}",
+                                            "type": "css-animation",
+                                            "smartPositionOff": true
+                                    }'>
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </a>
 
-        <div id="sessionDropdown{{ $session->id }}"
-             class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-start z-999">
-            <a class="dropdown-item" href="#" onclick="viewChatDetails({{ $session->id }})">
-                <i class="fa-solid fa-eye me-2"></i> View Detail
-            </a>
-            <a class="dropdown-item" href="#" onclick="setSessionId({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignExpertModal">
-                <i class="fa-solid fa-user-tie me-2"></i> Assign to Expert
-            </a>
-            <a class="dropdown-item" href="#" onclick="setSessionIdForCategory({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignCategoryModal">
-                <i class="fa-solid fa-handshake-angle me-2"></i> Assign Category
-            </a>
-        </div>
-    </div>
-</td>
+                                <div id="sessionDropdown{{ $session->id }}"
+                                    class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-start z-999">
+                                    <a class="dropdown-item" href="#" onclick="viewChatDetails({{ $session->id }})">
+                                        <i class="fa-solid fa-eye me-2"></i> View Detail
+                                    </a>
+                                    <a class="dropdown-item" href="#" onclick="setSessionId({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignExpertModal">
+                                        <i class="fa-solid fa-user-tie me-2"></i> Assign to Expert
+                                    </a>
+                                    <a class="dropdown-item" href="#" onclick="setSessionIdForCategory({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignCategoryModal">
+                                        <i class="fa-solid fa-handshake-angle me-2"></i> Assign Category
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
 
                     </tr>
                     @endforeach
@@ -285,25 +284,25 @@
         $('#sessionIdForCategory').val(id);
     }
 
-   function viewChatDetails(id) {
-    let urlTemplate = document.getElementById('detailRoute').dataset.url;
-    let url = urlTemplate.replace('IDPLACEHOLDER', id);
+    function viewChatDetails(id) {
+        let urlTemplate = document.getElementById('detailRoute').dataset.url;
+        let url = urlTemplate.replace('IDPLACEHOLDER', id);
 
-    $('#viewDetailBody').html('<div class="text-center py-5"><div class="spinner-border" role="status"><span class="visually-hidden"></span></div></div>');
-    $('#viewDetailModal').modal('show');
+        $('#viewDetailBody').html('<div class="text-center py-5"><div class="spinner-border" role="status"><span class="visually-hidden"></span></div></div>');
+        $('#viewDetailModal').modal('show');
 
-    $.ajax({
-        url: url,
-        type: 'GET',
-        success: function(data) {
-            $('#viewDetailBody').html(data);
-        },
-        error: function(xhr) {
-            console.log(xhr);
-            $('#viewDetailBody').html('<div class="alert alert-danger">Failed to load details</div>');
-        }
-    });
-}
+        $.ajax({
+            url: url,
+            type: 'GET',
+            success: function(data) {
+                $('#viewDetailBody').html(data);
+            },
+            error: function(xhr) {
+                console.log(xhr);
+                $('#viewDetailBody').html('<div class="alert alert-danger">Failed to load details</div>');
+            }
+        });
+    }
 
 
     $('#assignExpertForm').on('submit', function(e) {

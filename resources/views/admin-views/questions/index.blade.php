@@ -17,10 +17,11 @@
 </div>
 @endif
 <style>
-    .hs-unfold-content.dropdown-unfold {
-        position: absolute !important;
-        z-index: 1050 !important;
-    }
+.hs-unfold-content.dropdown-unfold {
+    position: absolute !important;
+    z-index: 1050 !important;
+    margin-left: -220px;
+}
 </style>
 <div class="content container-fluid">
     <div class="mb-4">
@@ -77,8 +78,8 @@
             </form>
         </div>
     </div>
-    <div class="card">
-        <div class="card-header gap-3 align-items-center">
+    <div class="card ">
+        <div class="card-header gap-3 align-items-center z-999">
             <h5 class="mb-0 mr-auto">
 
             </h5>
