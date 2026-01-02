@@ -31,7 +31,7 @@ class ChatController extends Controller
         $request->validate([
             'chat_id' => 'required|exists:chat_sessions,id',
             'message' => 'nullable|string',
-            'image' => 'nullable|image|max:5120'
+            'image' => 'nullable|image'
         ]);
 
         $path = null;

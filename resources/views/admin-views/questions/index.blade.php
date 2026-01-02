@@ -150,32 +150,32 @@
                             <span class="badge badge-soft-warning">Waiting</span>
                             @endif
                         </td>
-                          <td class="text-center">
-    <div class="hs-unfold">
-        <a class="js-hs-unfold-invoker text-dark"
-           href="javascript:"
-           data-hs-unfold-options='{
+                        <td class="text-center">
+                            <div class="hs-unfold">
+                                <a class="js-hs-unfold-invoker text-dark"
+                                    href="javascript:"
+                                    data-hs-unfold-options='{
                 "target": "#sessionDropdown{{ $session->id }}",
                 "type": "css-animation",
                  "smartPositionOff": true
            }'>
-            <i class="fa-solid fa-ellipsis-vertical"></i>
-        </a>
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </a>
 
-        <div id="sessionDropdown{{ $session->id }}"
-             class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-start z-999">
-            <a class="dropdown-item" href="#" onclick="viewChatDetails({{ $session->id }})">
-                <i class="fa-solid fa-eye me-2"></i> View Detail
-            </a>
-            <a class="dropdown-item" href="#" onclick="setSessionId({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignExpertModal">
-                <i class="fa-solid fa-user-tie me-2"></i> Assign to Expert
-            </a>
-            <a class="dropdown-item" href="#" onclick="setSessionIdForCategory({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignCategoryModal">
-                <i class="fa-solid fa-handshake-angle me-2"></i> Assign Category
-            </a>
-        </div>
-    </div>
-</td>
+                                <div id="sessionDropdown{{ $session->id }}"
+                                    class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-start z-999">
+                                    <a class="dropdown-item" href="#" onclick="viewChatDetails({{ $session->id }})">
+                                        <i class="fa-solid fa-eye me-2"></i> View Detail
+                                    </a>
+                                    <a class="dropdown-item" href="#" onclick="setSessionId({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignExpertModal">
+                                        <i class="fa-solid fa-user-tie me-2"></i> Assign to Expert
+                                    </a>
+                                    <a class="dropdown-item" href="#" onclick="setSessionIdForCategory({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignCategoryModal">
+                                        <i class="fa-solid fa-handshake-angle me-2"></i> Assign Category
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
 
                     </tr>
                     @endforeach
