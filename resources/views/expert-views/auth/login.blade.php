@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="_token" content="{{ csrf_token() }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{{ translate('expert_Login')}}</title>
+    <link rel="shortcut icon" href="{{getStorageImages(path: getWebConfig(name: 'company_fav_icon'), type:'backend-logo')}}">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/google-fonts.css') }}">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/vendor.min.css') }}">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/vendor/icon-set/style.css') }}">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/theme.minc619.css?v=1.0') }}">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/style.css') }}">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/toastr.css') }}">
+    <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/style.css') }}">
+
+    <style>
+        :root {--c1: {{ $web_config['primary_color'] }};}
+    </style>
+
+</head>
+
+<body>
+<main id="content" role="main" class="main">
+    <div class="auth-wrapper">
+        <div class="auth-wrapper-left left-panel bg-soft-dark" style="background-image: url('{{ asset('assets/front-end/img/form-left.png') }}');">
+           <div class="content-wrapper">
+                    @php($eCommerceLogo = getWebConfig(name: 'company_web_logo'))
+                    <img src="{{ getStorageImages(path: $eCommerceLogo, type:'backend-logo') }}" alt="Ask Expert Logo" class="logo">
+                    <h1>Hey! Welcome to Ask Expert</h1>
+                </div>
+        </div>
+        <div class="auth-wrapper-right ">
+            <div class="auth-wrapper-form">
+                <div class="d-block d-lg-none">
+                    <a class="d-inline-flex mb-3">
+                        <img width="100" src="{{ getStorageImages(path: $eCommerceLogo, type:'backend-logo') }}"
+                             alt="Logo">
+                    </a>
+                </div>
+
+                <form id="form-id" action="{{route('expert.auth.login')}}" method="post" id="admin-login-form">
+                    @csrf
+                    <div>
+                        <div class="mb-5">
+                            <h1 class="display-4">{{translate('sign_in')}}</h1>
+                            <h1 class="h4 text-gray-900 mb-4">
+                                {{translate('welcome_back_to')}} {{translate('expert_Login')}}
+                            </h1>
+                        </div>
+                    </div>
+
+                    <div class="js-form-message form-group">
+                        <label class="input-label" for="signingVendorEmail">{{translate('your_email')}}</label>
+
+                        <input type="email" class="form-control form-control-lg" name="email" id="signingVendorEmail"
+                               tabindex="1" placeholder="email@address.com" aria-label="email@address.com"
+                               required data-msg="Please enter a valid email address.">
+                    </div>
+                    <div class="js-form-message form-group">
+                     
+
+                        <div class="input-group input-group-merge">
+                            <input type="password" class="js-toggle-password form-control form-control-lg"
+                                   name="password" id="signingVendorPassword"
+                                   placeholder="{{ translate('8+_characters_required') }}"
+                                   aria-label="8+ characters required" required
+                                   data-msg="Your password is invalid. Please try again."
+                                   data-hs-toggle-password-options='{
+                                                "target": "#changePassTarget",
+                                    "defaultClass": "tio-hidden-outlined",
+                                    "showClass": "tio-visible-outlined",
+                                    "classChangeTarget": "#changePassIcon"
+                                    }'>
+                            <div id="changePassTarget" class="input-group-append">
+                                <a class="input-group-text" href="javascript:">
+                                    <i id="changePassIcon" class="tio-visible-outlined"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group d-flex flex-wrap justify-content-between">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="termsCheckbox"
+                                   name="remember">
+                            <label class="custom-control-label text-muted" for="termsCheckbox">
+                                {{translate('remember_me')}}
+                            </label>
+                        </div>
+                         <a class=""  href="{{route('expert.auth.recover-password')}}" style="
+    color: #800000;">
+                                    {{ translate('forgot_password') }}?
+                                </a>
+                    </div>
+                  
+
+                    <button type="submit" class="btn btn-lg btn-block btn--primary">
+                        {{ translate('sign_in')}}
+                    </button>
+                </form>
+               
+            </div>
+        </div>
+    </div>
+</main>
+
+<span id="message-please-check-recaptcha" data-text="{{ translate('please_check_the_recaptcha') }}"></span>
+<span id="message-copied_success" data-text="{{ translate('copied_successfully') }}"></span>
+<span id="route-get-session-recaptcha-code"
+      data-route="{{ route('get-session-recaptcha-code') }}"
+      data-mode="{{ env('APP_MODE') }}"
+></span>
+
+<script src="{{dynamicAsset(path: 'public/assets/back-end/js/vendor.min.js')}}"></script>
+<script src="{{dynamicAsset(path: 'public/assets/back-end/js/theme.min.js')}}"></script>
+<script src="{{dynamicAsset(path: 'public/assets/back-end/js/toastr.js')}}"></script>
+<script src="{{dynamicAsset(path: 'public/assets/back-end/js/vendor/login.js')}}"></script>
+{!! Toastr::message() !!}
+
+@if ($errors->any())
+    <script>
+        "use strict";
+        @foreach($errors->all() as $error)
+        toastr.error('{{$error}}', Error, {
+            CloseButton: true,
+            ProgressBar: true
+        });
+        @endforeach
+    </script>
+@endif
+
+@if(isset($recaptcha) && $recaptcha['status'] == 1)
+    <script type="text/javascript">
+        "use strict";
+        var onloadCallback = function () {
+            grecaptcha.render('recaptcha_element', {
+                'sitekey': '{{ getWebConfig(name: 'recaptcha')['site_key'] }}'
+            });
+        };
+    </script>
+    <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit" async defer></script>
+@endif
+
+</body>
+</html>
+
