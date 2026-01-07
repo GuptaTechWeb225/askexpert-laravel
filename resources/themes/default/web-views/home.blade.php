@@ -79,7 +79,7 @@ $experts = $data['experts'] ?? [];
 <!-- Popular Questions -->
 <section class="container-fluid py-5">
     <div class="container">
-        <h2 class="section-title">Popular questions at JustAnswer</h2>
+        <h2 class="section-title">Popular questions at AskExpert</h2>
         <div class="row gx-4 gy-4">
             @foreach($popular_questions as $q)
 
