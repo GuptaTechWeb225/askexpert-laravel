@@ -123,6 +123,7 @@ class AdminNotificationRepository implements AdminNotificationRepositoryInterfac
                     ->where('expert_id', $expertId);
             })
             ->whereIn('status', $statuses)
+            ->whereDate('created_at', today())
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get();
@@ -132,6 +133,7 @@ class AdminNotificationRepository implements AdminNotificationRepositoryInterfac
         return $this->model
             ->forAdmin($adminId)
             ->whereIn('status', $statuses)
+            ->whereDate('created_at', today())
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get();

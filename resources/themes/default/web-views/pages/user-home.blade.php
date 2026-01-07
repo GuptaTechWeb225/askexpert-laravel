@@ -40,7 +40,7 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
             </div>
             <div class="input-group shadow-lg start-chat start-chat-home">
                 <input type="text" id="userQuestion" class="form-control" placeholder="What can we help with Today">
-                <button id="startChatBtn" class="btn btn-primary px-4">
+                <button id="startChatBtn" type="button" class="btn btn-primary px-4">
                     Start Chat
                 </button>
             </div>

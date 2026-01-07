@@ -33,9 +33,7 @@ class ChatController extends Controller
             'message' => 'nullable|string',
             'image' => 'nullable|image'
         ]);
-
         $path = null;
-
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('chat-images', 'public');
         }
@@ -130,7 +128,7 @@ class ChatController extends Controller
     {
         $chat = ChatSession::where('id', $chatId)
             ->where('user_id', auth('customer')->id())
-            ->whereIn('status', ['active', 'pending'])
+            ->whereIn('status', ['active','waiting'])
             ->firstOrFail();
 
         DB::transaction(function () use ($chat) {
@@ -153,7 +151,9 @@ class ChatController extends Controller
                 'is_read' => true
             ]);
             broadcast(new ChatMessageSent($systemMessage))->toOthers();
-            $this->expertService->createExpertEarning($chat, 'user');
+            if ($chat->expert) {
+                $this->expertService->createExpertEarning($chat, 'user');
+            }
             $notificationRepo = app(\App\Contracts\Repositories\AdminNotificationRepositoryInterface::class);
             $recipients = [
                 ['type' => 'admin', 'id' => 1],
@@ -161,7 +161,6 @@ class ChatController extends Controller
                 ['type' => 'customer', 'id' => $chat->user_id],
             ];
 
-            // 1️⃣ Admin notification
             $titleAdmin = "Chat End";
             $messageAdmin = "Chat has been ended from user side";
 
@@ -172,20 +171,19 @@ class ChatController extends Controller
                 $messageAdmin,
                 [['type' => 'admin', 'id' => 1]]
             );
+            if ($chat->expert) {
 
-            // 2️⃣ Expert notification
-            $titleExpert = "User end the chat";
-            $messageExpert = "chat has been ended by user";
+                $titleExpert = "User end the chat";
+                $messageExpert = "chat has been ended by user";
 
-            $notificationRepo->notifyRecipients(
-                $chat->id,
-                ChatSession::class,
-                $titleExpert,
-                $messageExpert,
-                [['type' => 'expert', 'id' => $chat->expert_id]]
-            );
-
-            // 3️⃣ User notification
+                $notificationRepo->notifyRecipients(
+                    $chat->id,
+                    ChatSession::class,
+                    $titleExpert,
+                    $messageExpert,
+                    [['type' => 'expert', 'id' => $chat->expert_id]]
+                );
+            }
             $titleUser = "your chat is ended now";
             $messageUser = "you end the chat from expert";
 
@@ -228,20 +226,20 @@ class ChatController extends Controller
                 'message' => 'You have already submitted a review for this chat.'
             ], 422);
         }
+        if ($chat->expert) {
+            ExpertReview::create([
+                'chat_session_id' => $chat->id,
+                'user_id' => auth('customer')->id(),
+                'expert_id' => $chat->expert_id,
+                'rating' => $request->rating,
+                'review' => $request->review
+            ]);
 
-        ExpertReview::create([
-            'chat_session_id' => $chat->id,
-            'user_id' => auth('customer')->id(),
-            'expert_id' => $chat->expert_id,
-            'rating' => $request->rating,
-            'review' => $request->review
-        ]);
-
-        $this->expertService->addPremiumIfEligible($chat, $request->rating);
+            $this->expertService->addPremiumIfEligible($chat, $request->rating);
+        }
 
         $notificationRepo = app(\App\Contracts\Repositories\AdminNotificationRepositoryInterface::class);
 
-        // Recipients
         $recipients = [
             ['type' => 'admin', 'id' => 1],
             ['type' => 'expert', 'id' => $chat->expert_id],
@@ -257,21 +255,21 @@ class ChatController extends Controller
             [['type' => 'admin', 'id' => 1]]
         );
 
-        // 2️⃣ Expert notification
-        $notificationRepo->notifyRecipients(
-            $chat->id,
-            ChatSession::class,
-            "New Review Received",
-            "You have received a new review from {$chat->customer->f_name} {$chat->customer->l_name}",
-            [['type' => 'expert', 'id' => $chat->expert_id]]
-        );
 
-        // 3️⃣ User notification
+        if ($chat->expert) {
+            $notificationRepo->notifyRecipients(
+                $chat->id,
+                ChatSession::class,
+                "New Review Received",
+                "You have received a new review from {$chat->customer?->f_name} {$chat->customer?->l_name}",
+                [['type' => 'expert', 'id' => $chat->expert_id]]
+            );
+        }
         $notificationRepo->notifyRecipients(
             $chat->id,
             ChatSession::class,
             "Review Submitted",
-            "Thank you for submitting a review for your chat with {$chat->expert->f_name} {$chat->expert->l_name}",
+            "Thank you for submitting a review for your chat with {$chat->expert?->f_name} {$chat->expert?->l_name}",
             [['type' => 'customer', 'id' => $chat->user_id]]
         );
 

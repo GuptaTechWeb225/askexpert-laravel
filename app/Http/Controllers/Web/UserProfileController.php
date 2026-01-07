@@ -26,6 +26,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Traits\Processor;
+use Illuminate\Validation\Rule;
+
 
 class UserProfileController extends Controller
 {

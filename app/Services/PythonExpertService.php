@@ -15,10 +15,7 @@ class PythonExpertService
         $this->baseUrl = getWebConfig('base_url_python');
     }
 
-    /**
-     * Call Expert Recommendation API
-     * POST /api/recommend
-     */
+
     public function recommendExperts(string $question): array
     {
         try {
@@ -37,7 +34,6 @@ class PythonExpertService
             }
 
             return $response->json();
-
         } catch (Exception $e) {
             Log::error('Python recommend API exception', [
                 'error' => $e->getMessage()
@@ -67,7 +63,6 @@ class PythonExpertService
             }
 
             return true;
-
         } catch (Exception $e) {
             Log::error('Python train API exception', [
                 'error' => $e->getMessage()
@@ -88,6 +83,58 @@ class PythonExpertService
             return $response->ok();
         } catch (Exception $e) {
             return false;
+        }
+    }
+
+
+    public function startChatbot(string $question): array
+    {
+        try {
+            $response = Http::timeout(15)->post($this->baseUrl . '/chat', [
+                'user_message' => $question
+            ]);
+
+            if ($response->failed()) {
+                return [
+                    'response' => 'Welcome! How can I assist you today?',
+                    'session_id' => null,
+                    'escalate' => false
+                ];
+            }
+
+            return $response->json();
+        } catch (Exception $e) {
+            Log::error('Chatbot start error: ' . $e->getMessage());
+            return [
+                'response' => 'Welcome! How can I assist you today?',
+                'session_id' => null,
+                'escalate' => false
+            ];
+        }
+    }
+
+    public function sendChatMessage(string $sessionId, string $message): array
+    {
+        try {
+            $response = Http::timeout(15)->post($this->baseUrl . '/chat', [
+                'session_id' => $sessionId,
+                'user_message' => $message
+            ]);
+
+            if ($response->failed()) {
+                return [
+                    'response' => 'Sorry, having trouble. Connecting you to an expert...',
+                    'escalate' => true
+                ];
+            }
+
+            return $response->json();
+        } catch (Exception $e) {
+            Log::error('Chatbot message error: ' . $e->getMessage());
+            return [
+                'response' => 'Sorry, having trouble. Connecting you to an expert...',
+                'escalate' => true
+            ];
         }
     }
 }

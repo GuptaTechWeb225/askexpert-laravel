@@ -46,7 +46,7 @@ class DashboardController extends BaseController
     public function dashboard(): View
     {
         $totalQuestions = ChatSession::whereDate('started_at', today())->count();
-        $pendingQuestions = ChatSession::where('status', 'pending')->count();
+        $pendingQuestions = ChatSession::where('status', 'waiting')->count();
         $refundRequests = ChatRefundRequest::count();
 
         $joiningFees = UserPayment::where('type', 'joining_fee')

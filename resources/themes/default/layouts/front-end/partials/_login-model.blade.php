@@ -1,18 +1,19 @@
-<div class="modal fade" id="authRequiredModal" tabindex="-1" aria-labelledby="authRequiredModalLabel" aria-hidden="true">
+<!-- Email Modal for Guest Users -->
+<div class="modal fade" id="guestEmailModal" tabindex="-1" aria-labelledby="guestEmailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="authRequiredModalLabel">Login or Sign Up Required</h5>
+                <h5 class="modal-title" id="guestEmailModalLabel">Continue with Email</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-center">
-                <p class="mb-4">Login or sign up required to connect with expert and proceed with payment.</p>
-            </div>
-            <div class="modal-footer justify-content-center">
-                <a href="{{ route('customer.auth.login') }}?return_url={{ urlencode(url()->current()) }}" class="btn btn-primary">
-                    Login
-                </a> <button type="button" class="btn btn-outline-secondary" id="cancelAuthFlow">
-                    Cancel
-                </button>
+            <div class="modal-body">
+                <p>Please provide your email to proceed with your question:</p>
+                <form id="guestEmailForm">
+                    <div class="mb-3">
+                        <input type="email" class="form-control" id="guestEmail" placeholder="your@email.com" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Process</button>
+                </form>
             </div>
         </div>
     </div>

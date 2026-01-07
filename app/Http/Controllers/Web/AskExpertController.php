@@ -45,13 +45,69 @@ class AskExpertController extends Controller
         $this->payment = $payment;
     }
 
+    public function processGuestEmail(Request $request, PythonExpertService $pythonService, ExpertService $availabilityService)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'question' => 'required'
+        ]);
+
+        $email = $request->email;
+        $question = $request->question;
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            $name = explode('@', $email)[0];
+            $password = Str::random(16);
+
+            $user = User::create([
+                'f_name' => ucfirst($name),
+                'l_name' => '',
+                'email' => $email,
+                'phone' => '',
+                'password' => bcrypt($password),
+                'is_active' => true, // Naya guest always active
+                'email_verified_at' => now(),
+                'login_medium' => 'email',
+            ]);
+
+            Log::info('New guest user created and logged in', [
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
+        } else {
+            if (!$user->is_active) {
+                Log::warning('Inactive user tried to access via guest flow', [
+                    'email' => $email,
+                    'user_id' => $user->id
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account is currently inactive. Please contact support.'
+                ], 403);
+            }
+
+            Log::info('Existing active user logged in via guest flow', [
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
+        }
+
+        auth('customer')->login($user);
+
+        $newRequest = new Request(['question' => $question]);
+        return $this->startChat($newRequest, $pythonService, $availabilityService);
+    }
+
     public function startChat(
         Request $request,
         PythonExpertService $pythonService,
         ExpertService $availabilityService
     ) {
-        $request->validate(['question' => 'required|min:10']);
-
+        $request->validate(['question' => 'required']);
+       
         $userId = auth('customer')->id();
         $user = User::find($userId);
         $result = $pythonService->recommendExperts($request->question);
@@ -196,7 +252,7 @@ class AskExpertController extends Controller
                     'category_specialty' => $category->primary_specialty ?? $category->name,
                     'product_title' => $category->name,
                     'headline' => "Get expert help for your " . strtolower($category->primary_specialty ?? $category->name) . " issue",
-                    'pricing_paragraph' => $pricing_paragraph, 
+                    'pricing_paragraph' => $pricing_paragraph,
                     'category_image' => $category->card_image_url ?? asset('default-category-image.jpg'),
                     'stripe_subscription_id' => $subscriptionToExtend?->stripe_subscription_id ?? $subscription?->id,
                     'stripe_customer_id' => $stripeCustomer->id,
@@ -267,9 +323,9 @@ class AskExpertController extends Controller
 
             $chat = ChatSession::create([
                 'user_id' => $user->id,
-                'expert_id' => $expert?->id, // NULL allowed
+                'expert_id' => $expert?->id,
                 'category_id' => $data->category_id,
-                'status' => 'active',
+                'status'  => $expert ? 'active' : 'waiting',
                 'payment_status' => 'paid',
                 'total_charged' => $data->expert_fee,
                 'started_at' => now()

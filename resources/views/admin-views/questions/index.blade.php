@@ -156,10 +156,10 @@
                                 <a class="js-hs-unfold-invoker text-dark"
                                     href="javascript:"
                                     data-hs-unfold-options='{
-                "target": "#sessionDropdown{{ $session->id }}",
-                "type": "css-animation",
-                 "smartPositionOff": true
-           }'>
+                                            "target": "#sessionDropdown{{ $session->id }}",
+                                            "type": "css-animation",
+                                            "smartPositionOff": true
+                                    }'>
                                     <i class="fa-solid fa-ellipsis-vertical"></i>
                                 </a>
 

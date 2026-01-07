@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/back-end/vendor/icon-set/style.css') }}">
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/owl.carousel.min.css') }}">
     <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
 
     <!-- Heroicons (via unpkg, works in browser) -->
@@ -140,6 +141,7 @@
 
 <!-- Store start chat route in a span tag -->
 <span id="start-chat-route" data-url="{{ route('ask.expert.start') }}" style="display:none;"></span>
+<span id="guest-chat-route" data-url="{{ route('guest.process-email') }}" style="display:none;"></span>
 <span id="session-clear-route" data-url="{{ route('customer.auth.clear.pending') }}" style="display:none;"></span>
 <span id="store-return-url-route" data-url="{{ route('customer.auth.store.return.url') }}" style="display:none;"></span>
 <script>
@@ -165,14 +167,13 @@
     <script src="{{ theme_asset(path: 'public/assets/front-end/js/theme.js') }}"></script>
     <script src="{{ theme_asset(path: 'public/assets/front-end/js/question-model.js') }}"></script>
     <script src="{{ theme_asset(path: 'public/assets/front-end/js/cat-chatboat.js') }}"></script>
-    <!-- <script src="{{ theme_asset(path: 'public/assets/front-end/js/sweet_alert.js') }}"></script> -->
     <script src="{{ theme_asset(path: "public/assets/back-end/js/toastr.js") }}"></script>
     <script src="{{ theme_asset(path: 'public/assets/front-end/js/custom.js') }}"></script>
     <script src="{{ theme_asset(path: 'public/assets/front-end/js/main.js') }}"></script>
     <script src="{{ theme_asset(path: 'public/assets/front-end/js/chatboat.js') }}"></script>
     <script src="{{ theme_asset(path: 'public/assets/front-end/js/swiper-bundle.min.js') }}"></script>
     <script src="{{ theme_asset(path: 'public/assets/front-end/js/custome-swiper.js') }}"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 
     {!! Toastr::message() !!}

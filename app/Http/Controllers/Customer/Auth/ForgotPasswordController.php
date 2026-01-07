@@ -94,7 +94,6 @@ class ForgotPasswordController extends Controller
         ]);
     }
 
-    // Hamesha same message dikhao — registered ho ya na ho
     Toastr::success('If your email is registered, an OTP has been sent.');
     Log::info('Redirecting to OTP verification page', ['email' => $user->email]);
 

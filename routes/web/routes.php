@@ -22,6 +22,7 @@ use App\Http\Controllers\Web\AskExpertController;
 use App\Http\Controllers\Web\ReviewController;
 use App\Http\Controllers\Web\ChatController;
 use App\Http\Controllers\Web\NotificantionsController;
+use App\Http\Controllers\Web\ChatbotController;
 use App\Http\Controllers\Payment_Methods\SslCommerzPaymentController;
 use App\Http\Controllers\Payment_Methods\StripePaymentController;
 use App\Http\Controllers\Payment_Methods\PaymobController;
@@ -96,7 +97,8 @@ Route::group(['namespace' => 'Web', 'middleware' => ['maintenance_mode', 'guestC
         ->name('ask.expert.start');
     Route::get('/payment/expert-success', [AskExpertController::class, 'paymentSuccess'])->name('expert.payment.success');
     Route::get('/payment/expert-fail', [AskExpertController::class, 'paymentFail'])->name('expert.payment.fail');
-    // chat view
+    Route::post('/guest/process-email', [AskExpertController::class, 'processGuestEmail'])
+        ->name('guest.process-email');
     Route::get('/chat/{chat}', [ChatController::class, 'view'])
         ->name('chat.view');
     Route::get('/chat/{chat}/experts-online', [ChatController::class, 'check'])
@@ -108,6 +110,8 @@ Route::group(['namespace' => 'Web', 'middleware' => ['maintenance_mode', 'guestC
         ->name('chat.send');
 
     Route::post('/chat/mark-read', [ChatController::class, 'markRead'])->name('chat.mark-read');
+    Route::post('/chatbot/start', [ChatbotController::class, 'start'])->name('chatbot.start');
+    Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
 
     Route::controller(WebController::class)->group(function () {
         Route::get('checkout-details', 'checkout_details')->name('checkout-details');
@@ -184,10 +188,7 @@ Route::group(['middleware' => ['maintenance_mode']], function () {
     })->name('authentication-failed');
 
     Route::group(['namespace' => 'Customer', 'prefix' => 'customer', 'as' => 'customer.'], function () {
-
         Route::group(['namespace' => 'Auth', 'prefix' => 'auth', 'as' => 'auth.'], function () {
-
-
             Route::controller(ForgotPasswordController::class)->group(function () {
                 Route::get('recover-password', 'reset_password')->name('recover-password');
                 Route::post('forgot-password', 'resetPasswordRequest')->name('forgot-password-send');
@@ -323,8 +324,8 @@ Route::group(['middleware' => ['maintenance_mode']], function () {
         Route::get('payment-fail', 'fail')->name('payment-fail');
     });
     Route::post('payment/stripe/intent', [StripePaymentController::class, 'createPaymentIntent'])->name('stripe.payment.intent');
-// routes/web.php
-Route::post('stripe/webhook', [StripePaymentController::class, 'handle']);
+    // routes/web.php
+    Route::post('stripe/webhook', [StripePaymentController::class, 'handle']);
 
     $isGatewayPublished = 0;
     try {

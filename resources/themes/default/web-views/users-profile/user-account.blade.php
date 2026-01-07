@@ -85,6 +85,8 @@
                                     <div class="position-relative d-flex align-items-center">
 
                                         @php($userPhoneOnly = $customerDetail['phone'])
+
+                                
                                         <input class="form-control phone-input-with-country-picker"
                                             name="phone"
                                             id="phone"
@@ -195,106 +197,123 @@
 
 @push('script')
 <script src="{{ theme_asset(path: 'public/assets/front-end/plugin/intl-tel-input/js/intlTelInput.js') }}"></script>
-<script src="{{ theme_asset(path: 'public/assets/front-end/js/country-picker-init.js') }}"></script>
 <script src="{{ theme_asset(path: 'public/assets/front-end/vendor/jquery/dist/jquery-2.2.4.min.js') }}"></script>
 <script>
-    $(document).ready(function() {
-        var phoneInput = document.querySelector("#phone");
-        var iti = window.intlTelInput(phoneInput, {
-            separateDialCode: true,
-            utilsScript: "{{ theme_asset('public/assets/front-end/plugin/intl-tel-input/js/utils.js') }}"
-        });
+  $(document).ready(function() {
+    var phoneInput = document.querySelector("#phone");
 
-        // On country change, update input with full number
-        phoneInput.addEventListener('countrychange', function() {
-            phoneInput.value = iti.getNumber();
-        });
+    var iti = window.intlTelInput(phoneInput, {
+        separateDialCode: true,
+        nationalMode: false,  // ← FALSE kar do – ye main culprit tha!
+        initialCountry: "auto",
+        geoIpLookup: function(callback) {
+            fetch('https://ipapi.co/json/')
+                .then(res => res.json())
+                .then(data => callback(data.country_code?.toLowerCase() || 'sa'))
+                .catch(() => callback('sa'));
+        },
+        utilsScript: "{{ theme_asset('public/assets/front-end/plugin/intl-tel-input/js/utils.js') }}"
+    });
 
-        $("#profile_form").on("submit", function(e) {
-            e.preventDefault();
+    // Existing number load – + ke saath hai to perfectly detect karega
+    let existingNumber = phoneInput.value.trim();
 
-            // Ensure input has full number before upload
-            phoneInput.value = iti.getNumber();
+    if (existingNumber) {
+        iti.setNumber(existingNumber); // +18741254875 → USA detect karega automatically
+    }
 
-            // FORM DATA for image upload
-            let formData = new FormData(this);
+    $("#profile_form").on("submit", function(e) {
+        e.preventDefault();
 
-            $.ajax({
-                type: "POST",
-                url: $(this).attr('action'),
-                data: formData,
-                processData: false, // important
-                contentType: false, // important
-                cache: false, // optional but recommended
-                beforeSend: function() {
-                    $("#loading").addClass("d-grid");
-                },
-                success: function(response) {
-                    if (response.errors) {
-                        response.errors.forEach(function(err) {
-                            toastr.error(err.message);
-                        });
-                    } else if (response.error) {
-                        toastr.error(response.error);
-                    } else if (response.status === 1) {
-                        toastr.success(response.message);
-                        window.location.reload();
-                    }
-                },
-                complete: function() {
-                    $("#loading").removeClass("d-grid");
-                }
-            });
-        });
+        let fullNumber = iti.getNumber(); // +18741254875 format mein milega
 
-
-        $(".update-account-info").on("click", function() {
-            $("#profile_form").submit();
-        });
-
-
-
-       $('#deleteAccountBtn').on('click', function() {
-    Swal.fire({
-        title: '{{ translate("are_you_sure") }}?',
-        text: '{{ translate("want_to_delete_this_account") }}?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: '{{ translate("yes_delete_it") }}',
-        cancelButtonText: '{{ translate("cancel") }}'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '{{ route("account-delete", auth("customer")->id()) }}',
-                type: 'POST',
-                data: {
-                    _token: '{{ csrf_token() }}',
-                    _method: 'DELETE'  // Yeh add kar do
-                },
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: '{{ translate("deleted") }}',
-                            text: response.message,
-                            timer: 2000,
-                            showConfirmButton: false
-                        }).then(() => {
-                            window.location.href = response.redirect || '{{ route("home") }}';
-                        });
-                    } else {
-                        toastr.error(response.message);
-                    }
-                },
-                error: function() {
-                    toastr.error('{{ translate("unable_to_delete_account") }}');
-                }
-            });
+        if (!fullNumber) {
+            toastr.error("Please enter a valid phone number");
+            return false;
         }
+
+        // Input mein full number daal do
+        phoneInput.value = fullNumber;
+
+        let formData = new FormData(this);
+        formData.set('phone', fullNumber);
+
+        $.ajax({
+            type: "POST",
+            url: $(this).attr('action'),
+            data: formData,
+            processData: false,
+            contentType: false,
+            cache: false,
+            beforeSend: function() {
+                $("#loading").addClass("d-grid");
+            },
+            success: function(response) {
+                if (response.status === 1) {
+                    toastr.success(response.message);
+                    location.reload();
+                } else {
+                    toastr.error(response.message || response.error);
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 422) {
+                    let errors = xhr.responseJSON.errors;
+                    Object.values(errors).forEach(function(errorArray) {
+                        errorArray.forEach(function(errMsg) {
+                            toastr.error(errMsg);
+                        });
+                    });
+                } else {
+                    toastr.error("Something went wrong.");
+                }
+            },
+            complete: function() {
+                $("#loading").removeClass("d-grid");
+            }
+        });
     });
 });
+    $('#deleteAccountBtn').on('click', function() {
+        Swal.fire({
+            title: '{{ translate("are_you_sure") }}?',
+            text: '{{ translate("want_to_delete_this_account") }}?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: '{{ translate("yes_delete_it") }}',
+            cancelButtonText: '{{ translate("cancel") }}'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '{{ route("account-delete", auth("customer")->id()) }}',
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        _method: 'DELETE' // Yeh add kar do
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '{{ translate("deleted") }}',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.href = response.redirect || '{{ route("home") }}';
+                            });
+                        } else {
+                            toastr.error(response.message);
+                        }
+                    },
+                    error: function() {
+                        toastr.error('{{ translate("unable_to_delete_account") }}');
+                    }
+                });
+            }
+        });
     });
 </script>
 @endpush

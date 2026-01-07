@@ -33,6 +33,11 @@ class CustomerProfileUpdateRequest extends FormRequest
                 'max:20',
                 Rule::unique('users', 'phone')->ignore(auth('customer')->id(), 'id'),
             ],
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->ignore(auth('customer')->id(), 'id'),
+            ],
             'image' => 'mimes:jpg,jpeg,png,webp,gif,bmp,tif,tiff',
         ];
     }
@@ -46,6 +51,7 @@ class CustomerProfileUpdateRequest extends FormRequest
             'phone.unique' => translate('phone_number_already_has_been_taken'),
             'phone.max' => translate('The_phone_number_may_not_be_greater_than_20_characters'),
             'image.mimes' => translate('The_image_type_must_be') . '.jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff,.webp',
+            'email.unique' => 'This email is already in use.',
         ];
     }
 
@@ -57,30 +63,34 @@ class CustomerProfileUpdateRequest extends FormRequest
                 $numericLength = strlen($numericPhoneValue);
                 if ($numericLength < 4) {
                     $validator->errors()->add(
-                        'phone.min', translate('The_phone_number_must_be_at_least_4_characters')
+                        'phone.min',
+                        translate('The_phone_number_must_be_at_least_4_characters')
                     );
                 }
 
                 if ($numericLength > 20) {
                     $validator->errors()->add(
-                        'phone.max', translate('The_phone_number_may_not_be_greater_than_20_characters')
+                        'phone.max',
+                        translate('The_phone_number_may_not_be_greater_than_20_characters')
                     );
                 }
 
                 if ($this['password'] && !empty($this['password']) && empty($this['confirm_password'])) {
                     $validator->errors()->add(
-                        'confirm_password.required', translate('confirm_password_is_required')
+                        'confirm_password.required',
+                        translate('confirm_password_is_required')
                     );
                 } elseif ($this['confirm_password'] && !empty($this['confirm_password']) && empty($this['password'])) {
                     $validator->errors()->add(
-                        'password.required', translate('password_is_required')
+                        'password.required',
+                        translate('password_is_required')
                     );
                 } elseif ($this['password'] != $this['confirm_password']) {
                     $validator->errors()->add(
-                        'password.same:confirm_password', translate('passwords_must_match_with_confirm_password')
+                        'password.same:confirm_password',
+                        translate('passwords_must_match_with_confirm_password')
                     );
                 }
-
             }
         ];
     }
