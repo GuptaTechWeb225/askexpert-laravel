@@ -104,7 +104,7 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                             </a>
                         </li>
 
-                        <li class="navbar-vertical-aside-has-menu {{(Request::is('admin/expert-category/*')) ||(Request::is('admin/expert-category/index')) || (Request::is('admin/expert-category/create'))?'active':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{(Request::is('admin/expert-category*')) ||(Request::is('admin/expert-category/index')) || (Request::is('admin/expert-category/create'))?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link" title="Categories & Pricing" href="{{ route('admin.expert-category.index') }}">
                                 <i class="tio-label nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">Categories & Pricing</span>

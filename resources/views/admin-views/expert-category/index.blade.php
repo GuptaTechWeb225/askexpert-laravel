@@ -29,7 +29,7 @@
             <a class="business-analytics card">
                 <h5 class="business-analytics__subtitle">{{translate('Custom Pricing Enabled')}}</h5>
                 <div class="mt-2 d-flex justify-content-between align-items-center w-100">
-                    <h2 class="business-analytics__title">{{ $categories->count() }}</h2>
+                    <h2 class="business-analytics__title">{{ $totalCategories->count() }}</h2>
                     <img src="{{dynamicAsset(path: 'public/assets/back-end/img/categories/customer-icon-1.png')}}" width="40" height="40" class="" alt="">
                 </div>
 
@@ -39,7 +39,7 @@
             <a class="business-analytics card">
                 <h5 class="business-analytics__subtitle">{{translate('Default Pricing Applied')}}</h5>
                 <div class="mt-2 d-flex justify-content-between align-items-center w-100">
-                    <h2 class="business-analytics__title">{{ $categories->count() }}</h2>
+                    <h2 class="business-analytics__title">{{ $totalCategories->count() }}</h2>
                     <img src="{{dynamicAsset(path: 'public/assets/back-end/img/categories/categories-pricing-icon-3.png')}}" width="40" height="40" class="" alt="">
                 </div>
             </a>
