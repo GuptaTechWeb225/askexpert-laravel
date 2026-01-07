@@ -53,7 +53,7 @@ class HomeController extends Controller
         ->orderByDesc('item_id') // ya created_at
         ->pluck('item_id')
         ->unique()
-        ->take(4);
+        ->take(5);
 
     return HomeCms::where('section', $section)
         ->where('status', true)
