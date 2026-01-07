@@ -20,12 +20,13 @@
 
 @php
 $hero = $data['hero'] ?? [];
-$quick_buttons = $data['quick_buttons'] ?? [];
+$quick_buttons = app('App\Http\Controllers\Admin\Cms\HomeController')::getSectionDataStatic('quick_buttons');
 $popular_questions = $data['popular_questions'] ?? [];
 $how_it_works = $data['how_it_works'] ?? [];
 $why_love = $data['why_love'] ?? [];
 $testimonials = $data['testimonials'] ?? [];
 $experts = $data['experts'] ?? [];
+
 @endphp
 
 <section class="hero-section">
