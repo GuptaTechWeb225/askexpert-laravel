@@ -168,7 +168,7 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">Setting</span>
                             </a>
                             <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
-                                style="display: {{Request::is('admin/content-management/home') || Request::is('admin/content-management/pricing') || Request::is('admin/content-management/expert-cms') || Request::is('admin/content-management/help') || Request::is('admin/content-management/web-config*') || Request::is('admin/business-settings/social-media') ? 'block' : 'none'}}">
+                                style="display: {{Request::is('admin/content-management/home') || Request::is('admin/pricing-cms') || Request::is('admin/content-management/about') || Request::is('admin/content-management/expert-cms') || Request::is('admin/content-management/help') || Request::is('admin/content-management/web-config*') || Request::is('admin/business-settings/social-media') ? 'block' : 'none'}}">
                                 <li class="nav-item {{Request::is('admin/content-management/home')?'active':''}}">
                                     <a class="nav-link" href="{{ route('admin.content-management.home') }}" title="{{translate('Home')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
@@ -176,7 +176,7 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                                         </span>
                                     </a>
                                 </li>
-                                <li class="nav-item {{Request::is('admin/content-management/pricing')?'active':''}}">
+                                <li class="nav-item {{Request::is('admin/pricing-cms*')?'active':''}}">
                                     <a class="nav-link" href="{{ route('admin.content-management.pricing') }}" title="{{translate('Pricing')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">{{translate('Pricing')}}

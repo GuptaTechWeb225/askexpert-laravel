@@ -104,7 +104,7 @@
             </div>
         </div>
         <div class="header-icons">
-            <span class="tooltip-icon close-btn" id="bot-chat-close">X</span>
+            <span class="tooltip-icon close-btn" data-tooltip="Close" id="close-chat    ">X</span>
         </div>
     </div>
 
@@ -122,7 +122,6 @@
         </div>
     </div>
 
-    <!-- INPUT -->
     <div class="chat-footer ec-expert-input-footer" id="bot-chat-footer">
         <input
             type="text"

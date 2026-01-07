@@ -31,7 +31,7 @@
             <div class="modal-content">
                 <div class="modal-header text-white">
                     <h5 class="modal-title" id="modalTitle">Edit</h5>
-                <button type="button" class="btn-close" data-dismiss="modal">&times;</button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body" id="modalBody"></div>
                 <div class="modal-footer">
