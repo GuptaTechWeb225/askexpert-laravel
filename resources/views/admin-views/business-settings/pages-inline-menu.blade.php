@@ -7,14 +7,8 @@
         <li class="{{ Request::is('admin/business-settings/'.Pages::PRIVACY_POLICY[URI]) ?'active':'' }}">
             <a href="{{route('admin.business-settings.privacy-policy')}}">{{translate('privacy_Policy')}}</a>
         </li>
-      
-        <li class="{{ Request::is('admin/business-settings/'.Pages::ABOUT_US[URI]) ?'active':'' }}">
-            <a href="{{route('admin.business-settings.about-us')}}">{{translate('about_Us')}}</a>
+          <li class="{{ Request::is('admin/business-settings/'.Pages::VIEW[URI].'/refund-policy') ?'active':'' }}">
+            <a href="{{route('admin.business-settings.page',['refund-policy'])}}">{{translate('refund_Policy')}}</a>
         </li>
-        <li class="{{ Request::is('admin/helpTopic/'.\App\Enums\ViewPaths\Admin\HelpTopic::LIST[URI]) ?'active':'' }}">
-            <a href="{{route('admin.helpTopic.list')}}">{{translate('FAQ')}}</a>
-        </li>
-
-
     </ul>
 </div>

@@ -46,16 +46,24 @@ class HomeController extends Controller
             ->sortBy(fn($item) => $item['sort_order'] ?? 0);
     }
 
-     public static function getSectionDataStatic($section)
-    {
-        return HomeCms::where('section', $section)
-            ->where('status', true)
-            ->get()
-            ->groupBy('item_id')
-            ->map(fn($group) => $group->pluck('value', 'cms_key')->toArray())
-            ->sortBy(fn($item) => $item['sort_order'] ?? 0)
-            ->toArray();
-    }
+   public static function getSectionDataStatic($section)
+{
+    $itemIds = HomeCms::where('section', $section)
+        ->where('status', true)
+        ->orderByDesc('item_id') // ya created_at
+        ->pluck('item_id')
+        ->unique()
+        ->take(5);
+
+    return HomeCms::where('section', $section)
+        ->where('status', true)
+        ->whereIn('item_id', $itemIds)
+        ->get()
+        ->groupBy('item_id')
+        ->map(fn ($group) => $group->pluck('value', 'cms_key')->toArray())
+        ->toArray();
+}
+
 
     public function addItem($section)
     {

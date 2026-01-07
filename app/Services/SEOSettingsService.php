@@ -11,19 +11,13 @@ class SEOSettingsService
     public function getRobotsMetaContentPages(): array
     {
         return [
+            "home" => ['title' => 'home', 'route' => route('home')],
             "about-us" => ['title' => 'about_us', 'route' => route('about-us')],
-            "brands" => ['title' => 'all_Brands', 'route' => route('brands')],
-            "categories" => ['title' => 'all_Categories', 'route' => route('categories')],
-            "vendors" => ['title' => 'vendor_List', 'route' => route('vendors')],
-            "contacts" => ['title' => 'contact_us', 'route' => route('contacts')],
-            "helpTopic" => ['title' => 'FAQ', 'route' => route('helpTopic')],
-            "track-order" => ['title' => 'track_order', 'route' => route('track-order.index')],
-            "terms" => ['title' => 'terms_and_conditions', 'route' => route('terms')],
-            "return-policy" => ['title' => 'return_policy', 'route' => route('return-policy')],
-            "refund-policy" => ['title' => 'refund_policy', 'route' => route('refund-policy')],
-            "privacy-policy" => ['title' => 'privacy_policy', 'route' => route('privacy-policy')],
-            "cancellation-policy" => ['title' => 'cancellation_policy', 'route' => route('cancellation-policy')],
-            "shipping-policy" => ['title' => 'shipping_policy', 'route' => route('shipping-policy')],
+            "user-home" => ['title' => 'user_home', 'route' => route('user.home')],
+            "price" => ['title' => 'price', 'route' => route('price')],
+            "expert" => ['title' => 'expert', 'route' => route('expert')],
+            "help" => ['title' => 'help', 'route' => route('help')],
+            "knowledge-base" => ['title' => 'knowledge_base', 'route' => route('knowledge-base.all')],
         ];
     }
 

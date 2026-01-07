@@ -4,6 +4,8 @@ use App\Enums\ViewPaths\Admin\Customer;
 use App\Enums\ViewPaths\Admin\Dashboard;
 use App\Enums\ViewPaths\Admin\Pages;
 use App\Enums\ViewPaths\Admin\SocialMedia;
+use App\Enums\ViewPaths\Admin\SEOSettings;
+use App\Enums\ViewPaths\Admin\SiteMap;
 use App\Enums\ViewPaths\Admin\Expert;
 use App\Utils\Helpers;
 $eCommerceLogo = getWebConfig(name: 'company_web_logo');
@@ -209,13 +211,19 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                                         </span>
                                     </a>
                                 </li>
-                                <li class="nav-item {{Request::is('admin/business-settings/web-config')?'active':''}}">
-                                    <a class="nav-link" href="{{ route('admin.business-settings.web-config.index') }}" title="{{translate('General Setting')}}">
+                                  <li class="nav-item {{ (
+                                    Request::is('admin/business-settings/'.Pages::TERMS_CONDITION[URI]) ||
+                                    Request::is('admin/business-settings/'.Pages::VIEW[URI].'*') ||
+                                    Request::is('admin/business-settings/'.Pages::PRIVACY_POLICY[URI]) ||
+                                    Request::is('admin/business-settings/'.Pages::ABOUT_US[URI])) ? 'active' : '' }}">
+                                    <a class="nav-link" href="{{route('admin.business-settings.terms-condition')}}"
+                                        title="{{translate('business_Pages')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">{{translate('General Setting')}}
-                                        </span>
+                                        <span class="text-truncate">{{translate('business_Pages')}}</span>
                                     </a>
                                 </li>
+
+                            
                                 <li
                                     class="nav-item {{ Request::is('admin/business-settings/'.SocialMedia::VIEW[URI]) ? 'active' : '' }}">
                                     <a class="nav-link"
@@ -251,6 +259,47 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                                     </a>
                                 </li>
 
+                            </ul>
+                        </li>
+                         <li class="navbar-vertical-aside-has-menu">
+                            <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
+                                title="{{translate('business_Setup')}}">
+                                <i class="tio-pages-outlined nav-icon"></i>
+                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
+                                    {{translate('business_Setup')}}
+                                </span>
+                            </a>
+                            <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{(
+                                        Request::is('admin/business-settings/web-config') ||
+                                        Request::is('admin/business-settings/delivery-restriction'))?'block':'none'}}">
+                                <li
+                                    class="nav-item {{(
+                                            Request::is('admin/business-settings/web-config') ||
+                                         
+                                            Request::is('admin/business-settings/delivery-restriction'))?'active':''}}">
+                                    <a class="nav-link" href="{{route('admin.business-settings.web-config.index')}}"
+                                        title="{{translate('business_Settings')}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">
+                                            {{translate('business_Settings')}}
+                                        </span>
+                                    </a>
+                                </li>
+                               
+                                <li class="nav-item {{
+                                        (Request::is('admin/seo-settings/'.SEOSettings::WEB_MASTER_TOOL[URI]) ||
+                                        Request::is('admin/seo-settings/'.SEOSettings::ROBOT_TXT[URI]) ||
+                                        Request::is('admin/seo-settings/'.SiteMap::SITEMAP[URI]) ||
+                                        Request::is('admin/seo-settings/robots-meta-content/*')) ? 'active' : ''
+                                    }}">
+                                    <a class="nav-link" href="{{ route('admin.seo-settings.robots-meta-content.index') }}"
+                                        title="{{ translate('SEO_Settings') }}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">
+                                            {{ translate('SEO_Settings') }}
+                                        </span>
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                         @endif

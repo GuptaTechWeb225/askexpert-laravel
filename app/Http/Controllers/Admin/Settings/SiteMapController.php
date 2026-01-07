@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin\Settings;
 
-use App\Contracts\Repositories\ShopRepositoryInterface;
 use App\Enums\ViewPaths\Admin\SiteMap;
 use App\Enums\WebConfigKey;
 use App\Http\Controllers\BaseController;
@@ -30,7 +29,6 @@ class SiteMapController extends BaseController
     use FileManagerTrait;
 
     public function __construct(
-        private readonly ShopRepositoryInterface    $shopRepo,
     )
     {
     }

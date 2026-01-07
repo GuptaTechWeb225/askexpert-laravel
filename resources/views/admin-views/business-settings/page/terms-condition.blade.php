@@ -29,7 +29,7 @@
                                     name="value">{{$terms_condition->value}}</textarea>
                             </div>
                             <div class="form-group">
-                                <input class="form-control btn--primary" type="submit" value="{{translate('submit')}}" name="btn">
+                                <input class="form-control" type="submit" value="{{translate('submit')}}" name="btn">
                             </div>
                         </div>
                     </form>

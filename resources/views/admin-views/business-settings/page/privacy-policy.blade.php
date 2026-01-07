@@ -28,7 +28,7 @@
                                 <textarea class="form-control summernote" id="editor" name="value">{{$privacy_policy->value}}</textarea>
                             </div>
                             <div class="form-group">
-                                <input class="form-control btn--primary" type="submit" value="{{translate('submit')}}" name="btn">
+                                <input class="form-control" type="submit" value="{{translate('submit')}}" name="btn">
                             </div>
                         </div>
                     </form>

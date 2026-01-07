@@ -5,10 +5,8 @@
 @push('css_or_js')
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Toastr CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 
-<!-- Intl Tel Input CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.min.css" />
 <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/plugin/intl-tel-input/css/intlTelInput.css') }}">
 @endpush
@@ -16,10 +14,7 @@
 @section('content')
 
 <section class="relative bg-gradient-to-r from-[#129d91] to-[#0f776d] text-white py-24 overflow-hidden shadow-xl rounded-lg">
-    <!-- Background Image Layer (optional) -->
     <div class="absolute inset-0 bg-[url('/images/contact-us-bg.jpg')] bg-cover bg-center opacity-10 blur-sm"></div>
-
-    <!-- Main Content -->
     <div class="relative container mx-auto px-6 text-center animate__animated animate__fadeInDown">
         <h1 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">Get In Touch With Us</h1>
         <p class="text-lg md:text-xl mb-6 max-w-2xl mx-auto">
