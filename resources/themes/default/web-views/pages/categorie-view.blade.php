@@ -182,7 +182,10 @@
         <div class="swiper-wrapper">
             @foreach($categories as $cat)
             <div class="swiper-slide page-link">
-                <img src="{{ $cat->icon_url }}" alt="{{ $cat->name ?? '' }}" class="card-image">
+                <img
+                    src="{{ !empty($cat->icon_url) ? $cat->icon_url : asset('assets/back-end/img/placeholder/category.png') }}"
+                    alt="{{ $cat->name ?? '' }}"
+                    class="card-image">
                 <div class="slide-content">
                     <a href="{{ route('category.view', $cat->id) }}"> <strong class="d-block mb-2 text-dark">{{ $cat['name'] ?? '' }}</strong>
                     </a>
@@ -226,7 +229,11 @@
 @push('script')
 
 <script>
-    window.isCustomerLoggedIn = {{ auth('customer')->check() ? 'true' : 'false' }};
+    window.isCustomerLoggedIn = {
+        {
+            auth('customer') - > check() ? 'true' : 'false'
+        }
+    };
     window.pendingQuestionForPayment = '';
 </script>
 <script>
@@ -366,7 +373,7 @@
             proceedToPayment() {
                 if (!this.originalQuestion) return;
 
-                  if (!window.isCustomerLoggedIn) {
+                if (!window.isCustomerLoggedIn) {
                     window.pendingQuestionForPayment = this.originalQuestion;
                     var emailModal = new bootstrap.Modal(document.getElementById('guestEmailModal'));
                     emailModal.show();

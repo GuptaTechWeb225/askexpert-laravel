@@ -61,8 +61,10 @@ $experts = $data['experts'] ?? [];
         <div class="swiper-wrapper">
             @foreach($categories as $cat)
             <div class="swiper-slide page-link">
-                <img src="{{ $cat->icon_url }}" alt="{{ $cat->name ?? '' }}" class="card-image">
-                <div class="slide-content">
+ <img
+                    src="{{ !empty($cat->icon_url) ? $cat->icon_url : asset('assets/back-end/img/placeholder/category.png') }}"
+                    alt="{{ $cat->name ?? '' }}"
+                    class="card-image">                <div class="slide-content">
                     <a href="{{ route('category.view', $cat->id) }}"> <strong class="d-block mb-2 text-dark">{{ $cat['name'] ?? '' }}</strong>
                     </a>
                     <span class="text-muted">{{ $cat['expert_count'] ?? 0 }} Expert</span>
