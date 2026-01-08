@@ -518,11 +518,14 @@ export function expertChatComponent(chatId) {
                         }
 
                         // Step 4: Connect to Twilio Room
-                        const connectOptions = {
-                            name: 'chat_room_' + chatIdToUse,
-                            // Audio/Video ko arrays mein mangna zyada safe hota hai Twilio mein
+                        const tracks = await Twilio.Video.createLocalTracks({
                             audio: true,
                             video: this.isVideo ? { width: 640, height: 480 } : false
+                        });
+
+                        const connectOptions = {
+                            name: 'chat_room_' + chatIdToUse,
+                            tracks: tracks
                         };
 
                         console.log('🔗 Connecting to Twilio room...', connectOptions);
