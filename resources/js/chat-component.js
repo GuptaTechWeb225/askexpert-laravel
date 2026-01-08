@@ -30,7 +30,8 @@ export function chatComponent(chatId) {
             this.playRingtone();
             window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
                 from: 'user',
-                type: withVideo ? 'video' : 'voice'
+                type: withVideo ? 'video' : 'voice',
+                chatId: chatId
             });
 
         },
