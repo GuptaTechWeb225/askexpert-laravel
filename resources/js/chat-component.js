@@ -17,16 +17,11 @@ export function chatComponent(chatId) {
         isMuted: false,
 
         async initiateCall(withVideo) {
-            if (this.inCall) {
-                console.log('Already in call, ignoring');
-                return;
-            }
+            if (this.inCall) return;
 
             this.isVideo = withVideo;
             this.inCall = true;
             this.callState = 'ringing';
-
-            console.log('User initiating call', { withVideo, chatId });
 
             const modalEl = document.getElementById('callModal');
             this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -34,11 +29,31 @@ export function chatComponent(chatId) {
 
             this.playRingtone();
 
-            console.log('Sending incoming-call whisper to expert');
-            window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
-                from: 'user',
-                type: withVideo ? 'video' : 'voice'
-            });
+            try {
+                // Pehle room join karo
+                const res = await axios.post(`/chat/${chatId}/generate-token`);
+                const room = await Twilio.Video.connect(res.data.token, {
+                    name: 'chat_room_' + chatId,
+                    audio: true,
+                    video: withVideo ? { width: 640 } : false
+                });
+
+                twilioRoom = room;
+                this.setupCallUI(room);
+
+                console.log('User joined room first');
+
+                // Phir expert ko notify karo
+                window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
+                    from: 'user',
+                    type: withVideo ? 'video' : 'voice'
+                });
+
+            } catch (err) {
+                console.error('User failed to join room first:', err);
+                alert('Call failed to start.');
+                this.endCall();
+            }
         },
         playRingtone() {
             const ringtone = document.getElementById('ringtone');
@@ -68,6 +83,13 @@ export function chatComponent(chatId) {
                 this.attachParticipant(participant);
             });
 
+            room.localParticipant.videoTracks.forEach(publication => {
+                if (publication.track) {
+                    const element = publication.track.attach();
+                    document.getElementById('local-media').appendChild(element);
+                }
+            });
+
             room.on('participantDisconnected', participant => {
                 participant.tracks.forEach(pub => {
                     if (pub.track) {
@@ -78,6 +100,30 @@ export function chatComponent(chatId) {
 
             room.on('disconnected', () => {
                 this.endCall();
+            });
+        },
+
+        attachParticipant(participant) {
+            console.log('Attaching participant tracks');
+
+            participant.tracks.forEach(publication => {
+                if (publication.isSubscribed && publication.track) {
+                    const element = publication.track.attach();
+                    if (publication.track.kind === 'video') {
+                        document.getElementById('remote-media').appendChild(element);
+                    }
+                }
+            });
+
+            participant.on('trackSubscribed', track => {
+                console.log('Track subscribed:', track.kind);
+                if (track.kind === 'video') {
+                    document.getElementById('remote-media').appendChild(track.attach());
+                }
+            });
+
+            participant.on('trackUnsubscribed', track => {
+                track.detach().forEach(el => el.remove());
             });
         },
 
@@ -146,34 +192,7 @@ export function chatComponent(chatId) {
                     }
                 })
 
-                .listenForWhisper('call-accepted', async () => {
-                    if (twilioRoom) return;
 
-                    console.log('User joining room after accept');
-
-                    this.stopRingtone();
-                    this.callState = 'connected';
-
-                    try {
-                        const res = await axios.post(`/chat/${chatId}/generate-token`);
-                        const room = await Twilio.Video.connect(res.data.token, {
-                            name: 'chat_room_' + chatId,
-                            audio: true,
-                            video: this.isVideo ? { width: 640 } : false
-                        });
-
-                        twilioRoom = room;
-                        this.setupCallUI(room);
-
-                        document.getElementById('video-wrapper').classList.remove('d-none');
-                        document.getElementById('call-status').textContent = 'Connected';
-
-                    } catch (err) {
-                        console.error('User join failed:', err);
-                        alert('Call connection failed.');
-                        this.endCall();
-                    }
-                })
 
                 .listenForWhisper('call-rejected', () => {
                     this.stopRingtone();
@@ -452,43 +471,32 @@ export function expertChatComponent(chatId) {
                         this.typingTimer = setTimeout(() => this.customerTyping = false, 2000);
                     }
                 })
-                .listenForWhisper('incoming-call', (data) => {
-                    console.log('Incoming call data:', data);
+                .listenForWhisper('incoming-call', async (data) => {
+                    console.log('Incoming call – joining room');
 
-                    this.isIncoming = true;
                     this.isVideo = data.type === 'video';
                     this.callState = 'incoming';
 
-                    this.callStatusText = 'Incoming ' + (this.isVideo ? 'Video' : 'Voice') + ' Call';
-
-                    this.callerInfo = {
-                        avatar: data.avatar ?? '/assets/back-end/img/placeholder/user.png',
-                        name: data.name ?? 'Customer'
-                    };
-
-                    // ✅ Bootstrap 4 modal show
-                    $('#callModal').modal({
-                        backdrop: 'static',
-                        keyboard: false
-                    });
-
                     $('#callModal').modal('show');
+
+                    try {
+                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        const room = await Twilio.Video.connect(res.data.token, {
+                            name: 'chat_room_' + chatId,
+                            audio: true,
+                            video: this.isVideo ? { width: 640 } : false
+                        });
+
+                        twilioRoom = room;
+                        this.setupCallUI(room);
+
+                    } catch (err) {
+                        console.error('Expert failed to join room:', err);
+                        alert('Unable to join call.');
+                        this.rejectCall();
+                    }
                 })
-                .listenForWhisper('call-accepted', async () => {
-                    if (this.activeRoom) return;
 
-                    const res = await axios.post(`/chat/${chatId}/generate-token`);
-                    const token = res.data.token;
-
-                    twilioRoom = await Twilio.Video.connect(token, {
-                        name: 'chat_room_' + chatId,
-                        audio: true,
-                        video: this.isVideo ? { width: 640 } : false
-                    });
-
-                    this.setupCallUI(twilioRoom);
-
-                });
 
             if ('{{ $chat->status }}' === 'ended') {
                 this.chatEnded = true;
@@ -517,40 +525,10 @@ export function expertChatComponent(chatId) {
 
             this.callState = 'connected';
 
-            // Notify user
+            // Sirf user ko batao ki accept kiya
             window.Echo.private(`chat.${chatId}`).whisper('call-accepted');
 
-            // Join room
-            axios.post(`/chat/${chatId}/generate-token`)
-                .then(async res => {
-                    console.log('Expert token received');
-
-                    try {
-                        const room = await Twilio.Video.connect(res.data.token, {
-                            name: 'chat_room_' + chatId,
-                            audio: true,
-                            video: this.isVideo ? { width: 640 } : false
-                        });
-
-                        twilioRoom = room;
-                        console.log('Expert joined room successfully');
-
-                        this.setupCallUI(room);
-
-                        // Show connected UI
-                        document.getElementById('video-wrapper').classList.remove('d-none');
-                        document.getElementById('call-status').textContent = 'Connected';
-
-                    } catch (err) {
-                        console.error('Twilio connect failed:', err);
-                        alert('Unable to connect. Please check camera/mic permissions.');
-                        this.endCall();
-                    }
-                })
-                .catch(err => {
-                    console.error('Token fetch failed:', err);
-                    alert('Failed to get connection token.');
-                });
+            // Room join mat karo yahan – user already join kar chuka hai
         },
         setupCallUI(room) {
             console.log('Setting up Call UI...');
@@ -562,6 +540,11 @@ export function expertChatComponent(chatId) {
 
             // New join
             room.on('participantConnected', participant => {
+                console.log('User joined – call connected!');
+                this.callState = 'connected';
+                document.getElementById('video-wrapper').classList.remove('d-none');
+                document.getElementById('call-status').textContent = 'Connected';
+
                 this.attachParticipant(participant);
             });
 
@@ -573,11 +556,20 @@ export function expertChatComponent(chatId) {
                 });
             });
 
+            room.localParticipant.videoTracks.forEach(publication => {
+                if (publication.track) {
+                    const element = publication.track.attach();
+                    document.getElementById('local-media').appendChild(element);
+                }
+            });
+
             room.on('disconnected', () => {
                 this.endCall();
             });
         }
         ,
+
+
         resetCallUI() {
             if (this.activeRoom) {
                 this.activeRoom.disconnect();
@@ -621,7 +613,29 @@ export function expertChatComponent(chatId) {
         typingEvent() {
             window.Echo.private(`chat.${chatId}`).whisper('typing', { role: 'expert' });
         },
+        attachParticipant(participant) {
+            console.log('Attaching participant tracks');
 
+            participant.tracks.forEach(publication => {
+                if (publication.isSubscribed && publication.track) {
+                    const element = publication.track.attach();
+                    if (publication.track.kind === 'video') {
+                        document.getElementById('remote-media').appendChild(element);
+                    }
+                }
+            });
+
+            participant.on('trackSubscribed', track => {
+                console.log('Track subscribed:', track.kind);
+                if (track.kind === 'video') {
+                    document.getElementById('remote-media').appendChild(track.attach());
+                }
+            });
+
+            participant.on('trackUnsubscribed', track => {
+                track.detach().forEach(el => el.remove());
+            });
+        },
         appendMessage(msg) {
             if (msg.id && document.querySelector(`[data-message-id="${msg.id}"]`)) return;
 
