@@ -478,82 +478,84 @@ export function expertChatComponent(chatId) {
                     }
                 })
                 // Expert Side Fix
-               .listenForWhisper('incoming-call', async (data) => {
-    console.log('🟢 Whisper received: incoming-call', data);
+                .listenForWhisper('incoming-call', async (data) => {
+                    console.log('🟢 Whisper received: incoming-call', data);
 
-    this.isVideo = data.type === 'video';
-    this.callState = 'incoming';
+                    this.isVideo = data.type === 'video';
+                    this.callState = 'incoming';
 
-    // Modal dikhao pehle
-    console.log('📌 Showing call modal...');
-    $('#callModal').modal('show');
+                    // Modal dikhao pehle
+                    console.log('📌 Showing call modal...');
+                    $('#callModal').modal('show');
 
-    try {
-        // Step 1: Check/Request Media Permissions
-        console.log('🎤 Requesting microphone/camera access...');
-        let stream;
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: this.isVideo ? { width: 640 } : false
-            });
-            console.log('✅ Media access granted');
-        } catch (mediaErr) {
-            console.error('❌ Media access denied or unavailable:', mediaErr);
-            alert('Please allow Camera/Microphone access to join the call.');
-            this.rejectCall();
-            return; // Stop further execution
-        }
+                    try {
+                        console.log('🎤 Requesting microphone/camera access...');
+                        let stream;
+                        try {
+                            stream = await navigator.mediaDevices.getUserMedia({
+                                audio: true,
+                                video: this.isVideo ? { width: 640 } : false
+                            });
+                            console.log('✅ Media access granted');
+                        } catch (mediaErr) {
+                            console.error('❌ Media access denied or unavailable:', mediaErr);
+                            alert('Please allow Camera/Microphone access to join the call.');
+                            this.rejectCall();
+                            return; // Stop further execution
+                        }
 
-        // Step 2: Request Twilio Token
-        const chatIdToUse = data.chatId || data.id || 0; // Ensure proper chatId
-        console.log('📡 Requesting Twilio token for chatId:', chatIdToUse);
-        const res = await axios.post(`/chat/${chatIdToUse}/generate-token`);
-        console.log('✅ Token received:', res.data.token);
+                        // Step 2: Request Twilio Token
+                        const chatIdToUse = data.chatId || data.id || 0; // Ensure proper chatId
+                        console.log('📡 Requesting Twilio token for chatId:', chatIdToUse);
+                        const res = await axios.post(`/chat/${chatIdToUse}/generate-token`);
+                        console.log('✅ Token received:', res.data.token);
 
-        // Step 3: Prevent duplicate Twilio room
-        if (window.twilioRoom) {
-            console.log('⚠️ Disconnecting existing Twilio room before joining new one...');
-            window.twilioRoom.disconnect();
-            window.twilioRoom = null;
-        }
+                        // Step 3: Prevent duplicate Twilio room
+                        if (window.twilioRoom) {
+                            console.log('⚠️ Disconnecting existing Twilio room before joining new one...');
+                            window.twilioRoom.disconnect();
+                            window.twilioRoom = null;
+                        }
 
-        // Step 4: Connect to Twilio Room
-        const connectOptions = {
-            name: 'chat_room_' + chatIdToUse,
-            audio: true,
-            video: this.isVideo ? { width: 640 } : false
-        };
-        console.log('🔗 Connecting to Twilio room with options:', connectOptions);
+                        // Step 4: Connect to Twilio Room
+                        const connectOptions = {
+                            name: 'chat_room_' + chatIdToUse,
+                            audio: true,
+                            video: this.isVideo ? { width: 640 } : false
+                        };
+                        console.log('🔗 Connecting to Twilio room with options:', connectOptions);
+                        if (typeof Twilio === 'undefined') {
+                            console.error('Twilio SDK load nahi hui hai! Check script tag.');
+                            return;
+                        }
+                        const room = await Twilio.Video.connect(res.data.token, connectOptions);
+                        window.twilioRoom = room; // Save globally
+                        console.log('✅ Twilio Room connected:', room);
 
-        const room = await Twilio.Video.connect(res.data.token, connectOptions);
-        window.twilioRoom = room; // Save globally
-        console.log('✅ Twilio Room connected:', room);
+                        // Step 5: Setup UI & participants
+                        this.setupCallUI(room);
+                        console.log('🎥 Expert joined room successfully, call UI setup complete');
+                        console.log('👥 Current participants in room:', Array.from(room.participants.keys()));
 
-        // Step 5: Setup UI & participants
-        this.setupCallUI(room);
-        console.log('🎥 Expert joined room successfully, call UI setup complete');
-        console.log('👥 Current participants in room:', Array.from(room.participants.keys()));
+                    } catch (err) {
+                        console.error('❌ Expert failed to join room. Error details:');
+                        if (err.code) console.error('Twilio Error Code:', err.code);
+                        if (err.message) console.error('Message:', err.message);
+                        if (err.stack) console.error('Stack Trace:', err.stack);
 
-    } catch (err) {
-        console.error('❌ Expert failed to join room. Error details:');
-        if (err.code) console.error('Twilio Error Code:', err.code);
-        if (err.message) console.error('Message:', err.message);
-        if (err.stack) console.error('Stack Trace:', err.stack);
+                        // Twilio-specific hints
+                        if (err.message && err.message.includes('Permission')) {
+                            console.warn('⚠️ Likely cause: Camera/Microphone access denied by user');
+                        } else if (err.code === 53400) {
+                            console.warn('⚠️ Likely cause: Client unable to create local media description');
+                        } else if (err.code === 53113) {
+                            console.warn('⚠️ Likely cause: Duplicate identity or room issue');
+                        }
 
-        // Twilio-specific hints
-        if (err.message && err.message.includes('Permission')) {
-            console.warn('⚠️ Likely cause: Camera/Microphone access denied by user');
-        } else if (err.code === 53400) {
-            console.warn('⚠️ Likely cause: Client unable to create local media description');
-        } else if (err.code === 53113) {
-            console.warn('⚠️ Likely cause: Duplicate identity or room issue');
-        }
-
-        alert('Unable to join call. Please check your Camera/Microphone permissions and try again.');
-        this.rejectCall();
-    }
-});
+                        alert('Unable to join call. Please check your Camera/Microphone permissions and try again.');
+                        this.rejectCall();
+                    }
+                });
 
 
 
