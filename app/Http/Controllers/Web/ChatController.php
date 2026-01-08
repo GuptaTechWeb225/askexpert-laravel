@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Validator;
 use App\Services\ExpertService;
+use Twilio\Jwt\AccessToken;
+use Twilio\Jwt\Grants\VideoGrant;
 
 class ChatController extends Controller
 {
@@ -122,13 +124,67 @@ class ChatController extends Controller
 
         return response()->json(['success' => true]);
     }
+    public function generateTwilioToken($chatId)
+    {
+        $sid    = config('services.twilio.sid');
+        $key    = config('services.twilio.key');
+        $secret = config('services.twilio.secret');
+
+        Log::info('Twilio Token Request Started', [
+            'chat_id' => $chatId,
+            'customer_auth' => auth('customer')->check(),
+            'expert_auth' => auth('expert')->check()
+        ]);
+
+        if (empty($sid) || empty($key) || empty($secret)) {
+            Log::error('Twilio config missing');
+            return response()->json(['error' => 'Twilio configuration missing'], 500);
+        }
+
+        $customer = auth('customer')->user();
+        $expert   = auth('expert')->user();
+
+        if (!$customer && !$expert) {
+            Log::warning('Unauthorized token request');
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $role   = $customer ? 'customer' : 'expert';
+        $userId = $customer ? $customer->id : $expert->id;
+
+        // Unique identity with role + id + chatId
+        $identity = $role . '_' . $userId . '_chat_' . $chatId;
+
+        Log::info('Generating Twilio Token', [
+            'role'     => $role,
+            'user_id'  => $userId,
+            'chat_id'  => $chatId,
+            'identity' => $identity
+        ]);
+
+        $token = new AccessToken($sid, $key, $secret, 3600, $identity);
+
+        $grant = new VideoGrant();
+        $grant->setRoom('chat_room_' . $chatId);
+        $token->addGrant($grant);
+
+        $jwt = $token->toJWT();
+
+        Log::info('Twilio Token Generated Successfully', [
+            'identity' => $identity,
+            'room'     => 'chat_room_' . $chatId,
+            'jwt_length' => strlen($jwt)
+        ]);
+
+        return response()->json(['token' => $jwt]);
+    }
 
 
     public function endChat(Request $request, $chatId)
     {
         $chat = ChatSession::where('id', $chatId)
             ->where('user_id', auth('customer')->id())
-            ->whereIn('status', ['active','waiting'])
+            ->whereIn('status', ['active', 'waiting'])
             ->firstOrFail();
 
         DB::transaction(function () use ($chat) {

@@ -15,6 +15,39 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <meta name="user-id" content="{{ auth('customer')->id() }}">
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/style.css') }}">
+    <script src="https://sdk.twilio.com/js/video/releases/2.28.1/twilio-video.min.js"></script>
+
+    <audio id="ringtone" loop>
+      <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
+    </audio>
+    <style>
+      #video-container {
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 15px 0;
+        position: relative;
+        height: 400px;
+      }
+
+      #remote-media {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      #local-media {
+        width: 150px;
+        height: 150px;
+        border: 3px solid white;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(133, 105, 105, 0.3);
+      }
+
+      [x-cloak] {
+        display: none !important;
+      }
+    </style>
     @vite(['resources/js/app.js'])
 
 
@@ -56,15 +89,24 @@
           </div>
 
         </div>
-        @if($chat->status !== 'ended')
-        <div class="ms-auto pe-3">
+        <div class="ms-auto pe-3 d-flex align-items-center gap-2">
+          @if($chat->status !== 'ended')
+          <button class="btn btn-primary btn-sm" @click="initiateCall(false)">
+            <i class="fa-solid fa-phone"></i> Voice Call
+          </button>
+          <button class="btn btn-success btn-sm" @click="initiateCall(true)">
+            <i class="fa-solid fa-video"></i> Video Call
+          </button>
           <button class="btn btn-danger btn-sm" @click="endChat()">
             <i class="fa-solid fa-phone-slash"></i> End Chat
           </button>
+          @endif
         </div>
-        @endif
       </div>
       <div class="chat-body" id="messages">
+        <!-- Full screen call modal -->
+        <!-- Full screen call modal -->
+
         @foreach($messages as $msg)
         <div class="message-container {{ $msg->sender_type == 'user' ? 'user-side' : '' }}" data-message-id="{{ $msg->id }}">
           @if($msg->sender_type != 'user')
@@ -114,6 +156,72 @@
         </button>
       </div>
     </div>
+   <div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen">
+    <div class="modal-content bg-dark text-white border-0">
+      
+      <!-- Header -->
+      <div class="modal-header border-0 text-center flex-column">
+        <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
+          style="width:120px;height:120px;object-fit:cover">
+        <h4 class="modal-title" x-text="callerInfo?.name"></h4>
+        <p id="call-status" class="text-success mt-1" x-text="callStatusText"></p>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body position-relative p-0">
+        <div id="video-wrapper" class="w-100 h-100" x-show="callState === 'connected' && isVideo">
+          <div id="remote-media" class="w-100 h-100"></div>
+          <div id="local-media"
+            class="position-absolute bottom-0 end-0 m-3 rounded overflow-hidden border border-white"
+            style="width:160px;height:200px">
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="modal-footer justify-content-center border-0 bg-dark">
+
+        <!-- Incoming call buttons -->
+        <div x-show="callState === 'incoming'" class="d-flex gap-4 align-items-center">
+          <button @click="acceptCall()" class="btn btn-success rounded-circle p-4 shadow-lg">
+            <i class="fa-solid fa-phone fa-2x"></i>
+          </button>
+          <button @click="rejectCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
+            <i class="fa-solid fa-phone-slash fa-2x"></i>
+          </button>
+        </div>
+
+        <!-- Ringing / Calling buttons -->
+        <div x-show="callState === 'ringing'" class="text-center">
+          <button @click="cancelCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
+            <i class="fa-solid fa-phone-slash fa-2x"></i>
+          </button>
+          <p class="mt-2 text-white">Cancel Call</p>
+        </div>
+
+        <!-- Connected call buttons -->
+        <div x-show="callState === 'connected'" class="d-flex gap-4 align-items-center">
+          <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary'"
+            class="btn rounded-circle p-3">
+            <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
+          </button>
+
+          <button @click="hangUp()" class="btn btn-danger rounded-circle p-4">
+            <i class="fa-solid fa-phone-slash fa-2x"></i>
+          </button>
+
+          <button x-show="isVideo" @click="toggleVideo()"
+            :class="videoEnabled ? 'btn-secondary' : 'btn-danger'" class="btn rounded-circle p-3">
+            <i class="fa-solid" :class="videoEnabled ? 'fa-video' : 'fa-video-slash'"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
     <div class="modal fade" id="reviewModal" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
@@ -245,59 +353,59 @@
     });
 
     // Review Submit
-  document.getElementById('reviewForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
+    document.getElementById('reviewForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
 
-    const formData = new FormData(this);
+      const formData = new FormData(this);
 
-    fetch(`{{ route('chat.review', $chat->id) }}`, {
-        method: 'POST',
-        body: formData,
-        headers: {
+      fetch(`{{ route('chat.review', $chat->id) }}`, {
+          method: 'POST',
+          body: formData,
+          headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
             // Validation ya server error
             return response.json().then(errData => {
-                throw errData;
+              throw errData;
             });
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.success) {
             toastr.success(data.message || 'Thank you for your review!');
             const modal = bootstrap.Modal.getInstance(document.getElementById('reviewModal'));
             if (modal) modal.hide();
             setTimeout(() => {
-                window.location.href = '{{ route("home") }}';
+              window.location.href = '{{ route("home") }}';
             }, 1500);
-        }
-    })
-    .catch(error => {
-        console.log('Review submit error:', error); // Debug ke liye
+          }
+        })
+        .catch(error => {
+          console.log('Review submit error:', error); // Debug ke liye
 
-        let errorMessage = 'Something went wrong. Please try again.';
+          let errorMessage = 'Something went wrong. Please try again.';
 
-        if (error.errors && Array.isArray(error.errors)) {
+          if (error.errors && Array.isArray(error.errors)) {
             // Laravel validation errors array
             errorMessage = error.errors.join('<br>');
-        } else if (error.errors) {
+          } else if (error.errors) {
             // Object form mein errors
             let msgs = [];
             for (let field in error.errors) {
-                msgs = msgs.concat(error.errors[field]);
+              msgs = msgs.concat(error.errors[field]);
             }
             errorMessage = msgs.join('<br>');
-        } else if (error.message) {
+          } else if (error.message) {
             errorMessage = error.message;
-        }
+          }
 
-        toastr.error(errorMessage);
+          toastr.error(errorMessage);
+        });
     });
-});
   </script>
   <style>
     .star-rating i {

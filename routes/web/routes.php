@@ -112,7 +112,8 @@ Route::group(['namespace' => 'Web', 'middleware' => ['maintenance_mode', 'guestC
     Route::post('/chat/mark-read', [ChatController::class, 'markRead'])->name('chat.mark-read');
     Route::post('/chatbot/start', [ChatbotController::class, 'start'])->name('chatbot.start');
     Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
-
+    Route::post('/chat/{chat}/generate-token', [ChatController::class, 'generateTwilioToken'])->name('chat.generate-token');
+    Route::post('/chat/{chat}/start-call', [ChatController::class, 'startCall'])->name('chat.start-call'); 
     Route::controller(WebController::class)->group(function () {
         Route::get('checkout-details', 'checkout_details')->name('checkout-details');
         Route::get('checkout-shipping', 'checkout_shipping')->name('checkout-shipping');

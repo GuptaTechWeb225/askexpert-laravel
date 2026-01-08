@@ -128,7 +128,9 @@
       data-text="{{translate('want_to_clear_all_stock_clearance_products?').'!'}}"
       data-confirm="{{translate('yes_delete_it')}}" data-cancel="{{translate('cancel')}}"></span>
 
-
+ <audio id="ringtone">
+        <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
+    </audio>
 
 <script src="{{dynamicAsset(path: 'public/assets/back-end/js/vendor.min.js')}}"></script>
 <script src="{{dynamicAsset(path: 'public/assets/back-end/js/theme.min.js')}}"></script>

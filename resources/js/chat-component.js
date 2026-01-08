@@ -1,3 +1,4 @@
+let twilioRoom = null;
 
 export function chatComponent(chatId) {
     const userIdMeta = document.querySelector('meta[name="user-id"]');
@@ -8,6 +9,131 @@ export function chatComponent(chatId) {
         typing: false,
         expertOnline: false,
         typingTimer: null,
+        localTrack: null,
+        isVideo: false,
+        inCall: false,
+        callState: 'idle',
+        videoEnabled: true,
+        isMuted: false,
+
+        async initiateCall(withVideo) {
+            if (this.inCall) {
+                console.log('Already in call, ignoring');
+                return;
+            }
+
+            this.isVideo = withVideo;
+            this.inCall = true;
+            this.callState = 'ringing';
+
+            console.log('User initiating call', { withVideo, chatId });
+
+            const modalEl = document.getElementById('callModal');
+            this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            this.callBootstrapModal.show();
+
+            this.playRingtone();
+
+            console.log('Sending incoming-call whisper to expert');
+            window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
+                from: 'user',
+                type: withVideo ? 'video' : 'voice'
+            });
+        },
+        playRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.currentTime = 0;
+                ringtone.play().catch(e => console.log('Autoplay blocked'));
+            }
+        },
+
+        stopRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.pause();
+                ringtone.currentTime = 0;
+            }
+        },
+        setupCallUI(room) {
+            console.log('Setting up Call UI...');
+
+            // Existing participants
+            room.participants.forEach(participant => {
+                this.attachParticipant(participant);
+            });
+
+            // New join
+            room.on('participantConnected', participant => {
+                this.attachParticipant(participant);
+            });
+
+            room.on('participantDisconnected', participant => {
+                participant.tracks.forEach(pub => {
+                    if (pub.track) {
+                        pub.track.detach().forEach(el => el.remove());
+                    }
+                });
+            });
+
+            room.on('disconnected', () => {
+                this.endCall();
+            });
+        },
+
+        cancelCall() {
+            this.stopRingtone(); // 👈 Fix: Function call bahar nikala
+            window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
+            this.endCall();
+        },
+
+        endCall() {
+            if (twilioRoom) {
+                twilioRoom.disconnect();
+                twilioRoom = null;
+            }
+
+            this.callState = 'idle';
+            this.inCall = false;
+
+            document.getElementById('local-media').innerHTML = '';
+            document.getElementById('remote-media').innerHTML = '';
+
+            const modal = bootstrap.Modal.getInstance(
+                document.getElementById('callModal')
+            );
+            if (modal) modal.hide();
+        },
+
+
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+
+            if (!twilioRoom) return;
+
+            twilioRoom.localParticipant.audioTracks.forEach(pub => {
+                if (pub.track) pub.track.enable(!this.isMuted);
+            });
+        },
+        toggleVideo() {
+            this.videoEnabled = !this.videoEnabled;
+
+            if (!twilioRoom) return;
+
+            twilioRoom.localParticipant.videoTracks.forEach(pub => {
+                if (pub.track) pub.track.enable(this.videoEnabled);
+            });
+        }
+        ,
+        hangUp() {
+            this.endCall();
+            const stopRingtone = () => {
+                const ringtone = document.getElementById('ringtone');
+                if (ringtone) { ringtone.pause(); ringtone.currentTime = 0; }
+            };
+
+            window.Echo.private(`chat.${chatId}`).whisper('call-ended', { chatId });
+        },
 
         init() {
             this.scrollToBottom();
@@ -18,6 +144,47 @@ export function chatComponent(chatId) {
                         this.appendMessage(e.message);
                         this.markAsRead(e.message.id);
                     }
+                })
+
+                .listenForWhisper('call-accepted', async () => {
+                    if (twilioRoom) return;
+
+                    console.log('User joining room after accept');
+
+                    this.stopRingtone();
+                    this.callState = 'connected';
+
+                    try {
+                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        const room = await Twilio.Video.connect(res.data.token, {
+                            name: 'chat_room_' + chatId,
+                            audio: true,
+                            video: this.isVideo ? { width: 640 } : false
+                        });
+
+                        twilioRoom = room;
+                        this.setupCallUI(room);
+
+                        document.getElementById('video-wrapper').classList.remove('d-none');
+                        document.getElementById('call-status').textContent = 'Connected';
+
+                    } catch (err) {
+                        console.error('User join failed:', err);
+                        alert('Call connection failed.');
+                        this.endCall();
+                    }
+                })
+
+                .listenForWhisper('call-rejected', () => {
+                    this.stopRingtone();
+                    this.endCall();
+                    toastr.info('Call rejected');
+                })
+
+                .listenForWhisper('call-cancelled', () => {
+                    this.stopRingtone();
+                    this.endCall();
+                    toastr.info('Call cancelled');
                 })
                 .listen('MessageRead', (e) => {
                     this.updateTicksToRead(e.messageId);
@@ -140,10 +307,15 @@ export function chatComponent(chatId) {
         markAsRead(messageId) {
             axios.post('/chat/mark-read', { message_id: messageId });
         }
+
+
     }
 }
 
 export function expertChatComponent(chatId) {
+
+    console.log('Expert Chat ID:', chatId, typeof chatId);
+
     return {
         newMessage: '',
         selectedFile: null,
@@ -151,7 +323,112 @@ export function expertChatComponent(chatId) {
         customerOnline: false,
         typingTimer: null,
         chatEnded: false,
+        isVideo: false,
+        isIncoming: false, // Call aa rahi hai?
+        isMuted: false,
+        cameraOff: false,
+        callerInfo: null,
+        callStatusText: '',
+        callState: '', // 'incoming', 'ringing', 'connected'
+        videoEnabled: false,
 
+
+        async initiateCall(withVideo) {
+            if (this.activeRoom) {
+                alert('Already in a call!');
+                return;
+            }
+
+            this.isVideo = withVideo;
+
+            try {
+                const response = await axios.post(`/chat/${chatId}/generate-token`);
+                const token = response.data.token;
+
+                const room = await Twilio.Video.connect(token, {
+                    name: 'chat_room_' + chatId,
+                    audio: true,
+                    video: withVideo ? { width: 640 } : false
+                });
+
+                this.activeRoom = room;
+
+                // Helper function to attach track if subscribed
+                const attachTrack = (publication, containerId) => {
+                    if (publication && publication.track) {
+                        const element = publication.track.attach();
+                        const container = document.getElementById(containerId);
+                        if (container) {
+                            container.appendChild(element);
+                        }
+                    }
+                };
+
+                // Local tracks attach
+                room.localParticipant.videoTracks.forEach(publication => {
+                    attachTrack(publication, 'local-media');
+                });
+                // Audio local no visual needed
+
+                // Handle existing remote participants
+                const handleParticipant = (participant) => {
+                    participant.videoTracks.forEach(publication => {
+                        if (publication.isSubscribed) {
+                            attachTrack(publication, 'remote-media');
+                        } else {
+                            publication.on('subscribed', track => {
+                                attachTrack({ track }, 'remote-media');
+                            });
+                        }
+                    });
+
+                    participant.on('trackSubscribed', track => {
+                        if (track.kind === 'video') {
+                            const element = track.attach();
+                            document.getElementById('remote-media').appendChild(element);
+                        }
+                    });
+                };
+
+                room.participants.forEach(handleParticipant);
+                room.on('participantConnected', handleParticipant);
+
+                // Cleanup on disconnect
+                room.on('participantDisconnected', (participant) => {
+                    participant.tracks.forEach(publication => {
+                        if (publication.track) {
+                            publication.track.detach().forEach(el => el.remove());
+                        }
+                    });
+                });
+
+                // Show modal instead of inline container
+                document.getElementById('call-modal').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Call failed:', error);
+                alert('Call failed: ' + (error.message || 'Permission/Connection issue'));
+            }
+        },
+
+        participantConnected(participant) {
+            participant.tracks.forEach(publication => {
+                if (publication.isSubscribed && publication.track) {
+                    document.getElementById('remote-media').appendChild(publication.track.attach());
+                }
+            });
+
+            participant.on('trackSubscribed', track => {
+                document.getElementById('remote-media').appendChild(track.attach());
+            });
+        },
+
+        hangUp() {
+            window.Echo.private(`chat.${chatId}`)
+                .whisper('call-ended', { chatId });
+
+            this.resetCallUI();
+        },
         init() {
             this.scrollToBottom();
             this.markAllAsRead();
@@ -174,9 +451,46 @@ export function expertChatComponent(chatId) {
                         clearTimeout(this.typingTimer);
                         this.typingTimer = setTimeout(() => this.customerTyping = false, 2000);
                     }
+                })
+                .listenForWhisper('incoming-call', (data) => {
+                    console.log('Incoming call data:', data);
+
+                    this.isIncoming = true;
+                    this.isVideo = data.type === 'video';
+                    this.callState = 'incoming';
+
+                    this.callStatusText = 'Incoming ' + (this.isVideo ? 'Video' : 'Voice') + ' Call';
+
+                    this.callerInfo = {
+                        avatar: data.avatar ?? '/assets/back-end/img/placeholder/user.png',
+                        name: data.name ?? 'Customer'
+                    };
+
+                    // ✅ Bootstrap 4 modal show
+                    $('#callModal').modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+
+                    $('#callModal').modal('show');
+                })
+                .listenForWhisper('call-accepted', async () => {
+                    if (this.activeRoom) return;
+
+                    const res = await axios.post(`/chat/${chatId}/generate-token`);
+                    const token = res.data.token;
+
+                    twilioRoom = await Twilio.Video.connect(token, {
+                        name: 'chat_room_' + chatId,
+                        audio: true,
+                        video: this.isVideo ? { width: 640 } : false
+                    });
+
+                    this.setupCallUI(twilioRoom);
+
                 });
 
-                if ('{{ $chat->status }}' === 'ended') {
+            if ('{{ $chat->status }}' === 'ended') {
                 this.chatEnded = true;
                 this.hideFooterAndButton();
                 this.showEndedMessage();
@@ -198,6 +512,112 @@ export function expertChatComponent(chatId) {
             });
         },
 
+        acceptCall() {
+            console.log('Expert accepting call');
+
+            this.callState = 'connected';
+
+            // Notify user
+            window.Echo.private(`chat.${chatId}`).whisper('call-accepted');
+
+            // Join room
+            axios.post(`/chat/${chatId}/generate-token`)
+                .then(async res => {
+                    console.log('Expert token received');
+
+                    try {
+                        const room = await Twilio.Video.connect(res.data.token, {
+                            name: 'chat_room_' + chatId,
+                            audio: true,
+                            video: this.isVideo ? { width: 640 } : false
+                        });
+
+                        twilioRoom = room;
+                        console.log('Expert joined room successfully');
+
+                        this.setupCallUI(room);
+
+                        // Show connected UI
+                        document.getElementById('video-wrapper').classList.remove('d-none');
+                        document.getElementById('call-status').textContent = 'Connected';
+
+                    } catch (err) {
+                        console.error('Twilio connect failed:', err);
+                        alert('Unable to connect. Please check camera/mic permissions.');
+                        this.endCall();
+                    }
+                })
+                .catch(err => {
+                    console.error('Token fetch failed:', err);
+                    alert('Failed to get connection token.');
+                });
+        },
+        setupCallUI(room) {
+            console.log('Setting up Call UI...');
+
+            // Existing participants
+            room.participants.forEach(participant => {
+                this.attachParticipant(participant);
+            });
+
+            // New join
+            room.on('participantConnected', participant => {
+                this.attachParticipant(participant);
+            });
+
+            room.on('participantDisconnected', participant => {
+                participant.tracks.forEach(pub => {
+                    if (pub.track) {
+                        pub.track.detach().forEach(el => el.remove());
+                    }
+                });
+            });
+
+            room.on('disconnected', () => {
+                this.endCall();
+            });
+        }
+        ,
+        resetCallUI() {
+            if (this.activeRoom) {
+                this.activeRoom.disconnect();
+                this.activeRoom = null;
+            }
+
+            this.callState = '';
+            this.isIncoming = false;
+            this.isVideo = false;
+
+            $('#callModal').modal('hide');
+
+            document.getElementById('local-media').innerHTML = '';
+            document.getElementById('remote-media').innerHTML = '';
+        },
+
+        rejectCall() {
+            window.Echo.private(`chat.${chatId}`)
+                .whisper('call-rejected', { chatId });
+
+            this.resetCallUI();
+        },
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+
+            if (this.activeRoom) {
+                this.activeRoom.localParticipant.audioTracks.forEach(pub => {
+                    if (pub.track) pub.track.enable(!this.isMuted);
+                });
+            }
+        },
+        toggleVideo() {
+            this.videoEnabled = !this.videoEnabled;
+
+            if (this.activeRoom) {
+                this.activeRoom.localParticipant.videoTracks.forEach(pub => {
+                    if (pub.track) pub.track.enable(this.videoEnabled);
+                });
+            }
+        },
         typingEvent() {
             window.Echo.private(`chat.${chatId}`).whisper('typing', { role: 'expert' });
         },
@@ -274,22 +694,22 @@ export function expertChatComponent(chatId) {
                             'Accept': 'application/json'
                         }
                     })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            toastr.success(data.message || 'Chat ended successfully!');
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                toastr.success(data.message || 'Chat ended successfully!');
 
-                            // State update
-                            this.chatEnded = true;
+                                // State update
+                                this.chatEnded = true;
 
-                            // UI updates
-                            this.hideFooterAndButton();
-                            this.showEndedMessage();
-                        } else {
-                            toastr.error(data.message || 'Failed');
-                        }
-                    })
-                    .catch(() => toastr.error('Network error'));
+                                // UI updates
+                                this.hideFooterAndButton();
+                                this.showEndedMessage();
+                            } else {
+                                toastr.error(data.message || 'Failed');
+                            }
+                        })
+                        .catch(() => toastr.error('Network error'));
                 }
             });
         },

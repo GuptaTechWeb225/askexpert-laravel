@@ -133,13 +133,6 @@ use App\Utils\Helpers;
         @endforeach
     </script>
     @endif
-
-    <script>
-        'use strict'
-        setInterval(function() {
-            getInitialDataForPanel();
-        }, 5000);
-    </script>
 <script>
 
 </script>

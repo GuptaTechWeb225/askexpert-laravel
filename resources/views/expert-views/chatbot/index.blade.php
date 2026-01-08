@@ -2,13 +2,38 @@
 @section('title', translate('chat_Bot'))
 @push('css_or_js')
 <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
-
+<script src="https://sdk.twilio.com/js/video/releases/2.28.1/twilio-video.min.js"></script>
 <meta name="csrf-token" content="{{ csrf_token() }}">
 @vite(['resources/js/app.js'])
 
 @endpush
 
 @section('content')
+
+<style>
+    #video-container {
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 15px 0;
+        position: relative;
+        height: 400px;
+    }
+
+    #remote-media {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    #local-media {
+        width: 150px;
+        height: 150px;
+        border: 3px solid white;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+</style>
 <div class="content container-fluid">
     <div class="whatsapp-container" x-data="expertChatComponent({{ $chat->id }})" x-init="init()">
         <div class="chat-header d-flex justify-content-between px-3 py-3 text-white">
@@ -21,15 +46,23 @@
                     <small class="text-white" x-show="customerTyping" style="display:none;">typing...</small>
                 </div>
             </div>
-            @if($chat->status !== 'ended')
-            <div class="ms-auto pe-3">
-                <button class="btn btn-danger btn-sm text-nowrap" @click="endChatByExpert()">
+            <div class="ms-auto pe-3 d-flex align-items-center gap-2">
+                @if($chat->status !== 'ended')
+                <button class="btn btn-primary btn-sm" @click="initiateCall(false)">
+                    <i class="fa-solid fa-phone"></i> Voice Call
+                </button>
+                <button class="btn btn-success btn-sm" @click="initiateCall(true)">
+                    <i class="fa-solid fa-video"></i> Video Call
+                </button>
+                <button class="btn btn-danger btn-sm" @click="endChat()">
                     <i class="fa-solid fa-phone-slash"></i> End Chat
                 </button>
+                @endif
             </div>
-            @endif
         </div>
         <div class="chat-body p-3" id="messages" style="height: 500px; overflow-y: auto;">
+
+
             @foreach($messages as $msg)
             <div class="message-container {{ $msg->sender_type == 'expert' ? 'user-side' : '' }}" data-message-id="{{ $msg->id }}">
                 <div class="message-bubble {{ $msg->sender_type == 'expert' ? 'user' : 'bot' }}">
@@ -56,7 +89,7 @@
         </div>
         <div class="chat-footer d-flex p-2 gap-2" x-show="$store?.chatStatus?.status !== 'ended' && '{{ $chat->status }}' !== 'ended'">
 
-                    @if($chat->status !== 'ended')
+            @if($chat->status !== 'ended')
 
             <input type="file" id="expertImageInput" style="display:none" @change="handleFileUpload">
             <button class="btn btn--light" @click="document.getElementById('expertImageInput').click()">
@@ -69,10 +102,78 @@
             <button class="btn btn--primary" @click="sendMessage">
                 <i class="fa-solid fa-paper-plane"></i>
             </button>
-                        @endif
+            @endif
 
         </div>
+
+        <div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-fullscreen">
+                <div class="modal-content bg-dark text-white border-0">
+
+                    <!-- Header -->
+                    <div class="modal-header border-0 text-center flex-column">
+                        <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
+                            style="width:120px;height:120px;object-fit:cover">
+                        <h4 class="modal-title" x-text="callerInfo?.name"></h4>
+                        <p id="call-status" class="text-success mt-1" x-text="callStatusText"></p>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="modal-body position-relative p-0">
+                        <div id="video-wrapper" class="w-100 h-100" x-show="callState === 'connected' && isVideo">
+                            <div id="remote-media" class="w-100 h-100"></div>
+                            <div id="local-media"
+                                class="position-absolute bottom-0 end-0 m-3 rounded overflow-hidden border border-white"
+                                style="width:160px;height:200px">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Buttons -->
+                    <div class="modal-footer justify-content-center border-0 bg-dark">
+
+                        <div x-show="callState === 'incoming'" class="d-flex gap-4 align-items-center">
+                            <button @click="acceptCall()" class="btn btn-success rounded-circle p-4 shadow-lg">
+                                <i class="fa-solid fa-phone fa-2x"></i>
+                            </button>
+                            <button @click="rejectCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
+                                <i class="fa-solid fa-phone-slash fa-2x"></i>
+                            </button>
+                        </div>
+
+                        <!-- Ringing / Calling buttons -->
+                        <div x-show="callState === 'ringing'" class="text-center">
+                            <button @click="cancelCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
+                                <i class="fa-solid fa-phone-slash fa-2x"></i>
+                            </button>
+                            <p class="mt-2 text-white">Cancel Call</p>
+                        </div>
+
+                        <!-- Connected call buttons -->
+                        <div x-show="callState === 'connected'" class="d-flex gap-4 align-items-center">
+                            <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary'"
+                                class="btn rounded-circle p-3">
+                                <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
+                            </button>
+
+                            <button @click="hangUp()" class="btn btn-danger rounded-circle p-4">
+                                <i class="fa-solid fa-phone-slash fa-2x"></i>
+                            </button>
+
+                            <button x-show="isVideo" @click="toggleVideo()"
+                                :class="videoEnabled ? 'btn-secondary' : 'btn-danger'" class="btn rounded-circle p-3">
+                                <i class="fa-solid" :class="videoEnabled ? 'fa-video' : 'fa-video-slash'"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
+
+
+
 </div>
 <script>
     window.EXPERT_ID = "{{ auth('expert')->id() }}";

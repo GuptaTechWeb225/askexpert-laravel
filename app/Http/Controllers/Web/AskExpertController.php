@@ -107,7 +107,7 @@ class AskExpertController extends Controller
         ExpertService $availabilityService
     ) {
         $request->validate(['question' => 'required']);
-       
+
         $userId = auth('customer')->id();
         $user = User::find($userId);
         $result = $pythonService->recommendExperts($request->question);
@@ -141,7 +141,12 @@ class AskExpertController extends Controller
             $subscriptionToExtend = $activeSubscription;
         }
 
-        $needsExpertFee = true;
+        // Determine expert fee based on joining/membership status
+        if ($needsJoining || $needsMembership) {
+            $needsExpertFee = false; // First question: only joining/subscription
+        } else {
+            $needsExpertFee = true; // Second or later question: expert fee applies
+        }
         Stripe::setApiKey($this->config_values->api_key);
         $stripeCustomer = $user->stripe_customer_id
             ? \Stripe\Customer::retrieve($user->stripe_customer_id)
@@ -218,7 +223,6 @@ class AskExpertController extends Controller
             if ($needsJoining || $needsMembership) {
                 $pricing_paragraph = "Ask your question now for a $" . number_format($category->joining_fee, 2) . " one-time joining fee, " .
                     "$" . number_format($category->monthly_subscription_fee, 2) . "/mo membership, " .
-                    "and $" . number_format($category->expert_fee, 2) . " expert consultation fee. " .
                     "Cancel your membership anytime or continue for $" . number_format($category->monthly_subscription_fee, 2) . "/mo thereafter.";
             } else {
                 $pricing_paragraph = "Ask your question now for a $" . number_format($category->expert_fee, 2) . " expert consultation fee. " .

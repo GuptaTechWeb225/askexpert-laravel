@@ -124,36 +124,36 @@
                 @csrf
                 <!-- First & Last Name -->
                 <div class="col-md-6">
-                    <label class="form-label">First Name</label>
+                    <label class="form-label">First Name <span class="text-danger">*</span></label>
                     <input name="first_name" type="text" class="form-control" placeholder="Enter First Name" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Last Name</label>
+                    <label class="form-label">Last Name <span class="text-danger">*</span></label>
                     <input name="last_name" type="text" class="form-control" placeholder="Enter Last Name" required>
                 </div>
 
                 <!-- Email & Phone -->
                 <div class="col-md-6">
-                    <label class="form-label">Email</label>
+                    <label class="form-label">Email <span class="text-danger">*</span></label>
                     <input name="email" type="email" class="form-control" placeholder="Enter Email" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Phone Number</label>
+                    <label class="form-label">Phone Number <span class="text-danger">*</span></label>
                     <input name="phone" id="phone" type="tel" class="form-control" placeholder="Enter Phone number" required>
                 </div>
 <div class="col-md-6">
-    <label class="form-label">Password</label>
+    <label class="form-label">Password <span class="text-danger">*</span></label>
     <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
 </div>
 
 <!-- Confirm Password -->
 <div class="col-md-6">
-    <label class="form-label">Confirm Password</label>
+    <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
     <input type="password" name="password_confirmation" class="form-control" placeholder="Confirm Password" required>
 </div>
                 <!-- Category -->
                 <div class="col-md-6">
-                    <label class="form-label">Category</label>
+                    <label class="form-label">Category <span class="text-danger">*</span></label>
                     <select name="category_id" id="category" class="form-select js-select2-custom form-control select2-enable" required>
                         <option value="" disabled selected>Select Category</option>
                         @foreach($categories as $category)
@@ -165,7 +165,7 @@
                 <!-- Primary Specialty -->
                 <!-- Primary Specialty -->
                 <div class="col-md-6">
-                    <label class="form-label">Primary Specialty</label>
+                    <label class="form-label">Primary Specialty <span class="text-danger">*</span></label>
                     <input type="text" name="primary_specialty" class="form-control" placeholder="Enter Primary Specialty" required>
                 </div>
 
@@ -178,27 +178,27 @@
 
                 <!-- Experience -->
                 <div class="col-md-6">
-                    <label class="form-label">Total No. of Experience in Field</label>
+                    <label class="form-label">Total No. of Experience in Field <span class="text-danger">*</span></label>
                     <input name="experience" type="text" class="form-control" placeholder="1 Year">
                 </div>
 
                 <!-- File Uploads -->
                 <div class="col-md-6">
-                    <label class="form-label">Certification</label>
+                    <label class="form-label">Certification <span class="text-danger">*</span></label>
                     <input name="certification" class="form-control" type="file">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Education Degree</label>
+                    <label class="form-label">Education Degree <span class="text-danger">*</span></label>
                     <input name="degree" class="form-control" type="file">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Resume / CV</label>
+                    <label class="form-label">Resume / CV <span class="text-danger">*</span></label>
                     <input name="resume" class="form-control" type="file">
                 </div>
 
                 <!-- Country & State -->
                 <div class="col-md-6">
-                    <label class="form-label">Country</label>
+                    <label class="form-label">Country <span class="text-danger">*</span></label>
                     <select name="country" id="country" class="form-select form-control select2-enable" required>
                         <option value="" disabled selected>Select Country</option>
                         @foreach($countries as $country)
@@ -207,14 +207,14 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">State</label>
+                    <label class="form-label">State <span class="text-danger">*</span></label>
                                        <input name="state" id="state" type="text" class="form-control" placeholder="Enter your state">
 
                 </div>
 
                 <!-- Preferences -->
                 <div class="col-md-6">
-                    <label class="form-label">How would you prefer to answer questions?</label>
+                    <label class="form-label">How would you prefer to answer questions? <span class="text-danger">*</span></label>
                     <select name="preference" class="form-select form-control select2-enable">
                         <option value="chat" selected>Chat</option>
                         <option value="phone">Phone Call</option>
@@ -222,13 +222,13 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Available to start answering questions</label>
+                    <label class="form-label">Available to start answering questions <span class="text-danger">*</span></label>
                     <input name="start_date" type="date" class="form-control">
                 </div>
 
                 <!-- Availability -->
                 <div class="col-md-6">
-                    <label class="form-label">Availability to answer questions</label>
+                    <label class="form-label">Availability to answer questions <span class="text-danger">*</span></label>
                     <div class="d-flex align-items-center gap-5">
                     <div class="form-check d-flex align-items-center">
                         <input name="availability_weekdays" class="form-check-input" type="checkbox" id="weekdaysCheck">

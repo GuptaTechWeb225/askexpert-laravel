@@ -47,5 +47,11 @@ return [
         'client_secret' => env('TWITTER_CLIENT_SECRET'),
         'redirect' => env('TWITTER_SERVICE_CALLBACK'),
     ],
+    'twilio' => [
+        'sid'    => env('TWILIO_ACCOUNT_SID'),
+        'key'    => env('TWILIO_API_KEY'),
+        'secret' => env('TWILIO_API_SECRET'),
+        'app_sid' => env('TWILIO_APP_SID'),
+    ],
 
 ];
