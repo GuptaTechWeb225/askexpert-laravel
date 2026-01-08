@@ -520,16 +520,24 @@ export function expertChatComponent(chatId) {
                         // Step 4: Connect to Twilio Room
                         const connectOptions = {
                             name: 'chat_room_' + chatIdToUse,
+                            // Audio/Video ko arrays mein mangna zyada safe hota hai Twilio mein
                             audio: true,
-                            video: this.isVideo ? { width: 640 } : false
+                            video: this.isVideo ? { width: 640, height: 480 } : false
                         };
-                        console.log('🔗 Connecting to Twilio room with options:', connectOptions);
+
+                        console.log('🔗 Connecting to Twilio room...', connectOptions);
+
                         if (typeof Twilio === 'undefined') {
-                            console.error('Twilio SDK load nahi hui hai! Check script tag.');
-                            return;
+                            throw new Error('Twilio SDK not loaded');
                         }
+                        const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
+                        navigator.mediaDevices.getUserMedia = async (constraints) => {
+                            console.log('🎥 getUserMedia called with constraints:', constraints);
+                            return originalGetUserMedia.apply(navigator.mediaDevices, [constraints]);
+                        };
+
                         const room = await Twilio.Video.connect(res.data.token, connectOptions);
-                        window.twilioRoom = room; // Save globally
+                        window.twilioRoom = room;
                         console.log('✅ Twilio Room connected:', room);
 
                         // Step 5: Setup UI & participants
