@@ -28,32 +28,11 @@ export function chatComponent(chatId) {
             this.callBootstrapModal.show();
 
             this.playRingtone();
+            window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
+                from: 'user',
+                type: withVideo ? 'video' : 'voice'
+            });
 
-            try {
-                // Pehle room join karo
-                const res = await axios.post(`/chat/${chatId}/generate-token`);
-                const room = await Twilio.Video.connect(res.data.token, {
-                    name: 'chat_room_' + chatId,
-                    audio: true,
-                    video: withVideo ? { width: 640 } : false
-                });
-
-                twilioRoom = room;
-                this.setupCallUI(room);
-
-                console.log('User joined room first');
-
-                // Phir expert ko notify karo
-                window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
-                    from: 'user',
-                    type: withVideo ? 'video' : 'voice'
-                });
-
-            } catch (err) {
-                console.error('User failed to join room first:', err);
-                alert('Call failed to start.');
-                this.endCall();
-            }
         },
         playRingtone() {
             const ringtone = document.getElementById('ringtone');
@@ -80,8 +59,10 @@ export function chatComponent(chatId) {
 
             // New join
             room.on('participantConnected', participant => {
+                console.log('Participant connected:', participant.identity);
                 this.attachParticipant(participant);
             });
+
 
             room.localParticipant.videoTracks.forEach(publication => {
                 if (publication.track) {
@@ -106,25 +87,36 @@ export function chatComponent(chatId) {
         attachParticipant(participant) {
             console.log('Attaching participant tracks');
 
+            const container = document.getElementById('remote-media');
+            if (!container) return;
+
+            // 🔹 Existing published tracks
             participant.tracks.forEach(publication => {
                 if (publication.isSubscribed && publication.track) {
-                    const element = publication.track.attach();
-                    if (publication.track.kind === 'video') {
-                        document.getElementById('remote-media').appendChild(element);
-                    }
+                    this.attachTrack(publication.track, container);
                 }
             });
 
+            // 🔹 New tracks
             participant.on('trackSubscribed', track => {
                 console.log('Track subscribed:', track.kind);
-                if (track.kind === 'video') {
-                    document.getElementById('remote-media').appendChild(track.attach());
-                }
+                this.attachTrack(track, container);
             });
 
             participant.on('trackUnsubscribed', track => {
                 track.detach().forEach(el => el.remove());
             });
+        },
+
+        attachTrack(track, container) {
+            // ❌ prevent duplicate attach
+            if (track.kind === 'video' && container.querySelector('video')) return;
+
+            const element = track.attach();
+            element.style.width = '100%';
+            element.style.height = '100%';
+
+            container.appendChild(element);
         },
 
         cancelCall() {
@@ -191,7 +183,20 @@ export function chatComponent(chatId) {
                         this.markAsRead(e.message.id);
                     }
                 })
+                .listenForWhisper('call-accepted', async () => {
+                        if (twilioRoom) return; // 👈 ADD THIS
 
+                    const res = await axios.post(`/chat/${chatId}/generate-token`);
+
+                    const room = await Twilio.Video.connect(res.data.token, {
+                        name: 'chat_room_' + chatId,
+                        audio: true,
+                        video: this.isVideo
+                    });
+
+                    twilioRoom = room;
+                    this.setupCallUI(room);
+                })
 
 
                 .listenForWhisper('call-rejected', () => {
@@ -370,7 +375,7 @@ export function expertChatComponent(chatId) {
                     video: withVideo ? { width: 640 } : false
                 });
 
-                this.activeRoom = room;
+                twilioRoom = room;
 
                 // Helper function to attach track if subscribed
                 const attachTrack = (publication, containerId) => {
@@ -471,28 +476,36 @@ export function expertChatComponent(chatId) {
                         this.typingTimer = setTimeout(() => this.customerTyping = false, 2000);
                     }
                 })
+                // Expert Side Fix
                 .listenForWhisper('incoming-call', async (data) => {
-                    console.log('Incoming call – joining room');
-
+                    console.log('Incoming call received');
                     this.isVideo = data.type === 'video';
                     this.callState = 'incoming';
 
+                    // Modal dikhao pehle
                     $('#callModal').modal('show');
 
                     try {
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
-                        const room = await Twilio.Video.connect(res.data.token, {
+
+                        // Connection options ko optimize karein
+                        const connectOptions = {
                             name: 'chat_room_' + chatId,
                             audio: true,
                             video: this.isVideo ? { width: 640 } : false
-                        });
+                        };
 
-                        twilioRoom = room;
+                        const room = await Twilio.Video.connect(res.data.token, connectOptions);
+
+                        window.twilioRoom = room; // Global variable use ho raha hai aapke code mein
+
                         this.setupCallUI(room);
+                        console.log('Expert joined room successfully');
 
                     } catch (err) {
                         console.error('Expert failed to join room:', err);
-                        alert('Unable to join call.');
+                        // Agar mic/cam block hai to ye error aayega
+                        alert('Please allow Camera/Microphone access to join the call.');
                         this.rejectCall();
                     }
                 })
@@ -521,14 +534,7 @@ export function expertChatComponent(chatId) {
         },
 
         acceptCall() {
-            console.log('Expert accepting call');
-
-            this.callState = 'connected';
-
-            // Sirf user ko batao ki accept kiya
             window.Echo.private(`chat.${chatId}`).whisper('call-accepted');
-
-            // Room join mat karo yahan – user already join kar chuka hai
         },
         setupCallUI(room) {
             console.log('Setting up Call UI...');
@@ -612,29 +618,6 @@ export function expertChatComponent(chatId) {
         },
         typingEvent() {
             window.Echo.private(`chat.${chatId}`).whisper('typing', { role: 'expert' });
-        },
-        attachParticipant(participant) {
-            console.log('Attaching participant tracks');
-
-            participant.tracks.forEach(publication => {
-                if (publication.isSubscribed && publication.track) {
-                    const element = publication.track.attach();
-                    if (publication.track.kind === 'video') {
-                        document.getElementById('remote-media').appendChild(element);
-                    }
-                }
-            });
-
-            participant.on('trackSubscribed', track => {
-                console.log('Track subscribed:', track.kind);
-                if (track.kind === 'video') {
-                    document.getElementById('remote-media').appendChild(track.attach());
-                }
-            });
-
-            participant.on('trackUnsubscribed', track => {
-                track.detach().forEach(el => el.remove());
-            });
         },
         appendMessage(msg) {
             if (msg.id && document.querySelector(`[data-message-id="${msg.id}"]`)) return;
