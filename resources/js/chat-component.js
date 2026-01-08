@@ -358,7 +358,7 @@ export function expertChatComponent(chatId) {
 
 
         async initiateCall(withVideo) {
-            if (this.activeRoom) {
+            if (this.twilioRoom) {
                 alert('Already in a call!');
                 return;
             }
@@ -577,9 +577,9 @@ export function expertChatComponent(chatId) {
 
 
         resetCallUI() {
-            if (this.activeRoom) {
-                this.activeRoom.disconnect();
-                this.activeRoom = null;
+            if (this.twilioRoom) {
+                this.twilioRoom.disconnect();
+                this.twilioRoom = null;
             }
 
             this.callState = '';
@@ -601,8 +601,8 @@ export function expertChatComponent(chatId) {
         toggleMute() {
             this.isMuted = !this.isMuted;
 
-            if (this.activeRoom) {
-                this.activeRoom.localParticipant.audioTracks.forEach(pub => {
+            if (this.twilioRoom) {
+                this.twilioRoom.localParticipant.audioTracks.forEach(pub => {
                     if (pub.track) pub.track.enable(!this.isMuted);
                 });
             }
@@ -610,8 +610,8 @@ export function expertChatComponent(chatId) {
         toggleVideo() {
             this.videoEnabled = !this.videoEnabled;
 
-            if (this.activeRoom) {
-                this.activeRoom.localParticipant.videoTracks.forEach(pub => {
+            if (this.twilioRoom) {
+                this.twilioRoom.localParticipant.videoTracks.forEach(pub => {
                     if (pub.track) pub.track.enable(this.videoEnabled);
                 });
             }
