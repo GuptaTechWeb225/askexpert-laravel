@@ -184,7 +184,7 @@ export function chatComponent(chatId) {
                     }
                 })
                 .listenForWhisper('call-accepted', async () => {
-                        if (twilioRoom) return; // 👈 ADD THIS
+                    if (twilioRoom) return; // 👈 ADD THIS
 
                     const res = await axios.post(`/chat/${chatId}/generate-token`);
 
@@ -478,33 +478,52 @@ export function expertChatComponent(chatId) {
                 })
                 // Expert Side Fix
                 .listenForWhisper('incoming-call', async (data) => {
-                    console.log('Incoming call received');
+                    console.log('🟢 Whisper received: incoming-call', data);
+
                     this.isVideo = data.type === 'video';
                     this.callState = 'incoming';
 
                     // Modal dikhao pehle
+                    console.log('📌 Showing call modal...');
                     $('#callModal').modal('show');
 
                     try {
+                        console.log('📡 Requesting Twilio token...');
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        console.log('✅ Token received:', res.data.token);
 
-                        // Connection options ko optimize karein
                         const connectOptions = {
                             name: 'chat_room_' + chatId,
                             audio: true,
                             video: this.isVideo ? { width: 640 } : false
                         };
+                        console.log('🔗 Connecting to Twilio room with options:', connectOptions);
 
                         const room = await Twilio.Video.connect(res.data.token, connectOptions);
 
-                        window.twilioRoom = room; // Global variable use ho raha hai aapke code mein
+                        window.twilioRoom = room; // Global variable
+                        console.log('✅ Twilio Room connected:', room);
 
+                        // Setup participants
                         this.setupCallUI(room);
-                        console.log('Expert joined room successfully');
+                        console.log('🎥 Expert joined room successfully, call UI setup complete');
+
+                        // Optional: log current participants
+                        console.log('👥 Current participants in room:', Array.from(room.participants.keys()));
 
                     } catch (err) {
-                        console.error('Expert failed to join room:', err);
-                        // Agar mic/cam block hai to ye error aayega
+                        console.error('❌ Expert failed to join room. Error details:');
+                        if (err.code) console.error('Twilio Error Code:', err.code);
+                        if (err.message) console.error('Message:', err.message);
+                        if (err.stack) console.error('Stack Trace:', err.stack);
+
+                        // Additional checks
+                        if (err.message && err.message.includes('Permission')) {
+                            console.warn('⚠️ Likely cause: Camera/Microphone access denied by user');
+                        } else if (err.code === 53113) {
+                            console.warn('⚠️ Likely cause: Duplicate identity or room issue');
+                        }
+
                         alert('Please allow Camera/Microphone access to join the call.');
                         this.rejectCall();
                     }
