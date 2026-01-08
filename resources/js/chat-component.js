@@ -535,6 +535,10 @@ export function expertChatComponent(chatId) {
                             console.log('🎥 getUserMedia called with constraints:', constraints);
                             return originalGetUserMedia.apply(navigator.mediaDevices, [constraints]);
                         };
+                        if (window.twilioRoom) {
+                            console.log('⚠️ Already connected, skipping new connection.');
+                            return;
+                        }
 
                         const room = await Twilio.Video.connect(res.data.token, connectOptions);
                         window.twilioRoom = room;
