@@ -53,20 +53,20 @@ export function chatComponent(chatId) {
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         },
 
-        // Timer start karne ka function
         startTimer() {
             this.callDuration = 0;
             if (this.timerInterval) clearInterval(this.timerInterval);
 
-            // Context save karne ke liye
-            const self = this;
+            const self = this; // self variable preserve karega context
 
             this.timerInterval = setInterval(() => {
-                // Alpine ko update force karne ke liye self use karein
                 self.callDuration++;
-                console.log("Timer ticking...", self.callDuration);
+                console.log("Timer:", self.callDuration);
 
-
+                // Force UI update
+                if (self.$el) {
+                    self.$el.__x.$data.callDuration = self.callDuration; // Direct data bind
+                }
             }, 1000);
         },
 
