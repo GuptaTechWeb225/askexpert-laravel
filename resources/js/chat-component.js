@@ -267,8 +267,14 @@ export function chatComponent(chatId) {
                 // Events pehle set karo
                 this.agoraClient.on('user-published', async (user, mediaType) => {
                     await this.agoraClient.subscribe(user, mediaType);
-                    if (mediaType === 'video') {
-                        user.videoTrack.play('remote-media');
+                    if (mediaType === "video") {
+                        setTimeout(() => {
+                            const remoteDiv = document.getElementById('remote-media');
+                            if (remoteDiv) {
+                                remoteDiv.innerHTML = '';
+                                user.videoTrack.play(remoteDiv); 
+                            }
+                        }, 500);
                     }
                     if (mediaType === 'audio') {
                         user.audioTrack.play();
