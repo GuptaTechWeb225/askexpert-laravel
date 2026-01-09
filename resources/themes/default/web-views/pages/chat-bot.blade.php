@@ -154,8 +154,8 @@
           <i class="fa-solid fa-paper-plane"></i>
         </button>
       </div>
-    </div>
-    <div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true">
+
+ <div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-fullscreen">
         <div class="modal-content bg-dark text-white border-0">
 
@@ -220,8 +220,9 @@
 
       </div>
     </div>
-    </div>
 
+    </div>
+   
 
     <div class="modal fade" id="reviewModal" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
