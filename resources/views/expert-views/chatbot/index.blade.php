@@ -177,6 +177,7 @@
 </div>
 <script>
     window.EXPERT_ID = "{{ auth('expert')->id() }}";
+    console.log(Twilio.Video.version);
 </script>
 @endsection
 
