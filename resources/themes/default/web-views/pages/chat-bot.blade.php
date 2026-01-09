@@ -175,11 +175,8 @@
                 style="width:120px;height:120px;object-fit:cover">
               <h4 class="modal-title" x-text="callerInfo?.name"></h4>
               <p id="call-status" class="text-success mt-1" x-text="callStatusText"></p>
-              <div x-show="callState === 'connected'" class="mt-2">
-                <span class="badge badge-pill badge-danger py-2 px-3"
-                  x-text="formattedDuration"
-                  style="font-size: 1.1rem; letter-spacing: 1px;">
-                </span>
+              <div x-show="inCall && callState === 'connected'">
+                <span x-text="formattedDuration">00:00</span>
               </div>
             </div>
 

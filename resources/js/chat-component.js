@@ -54,16 +54,21 @@ export function chatComponent(chatId) {
         },
 
         // Timer start karne ka function
-       startTimer() {
-    this.callDuration = 0;
-    if (this.timerInterval) clearInterval(this.timerInterval);
+        startTimer() {
+            this.callDuration = 0;
+            if (this.timerInterval) clearInterval(this.timerInterval);
 
-    // Arrow function use karein taaki 'this' sahi rahe
-    this.timerInterval = setInterval(() => {
-        console.log("Timer ticking...", this.callDuration); // Console mein check karein
-        this.callDuration++;
-    }, 1000);
-},
+            // Context save karne ke liye
+            const self = this;
+
+            this.timerInterval = setInterval(() => {
+                // Alpine ko update force karne ke liye self use karein
+                self.callDuration++;
+                console.log("Timer ticking...", self.callDuration);
+
+
+            }, 1000);
+        },
 
         createAgoraClient() {
             const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
