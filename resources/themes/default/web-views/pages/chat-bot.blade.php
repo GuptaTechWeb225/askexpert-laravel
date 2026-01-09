@@ -182,7 +182,8 @@
           <div class="modal-footer justify-content-center border-0 bg-dark">
 
             <!-- Incoming call buttons -->
-            <div x-show="callState === 'incoming'" class="d-flex gap-4 align-items-center">
+            <!-- Incoming call from expert -->
+            <div x-show="callState === 'incoming' && callInitiator === 'expert'" class="d-flex gap-4 align-items-center">
               <button @click="acceptCall()" class="btn btn-success rounded-circle p-4 shadow-lg">
                 <i class="fa-solid fa-phone fa-2x"></i>
               </button>
@@ -191,18 +192,17 @@
               </button>
             </div>
 
-            <!-- Ringing / Calling buttons -->
-            <div x-show="callState === 'ringing'" class="text-center">
+            <!-- Outgoing call (user is calling) -->
+            <div x-show="callState === 'ringing' && callInitiator === 'user'" class="text-center">
               <button @click="cancelCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
                 <i class="fa-solid fa-phone-slash fa-2x"></i>
               </button>
               <p class="mt-2 text-white">Cancel Call</p>
             </div>
 
-            <!-- Connected call buttons -->
+            <!-- Connected call -->
             <div x-show="callState === 'connected'" class="d-flex gap-4 align-items-center">
-              <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary'"
-                class="btn rounded-circle p-3">
+              <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary'" class="btn rounded-circle p-3">
                 <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
               </button>
 
@@ -210,15 +210,16 @@
                 <i class="fa-solid fa-phone-slash fa-2x"></i>
               </button>
 
-              <button x-show="isVideo" @click="toggleVideo()"
-                :class="videoEnabled ? 'btn-secondary' : 'btn-danger'" class="btn rounded-circle p-3">
+              <button x-show="isVideo" @click="toggleVideo()" :class="videoEnabled ? 'btn-secondary' : 'btn-danger'" class="btn rounded-circle p-3">
                 <i class="fa-solid" :class="videoEnabled ? 'fa-video' : 'fa-video-slash'"></i>
               </button>
             </div>
-          </div>
 
+          </div>
         </div>
+
       </div>
+    </div>
     </div>
 
 

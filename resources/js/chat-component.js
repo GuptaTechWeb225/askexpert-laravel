@@ -18,6 +18,7 @@ export function chatComponent(chatId) {
         localAudioTrack: null,
         localVideoTrack: null,
         _joining: false,
+        callInitiator: null,
 
 
         async initiateCall(withVideo) {
@@ -25,6 +26,7 @@ export function chatComponent(chatId) {
 
             this.isVideo = withVideo;
             this.inCall = true;
+            this.callInitiator = 'user';
             this.callState = 'ringing';
 
             const modalEl = document.getElementById('callModal');
@@ -137,8 +139,8 @@ export function chatComponent(chatId) {
 
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
 
-                        this.agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
-                        await this.agoraClient.join(window.AGORA_APP_ID, `chat_${chatId}`, res.data.token, null);
+                        await this.agoraClient.join(res.data.appId, res.data.channel, res.data.token, res.data.uid);
+
 
                         const tracks = await AgoraRTC.createMicrophoneAndCameraTracks(
                             {},
@@ -170,6 +172,17 @@ export function chatComponent(chatId) {
                 })
 
 
+                .listenForWhisper('incoming-call', (data) => {
+                    if (data.from === 'expert') {
+                        this.callInitiator = 'expert';
+                        this.callState = 'incoming';
+                        this.isVideo = data.type === 'video';
+                        const modalEl = document.getElementById('callModal');
+                        this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        this.callBootstrapModal.show();
+                        this.playRingtone();
+                    }
+                })
 
                 .listenForWhisper('call-rejected', () => {
                     this.stopRingtone();
