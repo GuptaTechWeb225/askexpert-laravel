@@ -500,11 +500,7 @@ export function expertChatComponent(chatId) {
         async acceptCall() {
             // 1. Initial Checks
             console.log('🚀 Step 1: Initialization started');
-            if (this._joining || this.mediaTestResult !== 'ok') {
-                console.warn('⚠️ Join blocked:', { joining: this._joining, mediaStatus: this.mediaTestResult });
-                if (this.mediaTestResult !== 'ok') alert(this.mediaErrorMessage);
-                return;
-            }
+           
             this._joining = true;
 
             try {
