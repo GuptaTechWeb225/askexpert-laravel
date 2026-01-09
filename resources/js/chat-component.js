@@ -291,6 +291,8 @@ export function chatComponent(chatId) {
 
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
+                window.Echo.private(`chat.${chatId}`)
+                    .whisper('call-accepted', { chatId });
 
             } catch (err) {
                 console.error('❌ Call failed:', err);
@@ -470,6 +472,22 @@ export function expertChatComponent(chatId) {
         callDuration: 0,
         timerInterval: null,
 
+        initiateCall(withVideo) {
+            if (this.callState && this.callState !== '') return;
+
+            this.isVideo = withVideo;
+            this.callState = 'ringing';
+            this.callStatusText = 'Calling User...';
+
+            $('#callModal').modal('show');
+            this.playRingtone?.();
+
+            window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
+                from: 'expert',
+                type: withVideo ? 'video' : 'voice',
+                chatId: chatId
+            });
+        },
 
 
         async testMediaAvailability() {
@@ -559,6 +577,56 @@ export function expertChatComponent(chatId) {
                     $('#callModal').modal('show');
 
                 })
+                .listenForWhisper('call-accepted', async () => {
+                    if (this._joining) return;
+                    this._joining = true;
+
+                    try {
+                        this.callState = 'connecting';
+                        this.callStatusText = 'Connecting…';
+
+                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        const { token, channel, uid, app_id } = res.data;
+
+                        this.agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+                        this.agoraClient.on("user-published", async (user, mediaType) => {
+                            await this.agoraClient.subscribe(user, mediaType);
+                            if (mediaType === "video") user.videoTrack.play('remote-media');
+                            if (mediaType === "audio") user.audioTrack.play();
+                        });
+
+                        await this.agoraClient.join(
+                            app_id || window.AGORA_APP_ID,
+                            channel,
+                            token,
+                            uid
+                        );
+
+                        const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                        this.micTrack = tracks[0];
+                        this.cameraTrack = this.isVideo ? tracks[1] : null;
+
+                        if (this.cameraTrack) {
+                            this.cameraTrack.play('local-media');
+                        }
+
+                        await this.agoraClient.publish(
+                            [this.micTrack, this.cameraTrack].filter(Boolean)
+                        );
+
+                        this.callState = 'connected';
+                        this.callStatusText = 'Connected';
+                        this.startTimer();
+
+                    } catch (e) {
+                        console.error(e);
+                        this.resetCallUI();
+                    } finally {
+                        this._joining = false;
+                    }
+                })
+
                 .listenForWhisper('call-ended', () => {
                     this.resetCallUI();
                 })
