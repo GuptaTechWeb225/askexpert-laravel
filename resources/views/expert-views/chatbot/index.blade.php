@@ -2,7 +2,7 @@
 @section('title', translate('chat_Bot'))
 @push('css_or_js')
 <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
-<script src="https://sdk.twilio.com/js/video/releases/2.28.1/twilio-video.min.js"></script>
+<script src="https://sdk.twilio.com/js/video/releases/2.33.0/twilio-video.min.js"></script>
 <meta name="csrf-token" content="{{ csrf_token() }}">
 @vite(['resources/js/app.js'])
 
