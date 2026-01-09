@@ -494,31 +494,28 @@ export function expertChatComponent(chatId) {
             if (this._joining) return;
             this._joining = true;
 
-            // Local track variable to clean up if connect fails
             let tempTracks = [];
 
             try {
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting…';
 
-                console.log('📡 Step 1: Getting Token...');
                 const res = await axios.post(`/chat/${chatId}/generate-token`);
                 const token = res.data.token;
 
-                console.log('🎙️ Step 2: Accessing Media...');
-                // Create tracks separately to ensure they work before connecting
                 tempTracks = await Twilio.Video.createLocalTracks({
                     audio: true,
                     video: this.isVideo ? { width: 640 } : false
                 });
 
-                console.log('🔗 Step 3: Connecting with Relay Policy...');
+                // Critical: NO iceTransportPolicy: 'relay'
+                // Let Twilio SDK handle natural fallback to TURN (which your diagnostics prove works)
                 const room = await Twilio.Video.connect(token, {
                     name: `chat_room_${chatId}`,
                     tracks: tempTracks,
-                    // Yeh setting sabse important hai firewall bypass karne ke liye
-                    iceTransportPolicy: 'relay',
-                    // Purani settings remove kardi hain
+                    // Optional improvements:
+                    region: 'in1',  // Mumbai region (closest, lowest latency ~120ms as per your test)
+                    // bandwidthProfile: { ... } if you want to manage quality later
                 });
 
                 this.twilioRoom = room;
@@ -529,21 +526,16 @@ export function expertChatComponent(chatId) {
                 console.log('✅ Twilio connected successfully');
 
             } catch (err) {
-                console.error('❌ Detailed Failure:', err);
+                console.error('❌ Connection failed:', err);
 
-                // Cleanup tracks if connection failed
-                if (tempTracks) {
+                if (tempTracks.length > 0) {
                     tempTracks.forEach(track => track.stop());
                 }
 
                 this._joining = false;
                 this.callState = 'idle';
 
-                // Specific error message for the user
-                let msg = "Connection error. ";
-                if (err.code === 53400) msg += "Your network or browser is blocking the call. Please try another browser or turn off VPN.";
-                else msg += err.message;
-
+                let msg = "Connection failed. Try refreshing, different network, or disable VPN.";
                 alert(msg);
                 this.rejectCall();
             }
