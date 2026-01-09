@@ -46,27 +46,22 @@ export function chatComponent(chatId) {
         },
 
         createAgoraClient() {
-            console.log("Creating Agora Client...");
             const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
             client.on("user-published", async (user, mediaType) => {
                 await client.subscribe(user, mediaType);
                 if (mediaType === "video") {
-                    const remoteDiv = document.getElementById('remote-media');
-                    if (remoteDiv) {
-                        remoteDiv.innerHTML = '';
-                        user.videoTrack.play(remoteDiv);
-                    }
+                    // Force wait for Alpine.js to show the div
+                    this.$nextTick(() => {
+                        const remoteDiv = document.getElementById('remote-media');
+                        if (remoteDiv) {
+                            user.videoTrack.play(remoteDiv);
+                        }
+                    });
                 }
                 if (mediaType === "audio") {
                     user.audioTrack.play();
                 }
             });
-
-            client.on("user-left", () => {
-                this.endCall();
-            });
-
             return client;
         },
         playRingtone() {
@@ -574,13 +569,15 @@ export function expertChatComponent(chatId) {
                 // expertChatComponent -> acceptCall ke andar
                 client.on("user-published", async (user, mediaType) => {
                     await client.subscribe(user, mediaType);
-
                     if (mediaType === "video") {
-                        const remoteDiv = document.getElementById('remote-media');
-                        if (remoteDiv) {
-                            remoteDiv.innerHTML = ''; // Purana view saaf karein
-                            user.videoTrack.play(remoteDiv); // Remote user ka video yahan dikhega
-                        }
+                        // Timeout thoda delay deta hai taaki DOM ready ho jaye
+                        setTimeout(() => {
+                            const remoteDiv = document.getElementById('remote-media');
+                            if (remoteDiv) {
+                                remoteDiv.innerHTML = '';
+                                user.videoTrack.play(remoteDiv); // ID pass karne ke bajaye element pass karein
+                            }
+                        }, 500);
                     }
                     if (mediaType === "audio") {
                         user.audioTrack.play();

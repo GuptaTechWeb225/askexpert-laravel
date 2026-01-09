@@ -34,14 +34,15 @@
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     }
 
-    #remote-media, #local-media {
-    background-color: #222; /* Black background takki pata chale box kahan hai */
-    position: relative;
-}
-
-/* Agora video element ko container ke pura fit karne ke liye */
-#remote-media div, #local-media div {
+#remote-media video, #local-media video {
+    position: relative !important;
     object-fit: cover !important;
+}
+#remote-media {
+    background-color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 </style>
 <div class="content container-fluid">
@@ -130,7 +131,7 @@
 
                     <!-- Body -->
                     <div class="modal-body position-relative p-0">
-                        <div id="video-wrapper" class="w-100 h-100" x-show="callState === 'connected' && isVideo">
+                        <div id="video-wrapper" class="w-100 h-100" :class="callState === 'connected' ? 'd-block' : 'd-none'">
                             <div id="remote-media" class="w-100 h-100"></div>
                             <div id="local-media"
                                 class="position-absolute bottom-0 end-0 m-3 rounded overflow-hidden border border-white"
@@ -187,8 +188,7 @@
 </div>
 <script>
     window.EXPERT_ID = "{{ auth('expert')->id() }}";
-        window.AGORA_APP_ID = "{{ config('services.agora.app_id') }}";
-
+    window.AGORA_APP_ID = "{{ config('services.agora.app_id') }}";
 </script>
 @endsection
 

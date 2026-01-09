@@ -47,14 +47,15 @@
         display: none !important;
       }
 
-      #remote-media, #local-media {
-    background-color: #222; /* Black background takki pata chale box kahan hai */
-    position: relative;
-}
-
-/* Agora video element ko container ke pura fit karne ke liye */
-#remote-media div, #local-media div {
+#remote-media video, #local-media video {
+    position: relative !important;
     object-fit: cover !important;
+}
+#remote-media {
+    background-color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
     </style>
     @vite(['resources/js/app.js'])
@@ -179,8 +180,8 @@
 
             <!-- Body -->
             <div class="modal-body position-relative p-0">
-              <div id="video-wrapper" class="w-100 h-100" x-show="callState === 'connected' && isVideo" x-cloak>
-                <div id="remote-media" class="w-100 h-100"></div>
+<div id="video-wrapper" class="w-100 h-100" :class="callState === 'connected' ? 'd-block' : 'd-none'">
+                  <div id="remote-media" class="w-100 h-100"></div>
                 <div id="local-media"
                   class="position-absolute bottom-0 end-0 m-3 rounded overflow-hidden border border-white"
                   style="width:160px;height:200px">
