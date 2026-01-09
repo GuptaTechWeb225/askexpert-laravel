@@ -376,12 +376,13 @@ export function expertChatComponent(chatId) {
                     video: this.isVideo
                 });
 
-                // Immediately stop tracks (VERY IMPORTANT)
-                stream.getTracks().forEach(t => t.stop());
+                setTimeout(() => {
+                    stream.getTracks().forEach(t => t.stop());
+                    console.log('🛑 Test stream stopped after delay');
+                }, 5000); 
 
                 this.mediaTestResult = 'ok';
                 this.callStatusText = 'Mic & Camera ready';
-
                 console.log('✅ Media available');
 
             } catch (err) {
@@ -488,61 +489,61 @@ export function expertChatComponent(chatId) {
                 this.appendMessage(res.data.message_data);
             });
         },
-       async acceptCall() {
-    if (this.mediaTestResult !== 'ok') {
-        alert(this.mediaErrorMessage);
-        return;
-    }
+        async acceptCall() {
+            if (this.mediaTestResult !== 'ok') {
+                alert(this.mediaErrorMessage);
+                return;
+            }
 
-    try {
-        this.callState = 'connecting';
-        this.callStatusText = 'Connecting…';
+            try {
+                this.callState = 'connecting';
+                this.callStatusText = 'Connecting…';
 
-        const res = await axios.post(`/chat/${chatId}/generate-token`);
-        const token = res.data.token;
+                const res = await axios.post(`/chat/${chatId}/generate-token`);
+                const token = res.data.token;
 
-        // ⏳ VERY IMPORTANT
-        await new Promise(r => setTimeout(r, 7000));
+                console.log('⏳ Waiting 10-15 seconds for media recovery...');
+                await new Promise(r => setTimeout(r, 12000));
 
-        // 🔒 Prevent double execution
-        if (this._joining) return;
-        this._joining = true;
+                // 🔒 Prevent double execution
+                if (this._joining) return;
+                this._joining = true;
 
-        const tracks = [];
+                const tracks = [];
 
-        const audioTrack = await Twilio.Video.createLocalAudioTrack();
-        tracks.push(audioTrack);
+                const audioTrack = await Twilio.Video.createLocalAudioTrack();
+                tracks.push(audioTrack);
 
-        if (this.isVideo) {
-            const videoTrack = await Twilio.Video.createLocalVideoTrack({
-                width: 640,
-                height: 480
-            });
-            tracks.push(videoTrack);
+                if (this.isVideo) {
+                    const videoTrack = await Twilio.Video.createLocalVideoTrack({
+                        width: 640,
+                        height: 480
+                    });
+                    tracks.push(videoTrack);
+                }
+
+                const room = await Twilio.Video.connect(token, {
+                    name: `chat_room_${chatId}`,
+                    tracks
+                });
+
+                this.twilioRoom = room;
+                this.callState = 'connected';
+                this.callStatusText = 'Connected';
+
+                this.setupCallUI(room);
+
+                console.log('✅ Twilio connected');
+
+            } catch (err) {
+                console.error('❌ Join failed:', err);
+                this._joining = false;
+
+                alert('Mic/Camera not ready. Please wait 2 seconds and try again.');
+                this.rejectCall();
+            }
         }
-
-        const room = await Twilio.Video.connect(token, {
-            name: `chat_room_${chatId}`,
-            tracks
-        });
-
-        this.twilioRoom = room;
-        this.callState = 'connected';
-        this.callStatusText = 'Connected';
-
-        this.setupCallUI(room);
-
-        console.log('✅ Twilio connected');
-
-    } catch (err) {
-        console.error('❌ Join failed:', err);
-        this._joining = false;
-
-        alert('Mic/Camera not ready. Please wait 2 seconds and try again.');
-        this.rejectCall();
-    }
-}
-,
+        ,
 
         get mediaErrorMessage() {
             if (this.mediaTestResult === 'busy') {
