@@ -264,57 +264,70 @@ export function chatComponent(chatId) {
 
                 this.agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
-                // Events pehle set karo
+                // Remote user events (pehla set karo)
                 this.agoraClient.on('user-published', async (user, mediaType) => {
+                    console.log('Remote published:', mediaType, 'from UID:', user.uid);
                     await this.agoraClient.subscribe(user, mediaType);
-                    if (mediaType === "video") {
+
+                    if (mediaType === 'video') {
                         setTimeout(() => {
                             const remoteDiv = document.getElementById('remote-media');
                             if (remoteDiv) {
-                                remoteDiv.innerHTML = '';
-                                user.videoTrack.play(remoteDiv); 
+                                remoteDiv.innerHTML = ''; // Clear old content
+                                user.videoTrack.play(remoteDiv);
                             }
-                        }, 500);
+                        }, 300); // Small delay for DOM ready
                     }
                     if (mediaType === 'audio') {
                         user.audioTrack.play();
                     }
                 });
 
+                // Join channel
                 await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-                // 🔥 SAFE TRACKS CREATION (voice/video handle)
+                // SAFE TRACKS – Voice/Video alag handle
                 let tracks = [];
-
                 try {
                     if (this.isVideo) {
-                        // Video call – dono tracks
+                        // Video call – both mic + camera
+                        console.log('Creating video + audio tracks...');
                         tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
                     } else {
-                        // Voice call – sirf audio
+                        // Voice call – only mic (no camera crash)
+                        console.log('Creating audio-only track...');
                         const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
                         tracks = [audioTrack];
                     }
-                } catch (err) {
-                    console.error("Media device error:", err);
-                    throw new Error("Could not access microphone" + (this.isVideo ? " or camera" : ""));
+                } catch (mediaErr) {
+                    console.error('Media access failed:', mediaErr);
+                    throw new Error('Failed to access microphone' + (this.isVideo ? ' or camera' : ''));
                 }
 
+                // Assign tracks safely
                 this.localAudioTrack = tracks.find(t => t.trackMediaType === 'audio') || tracks[0];
                 this.localVideoTrack = tracks.find(t => t.trackMediaType === 'video') || null;
 
-                // Local play
+                // Play local video if exists
                 if (this.localVideoTrack) {
-                    this.localVideoTrack.play('local-media');
+                    const localDiv = document.getElementById('local-media');
+                    if (localDiv) {
+                        localDiv.innerHTML = '';
+                        this.localVideoTrack.play(localDiv);
+                    }
                 }
 
+                // Publish
                 await this.agoraClient.publish(tracks);
 
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
-                this.startTimer();  // Timer start (agar duration UI ke liye)
+                this.startTimer(); // Timer start
 
+                // Whisper to expert: call accepted
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
+
+                console.log('✅ Call connected successfully (isVideo:', this.isVideo, ')');
 
             } catch (err) {
                 console.error('❌ Call failed:', err);
