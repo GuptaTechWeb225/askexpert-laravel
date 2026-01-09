@@ -19,33 +19,33 @@
     <audio id="ringtone" loop>
       <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
     </audio>
-    <style>
-      #video-container {
+ 
+    @vite(['resources/js/app.js'])
+
+
+<style>
+    #video-container {
         background: #000;
         border-radius: 12px;
         overflow: hidden;
         margin: 15px 0;
         position: relative;
         height: 400px;
-      }
+    }
 
-      #remote-media {
+    #remote-media {
         width: 100%;
         height: 100%;
         object-fit: cover;
-      }
+    }
 
-      #local-media {
+    #local-media {
         width: 150px;
         height: 150px;
         border: 3px solid white;
         border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(133, 105, 105, 0.3);
-      }
-
-      [x-cloak] {
-        display: none !important;
-      }
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
 
 #remote-media video, #local-media video {
     position: relative !important;
@@ -57,10 +57,7 @@
     align-items: center;
     justify-content: center;
 }
-    </style>
-    @vite(['resources/js/app.js'])
-
-
+</style>
   </head>
 
   <body>
