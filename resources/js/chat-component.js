@@ -8,22 +8,21 @@ export function chatComponent(chatId) {
         typing: false,
         expertOnline: false,
         typingTimer: null,
-        localTrack: null,
         isVideo: false,
         inCall: false,
         callState: 'idle',
+        callInitiator: null,
+        callStatusText: '',
         videoEnabled: true,
         isMuted: false,
         agoraClient: null,
         localAudioTrack: null,
         localVideoTrack: null,
         _joining: false,
-        callInitiator: null,
         callerInfo: null,
-        callStatusText: '',
 
 
-        async initiateCall(withVideo) {
+        initiateCall(withVideo) {
             if (this.inCall) return;
 
             this.isVideo = withVideo;
@@ -38,6 +37,7 @@ export function chatComponent(chatId) {
             this.callBootstrapModal.show();
 
             this.playRingtone();
+
             window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
                 from: 'user',
                 type: withVideo ? 'video' : 'voice',
@@ -60,27 +60,17 @@ export function chatComponent(chatId) {
             }
         },
 
-        cancelCall() {
-            this.stopRingtone(); // 👈 Fix: Function call bahar nikala
-            window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
-            this.endCall();
-        },
-
         endCall() {
             this.stopRingtone();
 
             if (this.localAudioTrack) {
-                this.localAudioTrack.stop();
                 this.localAudioTrack.close();
                 this.localAudioTrack = null;
             }
-
             if (this.localVideoTrack) {
-                this.localVideoTrack.stop();
                 this.localVideoTrack.close();
                 this.localVideoTrack = null;
             }
-
             if (this.agoraClient) {
                 this.agoraClient.leave();
                 this.agoraClient = null;
@@ -88,40 +78,16 @@ export function chatComponent(chatId) {
 
             this.callState = 'idle';
             this.inCall = false;
-            this.videoEnabled = false;
-            this.isMuted = false;
+            this.callInitiator = null;
+            this.callerInfo = null;
 
             document.getElementById('local-media').innerHTML = '';
             document.getElementById('remote-media').innerHTML = '';
 
-            const modal = bootstrap.Modal.getInstance(
-                document.getElementById('callModal')
-            );
+            const modal = bootstrap.Modal.getInstance(document.getElementById('callModal'));
             if (modal) modal.hide();
-        }
-        ,
-
-
-        toggleMute() {
-            if (!this.localAudioTrack) return;
-
-            this.isMuted = !this.isMuted;
-            this.localAudioTrack.setEnabled(!this.isMuted);
-        }
-        ,
-        toggleVideo() {
-            if (!this.localVideoTrack) return;
-
-            this.videoEnabled = !this.videoEnabled;
-            this.localVideoTrack.setEnabled(this.videoEnabled);
         },
-        hangUp() {
-            window.Echo.private(`chat.${chatId}`)
-                .whisper('call-ended', { chatId });
 
-            this.endCall();
-        }
-        ,
 
         init() {
             this.scrollToBottom();
@@ -180,11 +146,13 @@ export function chatComponent(chatId) {
                         this.callInitiator = 'expert';
                         this.callState = 'incoming';
                         this.isVideo = data.type === 'video';
-                        this.callStatusText = 'Incoming Call';
+                        this.callStatusText = 'Incoming Call from Expert';
                         this.callerInfo = { avatar: '/assets/front-end/img/placeholder/user.png', name: 'Expert' };
+
                         const modalEl = document.getElementById('callModal');
                         this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
                         this.callBootstrapModal.show();
+
                         this.playRingtone();
                     }
                 })
@@ -218,7 +186,85 @@ export function chatComponent(chatId) {
             this.checkExpertOnline();
             setInterval(() => this.checkExpertOnline(), 10000);
         },
+        async acceptCall() {
+            if (this._joining) return;
+            this._joining = true;
+            this.callState = 'connecting';
+            this.callStatusText = 'Connecting...';
 
+            try {
+                const res = await axios.post(`/chat/${chatId}/generate-token`);
+                const { token, channel, uid, app_id } = res.data; // app_id bhi le agar alag hai
+
+                this.agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+
+                // Events pehle set karo (jaise pehle suggest kiya tha)
+                this.agoraClient.on('user-published', async (user, mediaType) => {
+                    await this.agoraClient.subscribe(user, mediaType);
+                    if (mediaType === 'video') {
+                        user.videoTrack.play('remote-media');
+                    }
+                    if (mediaType === 'audio') {
+                        user.audioTrack.play();
+                    }
+                });
+
+                await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+
+                const tracks = await AgoraRTC.createMicrophoneAndCameraTracks(
+                    {}, this.isVideo ? {} : null
+                );
+
+                this.localAudioTrack = tracks[0];
+                this.localVideoTrack = tracks[1] || null;
+
+                if (this.localVideoTrack) {
+                    this.localVideoTrack.play('local-media');
+                }
+
+                await this.agoraClient.publish(tracks.filter(Boolean));
+
+                this.callState = 'connected';
+                this.callStatusText = 'Connected';
+
+            } catch (err) {
+                console.error('❌ Call failed:', err);
+                this.callState = 'idle';
+                this.callStatusText = 'Connection Failed';
+                this.endCall();
+            } finally {
+                this._joining = false;
+            }
+        },
+        cancelCall() {
+            this.stopRingtone();
+            window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
+            this.endCall();
+        },
+
+        rejectCall() {
+            window.Echo.private(`chat.${chatId}`).whisper('call-rejected', { chatId });
+            this.endCall();
+        },
+
+        toggleMute() {
+            if (this.localAudioTrack) {
+                this.isMuted = !this.isMuted;
+                this.localAudioTrack.setEnabled(!this.isMuted);
+            }
+        },
+
+        toggleVideo() {
+            if (this.localVideoTrack) {
+                this.videoEnabled = !this.videoEnabled;
+                this.localVideoTrack.setEnabled(this.videoEnabled);
+            }
+        },
+
+        hangUp() {
+            window.Echo.private(`chat.${chatId}`).whisper('call-ended', { chatId });
+            this.endCall();
+        },
         checkExpertOnline() {
             axios.get(`/chat/${chatId}/experts-online`)
                 .then(res => this.expertOnline = res.data.expertOnline)
