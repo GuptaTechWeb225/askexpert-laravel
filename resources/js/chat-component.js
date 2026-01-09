@@ -192,26 +192,19 @@ export function chatComponent(chatId) {
                 })
                 .listenForWhisper('call-accepted', async () => {
                     if (twilioRoom) return;
-
                     try {
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
-
-                        // Tracks pehle khud banayein taaki error detect ho sake
-                        const localTracks = await Twilio.Video.createLocalTracks({
-                            audio: true,
-                            video: this.isVideo
-                        });
-
+                        // Yahan 'audio: true' ki jagah tracks create karke connect karein (Same as acceptCall)
                         const room = await Twilio.Video.connect(res.data.token, {
                             name: 'chat_room_' + chatId,
-                            tracks: localTracks // <--- Safe approach
+                            audio: true,
+                            video: this.isVideo,
+                            iceTransportPolicy: 'relay' // IMPORTANT
                         });
-
                         twilioRoom = room;
                         this.setupCallUI(room);
-                    } catch (err) {
-                        console.error("User side hardware error:", err);
-                        toastr.error("Please check Mic/Camera permissions.");
+                    } catch (e) {
+                        console.error("Expert side connect failed", e);
                     }
                 })
 
@@ -498,102 +491,60 @@ export function expertChatComponent(chatId) {
             });
         },
         async acceptCall() {
-            // 1. Initial Checks
-            console.log('🚀 Step 1: Initialization started');
-           
+            if (this._joining) return;
             this._joining = true;
+
+            // Local track variable to clean up if connect fails
+            let tempTracks = [];
 
             try {
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting…';
 
-                // 2. Token Generation Step
-                console.log('📡 Step 2: Fetching Twilio Token...');
-                let token;
-                try {
-                    const res = await axios.post(`/chat/${chatId}/generate-token`);
-                    token = res.data.token;
-                    console.log('✅ Token received successfully');
-                } catch (tokenErr) {
-                    console.error('❌ Failed at Step 2 (Token Generation):', tokenErr.response?.data || tokenErr.message);
-                    throw new Error(`Token Error: ${tokenErr.message}`);
-                }
+                console.log('📡 Step 1: Getting Token...');
+                const res = await axios.post(`/chat/${chatId}/generate-token`);
+                const token = res.data.token;
 
-                // 3. Media Track Creation Step
-                console.log('🎙️ Step 3: Accessing Media Devices (Mic/Camera)...');
-                const localTracks = [];
-                try {
-                    const audioTrack = await Twilio.Video.createLocalAudioTrack();
-                    console.log('🎤 Audio track created');
-                    localTracks.push(audioTrack);
+                console.log('🎙️ Step 2: Accessing Media...');
+                // Create tracks separately to ensure they work before connecting
+                tempTracks = await Twilio.Video.createLocalTracks({
+                    audio: true,
+                    video: this.isVideo ? { width: 640 } : false
+                });
 
-                    if (this.isVideo) {
-                        const videoTrack = await Twilio.Video.createLocalVideoTrack({
-                            width: 640,
-                            height: 480
-                        });
-                        console.log('📹 Video track created');
-                        localTracks.push(videoTrack);
-                    }
-                } catch (mediaErr) {
-                    console.error('❌ Failed at Step 3 (Media Access):', mediaErr.name, mediaErr.message);
-                    // Agar hardware busy hai toh yahan error aayega
-                    throw new Error(`Media Error: ${mediaErr.message}`);
-                }
-
-                // 4. Twilio Connection Step
-                console.log('🔗 Step 4: Connecting to Twilio Room...', { roomName: `chat_room_${chatId}`, tracksCount: localTracks.length });
-
-                let room;
-                try {
-                    room = await Twilio.Video.connect(token, {
-                        name: `chat_room_${chatId}`,
-                        tracks: localTracks,
-                        iceTransportPolicy: 'relay', // Firewall bypass karne ke liye
-                        preferredVideoCodecs: [{ codec: 'VP8' }], // Codec mismatch rokne ke liye
-                        bandwidthProfile: {
-                            video: {
-                                mode: 'collaboration',
-                                renderDimensions: {
-                                    high: { width: 640, height: 480 }
-                                }
-                            }
-                        }
-                    });
-                    console.log('✅ Step 5: Twilio Connection Successful!');
-                } catch (err) {
-                    console.error('🔴 FINAL ERROR SUMMARY:', err);
-
-                    // Safe cleanup
-                    if (this.twilioRoom) {
-                        this.twilioRoom.disconnect();
-                        this.twilioRoom = null;
-                    }
-
-                    // Stop local tracks manually if they were created
-                    if (localTracks) {
-                        localTracks.forEach(track => track.stop());
-                    }
-
-                    this._joining = false;
-                    this.callState = 'idle';
-                    alert(`Call failed: ${err.message}`);
-                }
+                console.log('🔗 Step 3: Connecting with Relay Policy...');
+                const room = await Twilio.Video.connect(token, {
+                    name: `chat_room_${chatId}`,
+                    tracks: tempTracks,
+                    // Yeh setting sabse important hai firewall bypass karne ke liye
+                    iceTransportPolicy: 'relay',
+                    // Purani settings remove kardi hain
+                });
 
                 this.twilioRoom = room;
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
                 this.setupCallUI(room);
 
+                console.log('✅ Twilio connected successfully');
+
             } catch (err) {
-                // Final Global Catch
-                console.error('🔴 FINAL ERROR SUMMARY:', {
-                    step_failed: err.message,
-                    stack: err.stack
-                });
+                console.error('❌ Detailed Failure:', err);
+
+                // Cleanup tracks if connection failed
+                if (tempTracks) {
+                    tempTracks.forEach(track => track.stop());
+                }
 
                 this._joining = false;
-                alert(`Call failed: ${err.message}`);
+                this.callState = 'idle';
+
+                // Specific error message for the user
+                let msg = "Connection error. ";
+                if (err.code === 53400) msg += "Your network or browser is blocking the call. Please try another browser or turn off VPN.";
+                else msg += err.message;
+
+                alert(msg);
                 this.rejectCall();
             }
         },
