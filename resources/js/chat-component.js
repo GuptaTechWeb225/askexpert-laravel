@@ -434,6 +434,7 @@ export function expertChatComponent(chatId) {
             this._initialized = true;
 
             console.log('🟢 Expert chat initialized ONCE');
+            console.log(Twilio.Video.version);
             this.scrollToBottom();
             this.markAllAsRead();
 
@@ -508,8 +509,10 @@ export function expertChatComponent(chatId) {
                     video: this.isVideo ? { width: 640 } : false
                 });
 
-                // Critical: NO iceTransportPolicy: 'relay'
-                // Let Twilio SDK handle natural fallback to TURN (which your diagnostics prove works)
+
+                console.log('Tracks created:', tempTracks);
+                console.log('Tracks types:', tempTracks.map(t => t.kind));
+                
                 const room = await Twilio.Video.connect(token, {
                     name: `chat_room_${chatId}`,
                     tracks: tempTracks,
