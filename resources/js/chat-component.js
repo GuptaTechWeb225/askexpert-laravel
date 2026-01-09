@@ -461,7 +461,7 @@ export function expertChatComponent(chatId) {
                     // Test media availability only
                     await this.testMediaAvailability();
 
-                    await new Promise(r => setTimeout(r, 700));
+                    await new Promise(r => setTimeout(r, 7000));
 
                 });
 
@@ -502,7 +502,7 @@ export function expertChatComponent(chatId) {
         const token = res.data.token;
 
         // ⏳ VERY IMPORTANT
-        await new Promise(r => setTimeout(r, 700));
+        await new Promise(r => setTimeout(r, 7000));
 
         // 🔒 Prevent double execution
         if (this._joining) return;
