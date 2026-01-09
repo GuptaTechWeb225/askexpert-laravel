@@ -33,6 +33,8 @@ class ExpertChatController extends Controller
 
     public function view(ChatSession $chat)
     {
+
+        Log::info('this 1 is called');
         if ($chat->expert_id !== auth('expert')->id()) {
             abort(403);
         }
@@ -44,6 +46,8 @@ class ExpertChatController extends Controller
     }
     public function massagesChat()
     {
+                Log::info('this 2 is called');
+
         $expertId = auth('expert')->id();
         if (!$expertId) {
             abort(403, 'Unauthorized');
@@ -63,6 +67,9 @@ class ExpertChatController extends Controller
 
     public function sendMessage(Request $request)
     {
+
+                Log::info('this 3 is called');
+
         $request->validate([
             'chat_id' => 'required|exists:chat_sessions,id',
             'message' => 'nullable|string',
@@ -94,6 +101,9 @@ class ExpertChatController extends Controller
 
     public function markRead(Request $request)
     {
+
+                Log::info('this 4 is called');
+
         $chatId = $request->chat_id;
         $messageId = $request->message_id;
 
@@ -121,6 +131,7 @@ class ExpertChatController extends Controller
 
     public function sendToAdmin(Request $request)
     {
+        Log::info('this 5 is called');
 
         Log::info('SendMessage request received', [
             'message' => $request->message,
@@ -174,6 +185,9 @@ class ExpertChatController extends Controller
     }
     public function getAdminMessages()
     {
+
+                Log::info(message: 'this 6 is called');
+
         $expertId = auth('expert')->id();
 
         $chat = AdminExpertChat::where('expert_id', $expertId)->first();
@@ -191,6 +205,9 @@ class ExpertChatController extends Controller
 
     public function markAdminRead(Request $request)
     {
+
+                Log::info('this 7 is called');
+
         $expertId = auth('expert')->id();
 
         $chat = AdminExpertChat::where('expert_id', $expertId)->first();
@@ -206,6 +223,9 @@ class ExpertChatController extends Controller
 
     public function markAdminSpecificRead(Request $request)
     {
+
+                Log::info('this 8 is called');
+
         $request->validate(['message_id' => 'required']);
 
         AdminExpertMessage::where('id', $request->message_id)
@@ -218,6 +238,9 @@ class ExpertChatController extends Controller
 
     public function myQuestions()
     {
+
+                Log::info('this 9 is called');
+
         $expert = auth('expert')->user(); // authenticated expert
 
         $expertId = $expert->id;
@@ -246,14 +269,21 @@ class ExpertChatController extends Controller
 
         $averageRating = $expert->average_rating;
         $totalEarning = $expert->total_earned; // accessor se fetch
-        return view(Chat::QUESTIONS[VIEW], compact('assignedChat', 'oldChats', 'assignedQuestions',
-        'unreadMessages',
-        'averageRating',
-        'totalEarning',));
+        return view(Chat::QUESTIONS[VIEW], compact(
+            'assignedChat',
+            'oldChats',
+            'assignedQuestions',
+            'unreadMessages',
+            'averageRating',
+            'totalEarning',
+        ));
     }
 
     public function endChatByExpert(Request $request, $chatId)
     {
+
+                Log::info('this 10 is called');
+
         $chat = ChatSession::where('id', $chatId)
             ->where('expert_id', auth('expert')->id())
             ->whereIn('status', ['active', 'pending'])

@@ -460,6 +460,9 @@ export function expertChatComponent(chatId) {
 
                     // Test media availability only
                     await this.testMediaAvailability();
+
+                    await new Promise(r => setTimeout(r, 700));
+
                 });
 
 
@@ -485,73 +488,61 @@ export function expertChatComponent(chatId) {
                 this.appendMessage(res.data.message_data);
             });
         },
-        async acceptCall() {
-            if (this.mediaTestResult !== 'ok') {
-                alert(this.mediaErrorMessage);
-                return;
-            }
+       async acceptCall() {
+    if (this.mediaTestResult !== 'ok') {
+        alert(this.mediaErrorMessage);
+        return;
+    }
 
-            try {
-                this.callState = 'connecting';
-                this.callStatusText = 'Connecting…';
+    try {
+        this.callState = 'connecting';
+        this.callStatusText = 'Connecting…';
 
-                const res = await axios.post(`/chat/${chatId}/generate-token`);
-                const token = res.data.token;
+        const res = await axios.post(`/chat/${chatId}/generate-token`);
+        const token = res.data.token;
 
-                // 🔥 CREATE FRESH TWILIO TRACKS
-                const tracks = [];
+        // ⏳ VERY IMPORTANT
+        await new Promise(r => setTimeout(r, 700));
 
-                const audioTrack = await Twilio.Video.createLocalAudioTrack({
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                });
-                tracks.push(audioTrack);
+        // 🔒 Prevent double execution
+        if (this._joining) return;
+        this._joining = true;
 
-                if (this.isVideo) {
-                    const videoTrack = await Twilio.Video.createLocalVideoTrack({
-                        width: 640,
-                        height: 480
-                    });
-                    tracks.push(videoTrack);
-                }
+        const tracks = [];
 
-                // Safety: disconnect old room
-                if (this.twilioRoom) {
-                    this.twilioRoom.disconnect();
-                    this.twilioRoom = null;
-                }
+        const audioTrack = await Twilio.Video.createLocalAudioTrack();
+        tracks.push(audioTrack);
 
-                const room = await Twilio.Video.connect(token, {
-                    name: `chat_room_${chatId}`,
-                    tracks,
-                    dominantSpeaker: true
-                });
+        if (this.isVideo) {
+            const videoTrack = await Twilio.Video.createLocalVideoTrack({
+                width: 640,
+                height: 480
+            });
+            tracks.push(videoTrack);
+        }
 
-                this.twilioRoom = room;
-                this.callState = 'connected';
-                this.callStatusText = 'Connected';
+        const room = await Twilio.Video.connect(token, {
+            name: `chat_room_${chatId}`,
+            tracks
+        });
 
-                this.setupCallUI(room);
+        this.twilioRoom = room;
+        this.callState = 'connected';
+        this.callStatusText = 'Connected';
 
-                console.log('✅ Joined Twilio room');
+        this.setupCallUI(room);
 
-            } catch (err) {
-                console.error('❌ Join failed:', err);
+        console.log('✅ Twilio connected');
 
-                if (err.code === 53400) {
-                    alert(`
-Microphone or Camera is still busy.
+    } catch (err) {
+        console.error('❌ Join failed:', err);
+        this._joining = false;
 
-Close other apps and try again.
-            `);
-                } else {
-                    alert('Unable to join call.');
-                }
-
-                this.rejectCall();
-            }
-        },
+        alert('Mic/Camera not ready. Please wait 2 seconds and try again.');
+        this.rejectCall();
+    }
+}
+,
 
         get mediaErrorMessage() {
             if (this.mediaTestResult === 'busy') {
