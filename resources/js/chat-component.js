@@ -124,49 +124,67 @@ export function chatComponent(chatId) {
                         this.markAsRead(e.message.id);
                     }
                 })
-                .listenForWhisper('call-accepted', async () => {
-                    if (this._joining) return;
-                    this._joining = true;
-                    try {
-                        this.stopRingtone();
-                        this.callStatusText = 'Connecting...';
-                        this.callState = 'connecting';
+               .listenForWhisper('call-accepted', async () => {
+    if (this._joining) return;
+    this._joining = true;
+    try {
+        this.stopRingtone();
+        this.callStatusText = 'Connecting...';
+        this.callState = 'connecting';
 
-                        // FIX: Pehle client create karein
-                        if (!this.agoraClient) {
-                            this.agoraClient = this.createAgoraClient();
-                        }
+        if (!this.agoraClient) {
+            this.agoraClient = this.createAgoraClient();
+        }
 
-                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+        const res = await axios.post(`/chat/${chatId}/generate-token`);
+        const { token, channel, uid, app_id } = res.data;
 
-                        // Ab join error nahi dega
-                        await this.agoraClient.join(res.data.appId, res.data.channel, res.data.token, res.data.uid);
+        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-                        const tracks = await AgoraRTC.createMicrophoneAndCameraTracks(
-                            {},
-                            this.isVideo ? {} : null
-                        );
+        // --- SAFE TRACKS FOR USER SIDE ---
+        let tracks = [];
+        try {
+            if (this.isVideo) {
+                // Pehle dono try karo
+                tracks = await AgoraRTC.createMicrophoneAndCameraTracks().catch(async (e) => {
+                    console.warn("Camera failed, falling back to audio only", e);
+                    this.isVideo = false;
+                    const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                    return [audio];
+                });
+            } else {
+                const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                tracks = [audio];
+            }
+        } catch (deviceErr) {
+            throw new Error("Could not access microphone/camera");
+        }
 
-                        this.localAudioTrack = tracks[0];
-                        this.localVideoTrack = tracks[1] || null;
+        this.localAudioTrack = tracks[0];
+        this.localVideoTrack = tracks[1] || null;
 
-                        if (this.localVideoTrack) this.localVideoTrack.play('local-media');
+        if (this.localVideoTrack) {
+            const localDiv = document.getElementById('local-media');
+            if (localDiv) {
+                localDiv.innerHTML = '';
+                this.localVideoTrack.play(localDiv);
+            }
+        }
 
-                        await this.agoraClient.publish(tracks.filter(Boolean));
+        await this.agoraClient.publish(tracks.filter(Boolean));
 
-                        this.callState = 'connected';
-                        this.inCall = true;
+        this.callState = 'connected';
+        this.inCall = true;
+        this.callStatusText = 'Connected';
 
-                        if (this.callBootstrapModal) this.callBootstrapModal.show();
-
-                    } catch (err) {
-                        console.error('❌ Agora join failed:', err);
-                        toastr.error('Connection failed');
-                        this.endCall();
-                    } finally {
-                        this._joining = false;
-                    }
-                })
+    } catch (err) {
+        console.error('❌ User side Agora join failed:', err);
+        toastr.error('Connection failed: ' + err.message);
+        this.endCall();
+    } finally {
+        this._joining = false;
+    }
+})
 
 
                 .listenForWhisper('incoming-call', (data) => {
