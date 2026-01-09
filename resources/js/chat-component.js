@@ -515,9 +515,8 @@ export function expertChatComponent(chatId) {
                 const room = await Twilio.Video.connect(token, {
                     name: `chat_room_${chatId}`,
                     tracks: tempTracks,
-                    // Optional improvements:
-                    region: 'in1',  // Mumbai region (closest, lowest latency ~120ms as per your test)
-                    // bandwidthProfile: { ... } if you want to manage quality later
+                    region: 'in1',
+                    iceServers: [{ urls: 'turn:global.turn.twilio.com:3478?transport=udp' }, { urls: 'turn:global.turn.twilio.com:443?transport=tcp' }]
                 });
 
                 this.twilioRoom = room;
