@@ -46,6 +46,16 @@
       [x-cloak] {
         display: none !important;
       }
+
+      #remote-media, #local-media {
+    background-color: #222; /* Black background takki pata chale box kahan hai */
+    position: relative;
+}
+
+/* Agora video element ko container ke pura fit karne ke liye */
+#remote-media div, #local-media div {
+    object-fit: cover !important;
+}
     </style>
     @vite(['resources/js/app.js'])
 

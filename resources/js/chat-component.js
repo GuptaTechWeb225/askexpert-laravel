@@ -124,67 +124,68 @@ export function chatComponent(chatId) {
                         this.markAsRead(e.message.id);
                     }
                 })
-               .listenForWhisper('call-accepted', async () => {
-    if (this._joining) return;
-    this._joining = true;
-    try {
-        this.stopRingtone();
-        this.callStatusText = 'Connecting...';
-        this.callState = 'connecting';
+                .listenForWhisper('call-accepted', async () => {
+                    if (this._joining) return;
+                    this._joining = true;
+                    try {
+                        this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
+                        this.callState = 'connecting';
 
-        if (!this.agoraClient) {
-            this.agoraClient = this.createAgoraClient();
-        }
 
-        const res = await axios.post(`/chat/${chatId}/generate-token`);
-        const { token, channel, uid, app_id } = res.data;
+                        if (!this.agoraClient) {
+                            this.agoraClient = this.createAgoraClient(); // Iske andar remote-media play karne ka logic pehle se hai
+                        }
 
-        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        const { token, channel, uid, app_id } = res.data;
 
-        // --- SAFE TRACKS FOR USER SIDE ---
-        let tracks = [];
-        try {
-            if (this.isVideo) {
-                // Pehle dono try karo
-                tracks = await AgoraRTC.createMicrophoneAndCameraTracks().catch(async (e) => {
-                    console.warn("Camera failed, falling back to audio only", e);
-                    this.isVideo = false;
-                    const audio = await AgoraRTC.createMicrophoneAudioTrack();
-                    return [audio];
-                });
-            } else {
-                const audio = await AgoraRTC.createMicrophoneAudioTrack();
-                tracks = [audio];
-            }
-        } catch (deviceErr) {
-            throw new Error("Could not access microphone/camera");
-        }
+                        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-        this.localAudioTrack = tracks[0];
-        this.localVideoTrack = tracks[1] || null;
+                        // --- SAFE TRACKS FOR USER SIDE ---
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                // Pehle dono try karo
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks().catch(async (e) => {
+                                    console.warn("Camera failed, falling back to audio only", e);
+                                    this.isVideo = false;
+                                    const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                    return [audio];
+                                });
+                            } else {
+                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                tracks = [audio];
+                            }
+                        } catch (deviceErr) {
+                            throw new Error("Could not access microphone/camera");
+                        }
 
-        if (this.localVideoTrack) {
-            const localDiv = document.getElementById('local-media');
-            if (localDiv) {
-                localDiv.innerHTML = '';
-                this.localVideoTrack.play(localDiv);
-            }
-        }
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
 
-        await this.agoraClient.publish(tracks.filter(Boolean));
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
 
-        this.callState = 'connected';
-        this.inCall = true;
-        this.callStatusText = 'Connected';
+                        await this.agoraClient.publish(tracks.filter(Boolean));
 
-    } catch (err) {
-        console.error('❌ User side Agora join failed:', err);
-        toastr.error('Connection failed: ' + err.message);
-        this.endCall();
-    } finally {
-        this._joining = false;
-    }
-})
+                        this.callState = 'connected';
+                        this.inCall = true;
+                        this.callStatusText = 'Connected';
+
+                    } catch (err) {
+                        console.error('❌ User side Agora join failed:', err);
+                        toastr.error('Connection failed: ' + err.message);
+                        this.endCall();
+                    } finally {
+                        this._joining = false;
+                    }
+                })
 
 
                 .listenForWhisper('incoming-call', (data) => {
@@ -570,20 +571,18 @@ export function expertChatComponent(chatId) {
                 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
                 // 🔥 Event listeners PEHLE set kar (miss na ho)
+                // expertChatComponent -> acceptCall ke andar
                 client.on("user-published", async (user, mediaType) => {
-                    console.log('🔥 Remote user published:', user.uid, mediaType);
                     await client.subscribe(user, mediaType);
 
                     if (mediaType === "video") {
-                        console.log('▶️ Playing remote video for UID:', user.uid);
                         const remoteDiv = document.getElementById('remote-media');
                         if (remoteDiv) {
-                            remoteDiv.innerHTML = ''; // Clear old if any
-                            user.videoTrack.play(remoteDiv);
+                            remoteDiv.innerHTML = ''; // Purana view saaf karein
+                            user.videoTrack.play(remoteDiv); // Remote user ka video yahan dikhega
                         }
                     }
                     if (mediaType === "audio") {
-                        console.log('🔊 Playing remote audio');
                         user.audioTrack.play();
                     }
                 });

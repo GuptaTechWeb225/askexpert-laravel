@@ -33,6 +33,16 @@
         border-radius: 12px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     }
+
+    #remote-media, #local-media {
+    background-color: #222; /* Black background takki pata chale box kahan hai */
+    position: relative;
+}
+
+/* Agora video element ko container ke pura fit karne ke liye */
+#remote-media div, #local-media div {
+    object-fit: cover !important;
+}
 </style>
 <div class="content container-fluid">
     <div class="whatsapp-container" x-data="expertChatComponent({{ $chat->id }})" x-init="init()">
