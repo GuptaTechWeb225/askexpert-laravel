@@ -1,4 +1,3 @@
-let twilioRoom = null;
 
 export function chatComponent(chatId) {
     const userIdMeta = document.querySelector('meta[name="user-id"]');
@@ -15,6 +14,11 @@ export function chatComponent(chatId) {
         callState: 'idle',
         videoEnabled: true,
         isMuted: false,
+        agoraClient: null,
+        localAudioTrack: null,
+        localVideoTrack: null,
+        _joining: false,
+
 
         async initiateCall(withVideo) {
             if (this.inCall) return;
@@ -50,75 +54,6 @@ export function chatComponent(chatId) {
                 ringtone.currentTime = 0;
             }
         },
-        setupCallUI(room) {
-            console.log('Setting up Call UI...');
-
-            // Existing participants
-            room.participants.forEach(participant => {
-                this.attachParticipant(participant);
-            });
-
-            // New join
-            room.on('participantConnected', participant => {
-                console.log('Participant connected:', participant.identity);
-                this.attachParticipant(participant);
-            });
-
-
-            room.localParticipant.videoTracks.forEach(publication => {
-                if (publication.track) {
-                    const element = publication.track.attach();
-                    document.getElementById('local-media').appendChild(element);
-                }
-            });
-
-            room.on('participantDisconnected', participant => {
-                participant.tracks.forEach(pub => {
-                    if (pub.track) {
-                        pub.track.detach().forEach(el => el.remove());
-                    }
-                });
-            });
-
-            room.on('disconnected', () => {
-                this.endCall();
-            });
-        },
-
-        attachParticipant(participant) {
-            console.log('Attaching participant tracks');
-
-            const container = document.getElementById('remote-media');
-            if (!container) return;
-
-            // 🔹 Existing published tracks
-            participant.tracks.forEach(publication => {
-                if (publication.isSubscribed && publication.track) {
-                    this.attachTrack(publication.track, container);
-                }
-            });
-
-            // 🔹 New tracks
-            participant.on('trackSubscribed', track => {
-                console.log('Track subscribed:', track.kind);
-                this.attachTrack(track, container);
-            });
-
-            participant.on('trackUnsubscribed', track => {
-                track.detach().forEach(el => el.remove());
-            });
-        },
-
-        attachTrack(track, container) {
-            // ❌ prevent duplicate attach
-            if (track.kind === 'video' && container.querySelector('video')) return;
-
-            const element = track.attach();
-            element.style.width = '100%';
-            element.style.height = '100%';
-
-            container.appendChild(element);
-        },
 
         cancelCall() {
             this.stopRingtone(); // 👈 Fix: Function call bahar nikala
@@ -127,19 +62,29 @@ export function chatComponent(chatId) {
         },
 
         endCall() {
-            if (twilioRoom) {
-                // Tracks ko band karna zaroori hai
-                twilioRoom.localParticipant.tracks.forEach(publication => {
-                    publication.track.stop();
-                    const attachedElements = publication.track.detach();
-                    attachedElements.forEach(element => element.remove());
-                });
+            this.stopRingtone();
 
-                twilioRoom.disconnect();
-                twilioRoom = null;
+            if (this.localAudioTrack) {
+                this.localAudioTrack.stop();
+                this.localAudioTrack.close();
+                this.localAudioTrack = null;
             }
+
+            if (this.localVideoTrack) {
+                this.localVideoTrack.stop();
+                this.localVideoTrack.close();
+                this.localVideoTrack = null;
+            }
+
+            if (this.agoraClient) {
+                this.agoraClient.leave();
+                this.agoraClient = null;
+            }
+
             this.callState = 'idle';
             this.inCall = false;
+            this.videoEnabled = false;
+            this.isMuted = false;
 
             document.getElementById('local-media').innerHTML = '';
             document.getElementById('remote-media').innerHTML = '';
@@ -148,37 +93,30 @@ export function chatComponent(chatId) {
                 document.getElementById('callModal')
             );
             if (modal) modal.hide();
-        },
+        }
+        ,
 
 
         toggleMute() {
+            if (!this.localAudioTrack) return;
+
             this.isMuted = !this.isMuted;
-
-            if (!twilioRoom) return;
-
-            twilioRoom.localParticipant.audioTracks.forEach(pub => {
-                if (pub.track) pub.track.enable(!this.isMuted);
-            });
-        },
-        toggleVideo() {
-            this.videoEnabled = !this.videoEnabled;
-
-            if (!twilioRoom) return;
-
-            twilioRoom.localParticipant.videoTracks.forEach(pub => {
-                if (pub.track) pub.track.enable(this.videoEnabled);
-            });
+            this.localAudioTrack.setEnabled(!this.isMuted);
         }
         ,
-        hangUp() {
-            this.endCall();
-            const stopRingtone = () => {
-                const ringtone = document.getElementById('ringtone');
-                if (ringtone) { ringtone.pause(); ringtone.currentTime = 0; }
-            };
+        toggleVideo() {
+            if (!this.localVideoTrack) return;
 
-            window.Echo.private(`chat.${chatId}`).whisper('call-ended', { chatId });
+            this.videoEnabled = !this.videoEnabled;
+            this.localVideoTrack.setEnabled(this.videoEnabled);
         },
+        hangUp() {
+            window.Echo.private(`chat.${chatId}`)
+                .whisper('call-ended', { chatId });
+
+            this.endCall();
+        }
+        ,
 
         init() {
             this.scrollToBottom();
@@ -191,28 +129,55 @@ export function chatComponent(chatId) {
                     }
                 })
                 .listenForWhisper('call-accepted', async () => {
-                    if (twilioRoom) return;
+                    if (this._joining) return;
+                    this._joining = true;
                     try {
+                        this.stopRingtone();
+                        this.callState = 'connecting';
+
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
-                        // Yahan 'audio: true' ki jagah tracks create karke connect karein (Same as acceptCall)
-                        const room = await Twilio.Video.connect(res.data.token, {
-                            name: 'chat_room_' + chatId,
-                            audio: true,
-                            video: this.isVideo,
-                            iceTransportPolicy: 'relay' // IMPORTANT
-                        });
-                        twilioRoom = room;
-                        this.setupCallUI(room);
-                    } catch (e) {
-                        console.error("Expert side connect failed", e);
+
+                        this.agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+                        await this.agoraClient.join(window.AGORA_APP_ID, `chat_${chatId}`, res.data.token, null);
+
+                        const tracks = await AgoraRTC.createMicrophoneAndCameraTracks(
+                            {},
+                            this.isVideo ? {} : null
+                        );
+
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
+
+                        if (this.localVideoTrack) this.localVideoTrack.play('local-media');
+
+                        await this.agoraClient.publish(tracks.filter(Boolean));
+
+                        this.callState = 'connected';
+                        this.inCall = true;
+
+                        // Show modal explicitly if hidden
+                        if (this.callBootstrapModal) this.callBootstrapModal.show();
+
+                    } catch (err) {
+                        console.error('❌ Agora join failed:', err);
+                        toastr.error('Call connection failed. Please try again.');
+                        // Optionally keep modal visible for retry instead of endCall()
+                        // this.endCall();  <-- remove this line
+                    }
+                    finally {
+                        this._joining = false;
                     }
                 })
+
 
 
                 .listenForWhisper('call-rejected', () => {
                     this.stopRingtone();
                     this.endCall();
                     toastr.info('Call rejected');
+                })
+                .listenForWhisper('call-ended', () => {
+                    this.endCall();
                 })
 
                 .listenForWhisper('call-cancelled', () => {
@@ -374,6 +339,8 @@ export function expertChatComponent(chatId) {
         videoEnabled: false,
         mediaTestResult: null,
         _initialized: false,
+        _joining: false,
+
 
 
         async testMediaAvailability() {
@@ -404,23 +371,7 @@ export function expertChatComponent(chatId) {
             }
         },
 
-        attachParticipant(participant) {
-            participant.tracks.forEach(pub => {
-                if (pub.isSubscribed && pub.track) {
-                    document.getElementById('remote-media')
-                        .appendChild(pub.track.attach());
-                }
-            });
 
-            participant.on('trackSubscribed', track => {
-                document.getElementById('remote-media')
-                    .appendChild(track.attach());
-            });
-
-            participant.on('trackUnsubscribed', track => {
-                track.detach().forEach(el => el.remove());
-            });
-        },
 
         hangUp() {
             window.Echo.private(`chat.${chatId}`)
@@ -465,9 +416,13 @@ export function expertChatComponent(chatId) {
 
                     $('#callModal').modal('show');
 
+                })
+                .listenForWhisper('call-ended', () => {
+                    this.resetCallUI();
+                })
+                .listenForWhisper('call-rejected', () => {
+                    this.resetCallUI();
                 });
-
-
 
             if ('{{ $chat->status }}' === 'ended') {
                 this.chatEnded = true;
@@ -494,51 +449,78 @@ export function expertChatComponent(chatId) {
             if (this._joining) return;
             this._joining = true;
 
-            let tempTracks = [];
-
             try {
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting…';
 
                 const res = await axios.post(`/chat/${chatId}/generate-token`);
-                const token = res.data.token;
+                const { token, channel, uid } = res.data;
 
-                tempTracks = await Twilio.Video.createLocalTracks({
-                    audio: true,
-                    video: this.isVideo ? { width: 640 } : false
+                // Client create
+                const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+                // 🔥 Event listeners PEHLE set kar (miss na ho)
+                client.on("user-published", async (user, mediaType) => {
+                    console.log('🔥 Remote user published:', user.uid, mediaType);
+                    await client.subscribe(user, mediaType);
+
+                    if (mediaType === "video") {
+                        console.log('▶️ Playing remote video for UID:', user.uid);
+                        const remoteDiv = document.getElementById('remote-media');
+                        if (remoteDiv) {
+                            remoteDiv.innerHTML = ''; // Clear old if any
+                            user.videoTrack.play(remoteDiv);
+                        }
+                    }
+                    if (mediaType === "audio") {
+                        console.log('🔊 Playing remote audio');
+                        user.audioTrack.play();
+                    }
                 });
 
-
-                console.log('Tracks created:', tempTracks);
-                console.log('Tracks types:', tempTracks.map(t => t.kind));
-
-                const room = await Twilio.Video.connect(token, {
-                    name: `chat_room_${chatId}`,
-                    tracks: tempTracks,
-                    region: 'in1',
-                    iceServers: [{ urls: 'turn:global.turn.twilio.com:3478?transport=udp' }, { urls: 'turn:global.turn.twilio.com:443?transport=tcp' }]
+                client.on("user-unpublished", (user, mediaType) => {
+                    console.log('❌ Remote user unpublished:', user.uid, mediaType);
+                    if (mediaType === "video") {
+                        document.getElementById('remote-media').innerHTML = '';
+                    }
                 });
 
-                this.twilioRoom = room;
+                client.on("user-left", (user) => {
+                    console.log('👋 Remote user left:', user.uid);
+                    this.resetCallUI();
+                });
+
+                // Join
+                await client.join(window.AGORA_APP_ID, channel, token, uid);
+
+                // Tracks create & publish
+                const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                const micTrack = tracks[0];
+                const camTrack = this.isVideo ? tracks[1] : null;
+
+                if (camTrack) camTrack.play(document.getElementById('local-media'));
+
+                const publishTracks = [micTrack];
+                if (camTrack) publishTracks.push(camTrack);
+
+                await client.publish(publishTracks);
+
+                this.agoraClient = client;
+                this.micTrack = micTrack;
+                this.cameraTrack = camTrack;
+                this.videoEnabled = !!camTrack;
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
-                this.setupCallUI(room);
+                window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
 
-                console.log('✅ Twilio connected successfully');
+                console.log('✅ Agora fully connected');
 
             } catch (err) {
-                console.error('❌ Connection failed:', err);
-
-                if (tempTracks.length > 0) {
-                    tempTracks.forEach(track => track.stop());
-                }
-
+                console.error('❌ Agora error:', err);
+                this.resetCallUI();
+                alert('Call failed: ' + (err.message || 'Unknown error'));
+            } finally {
                 this._joining = false;
-                this.callState = 'idle';
-
-                let msg = "Connection failed. Try refreshing, different network, or disable VPN.";
-                alert(msg);
-                this.rejectCall();
             }
         },
 
@@ -567,38 +549,22 @@ Steps:
 
             return '';
         },
-        setupCallUI(room) {
-            // Local video
-            room.localParticipant.videoTracks.forEach(pub => {
-                const el = pub.track.attach();
-                document.getElementById('local-media').appendChild(el);
-            });
-
-            // Existing participants
-            room.participants.forEach(p => this.attachParticipant(p));
-
-            room.on('participantConnected', p => {
-                this.attachParticipant(p);
-            });
-
-            room.on('participantDisconnected', p => {
-                p.tracks.forEach(pub => {
-                    if (pub.track) {
-                        pub.track.detach().forEach(el => el.remove());
-                    }
-                });
-            });
-
-            room.on('disconnected', () => {
-                this.resetCallUI();
-            });
-        },
 
 
-        resetCallUI() {
-            if (this.twilioRoom) {
-                this.twilioRoom.disconnect();
-                this.twilioRoom = null;
+        async resetCallUI() {
+            if (this.agoraClient) {
+                await this.agoraClient.leave();
+                this.agoraClient = null;
+            }
+
+            if (this.micTrack) {
+                this.micTrack.stop();
+                this.micTrack = null;
+            }
+
+            if (this.cameraTrack) {
+                this.cameraTrack.stop();
+                this.cameraTrack = null;
             }
 
             this.callState = '';
@@ -608,9 +574,8 @@ Steps:
             document.getElementById('remote-media').innerHTML = '';
 
             $('#callModal').modal('hide');
-        },
-
-
+        }
+        ,
         rejectCall() {
             window.Echo.private(`chat.${chatId}`)
                 .whisper('call-rejected', { chatId });
@@ -620,26 +585,22 @@ Steps:
         toggleMute() {
             this.isMuted = !this.isMuted;
 
-            if (this.twilioRoom) {
-                this.twilioRoom.localParticipant.audioTracks.forEach(pub => {
-                    if (pub.track) pub.track.enable(!this.isMuted);
-                });
+            if (this.micTrack) {
+                this.micTrack.setEnabled(!this.isMuted);
             }
-        },
-        toggleVideo() {
-            if (!this.twilioRoom) return;
-
-            this.twilioRoom.localParticipant.videoTracks.forEach(pub => {
-                if (pub.track.isEnabled) {
-                    pub.track.disable();
-                    this.videoEnabled = false;
-                } else {
-                    pub.track.enable();
-                    this.videoEnabled = true;
-                }
-            });
         }
         ,
+        toggleVideo() {
+            if (!this.cameraTrack) return;
+
+            if (this.videoEnabled) {
+                this.cameraTrack.setEnabled(false);
+                this.videoEnabled = false;
+            } else {
+                this.cameraTrack.setEnabled(true);
+                this.videoEnabled = true;
+            }
+        },
         typingEvent() {
             window.Echo.private(`chat.${chatId}`).whisper('typing', { role: 'expert' });
         },

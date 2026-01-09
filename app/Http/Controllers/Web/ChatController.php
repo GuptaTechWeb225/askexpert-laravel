@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Validator;
 use App\Services\ExpertService;
-use Twilio\Jwt\AccessToken;
-use Twilio\Jwt\Grants\VideoGrant;
+use App\Services\Agora\RtcTokenBuilder;
+use Illuminate\Support\Facades\Auth;
 
 class ChatController extends Controller
 {
@@ -124,59 +124,74 @@ class ChatController extends Controller
 
         return response()->json(['success' => true]);
     }
-    public function generateTwilioToken($chatId)
+    public function generateAgoraToken($chatId)
     {
-        $sid    = config('services.twilio.sid');
-        $key    = config('services.twilio.key');
-        $secret = config('services.twilio.secret');
-
-        Log::info('Twilio Token Request Started', [
+        Log::info('Agora Token Request Started', [
             'chat_id' => $chatId,
             'customer_auth' => auth('customer')->check(),
             'expert_auth' => auth('expert')->check()
         ]);
 
-        if (empty($sid) || empty($key) || empty($secret)) {
-            Log::error('Twilio config missing');
-            return response()->json(['error' => 'Twilio configuration missing'], 500);
-        }
-
         $customer = auth('customer')->user();
         $expert   = auth('expert')->user();
 
         if (!$customer && !$expert) {
-            Log::warning('Unauthorized token request');
+            Log::warning('Unauthorized Agora token request');
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         $role   = $customer ? 'customer' : 'expert';
         $userId = $customer ? $customer->id : $expert->id;
 
-        // Unique identity with role + id + chatId
-        $identity = $role . '_' . $userId . '_chat_' . $chatId;
+        $appId  = config('services.agora.app_id');
+        $appCert = config('services.agora.app_certificate');
 
-        Log::info('Generating Twilio Token', [
-            'role'     => $role,
-            'user_id'  => $userId,
-            'chat_id'  => $chatId,
-            'identity' => $identity
-        ]);
+        if (!$appId || !$appCert) {
+            Log::error('Agora config missing');
+            return response()->json(['error' => 'Agora configuration missing'], 500);
+        }
 
-        $token = new AccessToken($sid, $key, $secret, 3600, $identity);
+        // Channel name (IMPORTANT: same for both users)
+        $channelName = 'chat_' . $chatId;
 
-        $grant = new VideoGrant();
-        $grant->setRoom('chat_room_' . $chatId);
-        $token->addGrant($grant);
+        // Agora UID (number hona chahiye)
+        $uid = intval($userId);
 
-        $jwt = $token->toJWT();
+        $expireTimeInSeconds = 3600;
+        $currentTimestamp   = now()->timestamp;
+        $privilegeExpiredTs = $currentTimestamp + $expireTimeInSeconds;
 
-        Log::info('Twilio Token Generated Successfully', [
-            'identity' => $identity,
-            'room'     => 'chat_room_' . $chatId,
-            'jwt_length' => strlen($jwt)
-        ]);
+        try {
+            $token = RtcTokenBuilder::buildTokenWithUid(
+                $appId,
+                $appCert,
+                $channelName,
+                $uid,
+                RtcTokenBuilder::RolePublisher,
+                $privilegeExpiredTs
+            );
 
-        return response()->json(['token' => $jwt]);
+            Log::info('Agora Token Generated Successfully', [
+                'channel' => $channelName,
+                'uid' => $uid,
+                'role' => $role
+            ]);
+
+            return response()->json([
+                'token' => $token,
+                'appId' => $appId,
+                'channel' => $channelName,
+                'uid' => $uid
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Agora Token Generation Failed', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to generate Agora token'
+            ], 500);
+        }
     }
 
 

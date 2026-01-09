@@ -2,7 +2,7 @@
 @section('title', translate('chat_Bot'))
 @push('css_or_js')
 <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
-<script src="https://sdk.twilio.com/js/video/releases/2.33.0/twilio-video.min.js"></script>
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 <meta name="csrf-token" content="{{ csrf_token() }}">
 @vite(['resources/js/app.js'])
 
@@ -46,16 +46,16 @@
                     <small class="text-white" x-show="customerTyping" style="display:none;">typing...</small>
                 </div>
             </div>
-            <div class="ms-auto pe-3 d-flex align-items-center gap-2">
+            <div class="ms-auto pe-3 d-flex align-items-center gap-3">
                 @if($chat->status !== 'ended')
                 <button class="btn btn-primary btn-sm" @click="initiateCall(false)">
-                    <i class="fa-solid fa-phone"></i> Voice Call
+                    <i class="fa-solid fa-phone"></i>
                 </button>
                 <button class="btn btn-success btn-sm" @click="initiateCall(true)">
-                    <i class="fa-solid fa-video"></i> Video Call
+                    <i class="fa-solid fa-video"></i>
                 </button>
                 <button class="btn btn-danger btn-sm" @click="endChat()">
-                    <i class="fa-solid fa-phone-slash"></i> End Chat
+                    <i class="fa-solid fa-phone-slash"></i>
                 </button>
                 @endif
             </div>
@@ -177,6 +177,8 @@
 </div>
 <script>
     window.EXPERT_ID = "{{ auth('expert')->id() }}";
+        window.AGORA_APP_ID = "{{ config('services.agora.app_id') }}";
+
 </script>
 @endsection
 

@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <meta name="user-id" content="{{ auth('customer')->id() }}">
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/style.css') }}">
-<script src="https://sdk.twilio.com/js/video/releases/2.33.0/twilio-video.min.js"></script>
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
     <audio id="ringtone" loop>
       <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
     </audio>
@@ -88,16 +88,16 @@
           </div>
 
         </div>
-        <div class="ms-auto pe-3 d-flex align-items-center gap-2">
+        <div class="ms-auto pe-3 d-flex align-items-center gap-3">
           @if($chat->status !== 'ended')
           <button class="btn btn-primary btn-sm" @click="initiateCall(false)">
-            <i class="fa-solid fa-phone"></i> Voice Call
+            <i class="fa-solid fa-phone"></i>
           </button>
           <button class="btn btn-success btn-sm" @click="initiateCall(true)">
-            <i class="fa-solid fa-video"></i> Video Call
+            <i class="fa-solid fa-video"></i>
           </button>
           <button class="btn btn-danger btn-sm" @click="endChat()">
-            <i class="fa-solid fa-phone-slash"></i> End Chat
+            <i class="fa-solid fa-phone-slash"></i>
           </button>
           @endif
         </div>
@@ -257,11 +257,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
   <script>
     window.AUTH_USER_AVATAR = "{{ getStorageImages(path: auth('customer')->user()->image_full_url, type: 'avatar') }}";
+    window.AGORA_APP_ID = "{{ config('services.agora.app_id') }}";
   </script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-
     document.addEventListener('alpine:init', () => {
 
       Alpine.store('chatStatus', {
