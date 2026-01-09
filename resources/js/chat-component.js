@@ -372,14 +372,14 @@ export function expertChatComponent(chatId) {
         typingTimer: null,
         chatEnded: false,
         isVideo: false,
-        isIncoming: false, // Call aa rahi hai?
+        isIncoming: false,
         isMuted: false,
         cameraOff: false,
         callerInfo: null,
         callStatusText: '',
-        callState: '', // 'incoming', 'ringing', 'connected'
+        callState: '',
         videoEnabled: false,
-        mediaTestResult: null, // 'ok' | 'busy' | 'denied'
+        mediaTestResult: null,
         _initialized: false,
 
 
@@ -392,14 +392,11 @@ export function expertChatComponent(chatId) {
                     video: this.isVideo
                 });
 
-                setTimeout(() => {
-                    stream.getTracks().forEach(t => t.stop());
-                    console.log('🛑 Test stream stopped after delay');
-                }, 12000);
+                stream.getTracks().forEach(t => t.stop());
+                console.log('✅ Media available & Released');
 
                 this.mediaTestResult = 'ok';
                 this.callStatusText = 'Mic & Camera ready';
-                console.log('✅ Media available');
 
             } catch (err) {
                 console.error('❌ Media test failed:', err);
@@ -560,17 +557,23 @@ export function expertChatComponent(chatId) {
                 try {
                     room = await Twilio.Video.connect(token, {
                         name: `chat_room_${chatId}`,
-                        tracks: localTracks
+                        tracks: localTracks,
+                        iceTransportPolicy: 'relay',
+                        maxAudioBitrate: 16000
                     });
                     console.log('✅ Step 5: Twilio Connection Successful!');
                 } catch (twilioErr) {
-                    // Is jagah aapko "Failed to create offer" ya "Code 53400" dikhayi dega
-                    console.error('❌ Failed at Step 4 (Twilio signaling):', {
-                        code: twilioErr.code,
-                        message: twilioErr.message,
-                        explanation: 'Check if tracks array is valid or ICE servers are reachable'
-                    });
-                    throw twilioErr;
+                    let userMessage = "Connection failed.";
+
+                    if (twilioErr.code === 53400) {
+                        userMessage = "Network/Firewall issue detected. Please turn off VPN or try another internet connection.";
+                    } else if (twilioErr.name === 'NotReadableError') {
+                        userMessage = "Your Mic/Camera is already being used by another app.";
+                    }
+
+                    console.error('❌ Step 4 Fail:', twilioErr);
+                    alert(userMessage);
+                    this.rejectCall();
                 }
 
                 this.twilioRoom = room;
