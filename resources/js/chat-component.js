@@ -254,17 +254,17 @@ export function chatComponent(chatId) {
         async acceptCall() {
             if (this._joining) return;
             this._joining = true;
-          
 
             try {
-                  this.callState = 'connecting';
-            this.callStatusText = 'Connecting...';
+                this.callState = 'connecting';
+                this.callStatusText = 'Connecting...';
+
                 const res = await axios.post(`/chat/${chatId}/generate-token`);
-                const { token, channel, uid, app_id } = res.data; // app_id bhi le agar alag hai
+                const { token, channel, uid, app_id } = res.data;
 
                 this.agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
-                // Events pehle set karo (jaise pehle suggest kiya tha)
+                // Events pehle set karo
                 this.agoraClient.on('user-published', async (user, mediaType) => {
                     await this.agoraClient.subscribe(user, mediaType);
                     if (mediaType === 'video') {
@@ -277,28 +277,42 @@ export function chatComponent(chatId) {
 
                 await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-                const tracks = await AgoraRTC.createMicrophoneAndCameraTracks(
-                    {}, this.isVideo ? {} : null
-                );
+                // 🔥 SAFE TRACKS CREATION (voice/video handle)
+                let tracks = [];
 
-                this.localAudioTrack = tracks[0];
-                this.localVideoTrack = tracks[1] || null;
+                try {
+                    if (this.isVideo) {
+                        // Video call – dono tracks
+                        tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                    } else {
+                        // Voice call – sirf audio
+                        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                        tracks = [audioTrack];
+                    }
+                } catch (err) {
+                    console.error("Media device error:", err);
+                    throw new Error("Could not access microphone" + (this.isVideo ? " or camera" : ""));
+                }
 
+                this.localAudioTrack = tracks.find(t => t.trackMediaType === 'audio') || tracks[0];
+                this.localVideoTrack = tracks.find(t => t.trackMediaType === 'video') || null;
+
+                // Local play
                 if (this.localVideoTrack) {
                     this.localVideoTrack.play('local-media');
                 }
 
-                await this.agoraClient.publish(tracks.filter(Boolean));
+                await this.agoraClient.publish(tracks);
 
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
-                window.Echo.private(`chat.${chatId}`)
-                    .whisper('call-accepted', { chatId });
+                this.startTimer();  // Timer start (agar duration UI ke liye)
+
+                window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
 
             } catch (err) {
                 console.error('❌ Call failed:', err);
-                this.callState = 'idle';
-                this.callStatusText = 'Connection Failed';
+                alert('Call connection failed: ' + (err.message || 'Unknown error'));
                 this.endCall();
             } finally {
                 this._joining = false;
