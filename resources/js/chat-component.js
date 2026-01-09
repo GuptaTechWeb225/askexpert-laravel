@@ -356,95 +356,54 @@ export function expertChatComponent(chatId) {
         callStatusText: '',
         callState: '', // 'incoming', 'ringing', 'connected'
         videoEnabled: false,
+        mediaTestResult: null, // 'ok' | 'busy' | 'denied'
 
 
-        async initiateCall(withVideo) {
-            if (this.twilioRoom) {
-                alert('Already in a call!');
-                return;
-            }
-
-            this.isVideo = withVideo;
-
+        async testMediaAvailability() {
             try {
-                const response = await axios.post(`/chat/${chatId}/generate-token`);
-                const token = response.data.token;
+                console.log('🔍 Testing mic/camera availability…');
 
-                const room = await Twilio.Video.connect(token, {
-                    name: 'chat_room_' + chatId,
+                const stream = await navigator.mediaDevices.getUserMedia({
                     audio: true,
-                    video: withVideo ? { width: 640 } : false
+                    video: this.isVideo
                 });
 
-                twilioRoom = room;
+                // Immediately stop tracks (VERY IMPORTANT)
+                stream.getTracks().forEach(t => t.stop());
 
-                // Helper function to attach track if subscribed
-                const attachTrack = (publication, containerId) => {
-                    if (publication && publication.track) {
-                        const element = publication.track.attach();
-                        const container = document.getElementById(containerId);
-                        if (container) {
-                            container.appendChild(element);
-                        }
-                    }
-                };
+                this.mediaTestResult = 'ok';
+                this.callStatusText = 'Mic & Camera ready';
 
-                // Local tracks attach
-                room.localParticipant.videoTracks.forEach(publication => {
-                    attachTrack(publication, 'local-media');
-                });
-                // Audio local no visual needed
+                console.log('✅ Media available');
 
-                // Handle existing remote participants
-                const handleParticipant = (participant) => {
-                    participant.videoTracks.forEach(publication => {
-                        if (publication.isSubscribed) {
-                            attachTrack(publication, 'remote-media');
-                        } else {
-                            publication.on('subscribed', track => {
-                                attachTrack({ track }, 'remote-media');
-                            });
-                        }
-                    });
+            } catch (err) {
+                console.error('❌ Media test failed:', err);
 
-                    participant.on('trackSubscribed', track => {
-                        if (track.kind === 'video') {
-                            const element = track.attach();
-                            document.getElementById('remote-media').appendChild(element);
-                        }
-                    });
-                };
-
-                room.participants.forEach(handleParticipant);
-                room.on('participantConnected', handleParticipant);
-
-                // Cleanup on disconnect
-                room.on('participantDisconnected', (participant) => {
-                    participant.tracks.forEach(publication => {
-                        if (publication.track) {
-                            publication.track.detach().forEach(el => el.remove());
-                        }
-                    });
-                });
-
-                // Show modal instead of inline container
-                document.getElementById('call-modal').classList.remove('hidden');
-
-            } catch (error) {
-                console.error('Call failed:', error);
-                alert('Call failed: ' + (error.message || 'Permission/Connection issue'));
+                if (err.name === 'NotAllowedError') {
+                    this.mediaTestResult = 'denied';
+                    this.callStatusText = 'Permission denied';
+                } else {
+                    this.mediaTestResult = 'busy';
+                    this.callStatusText = 'Mic/Camera busy';
+                }
             }
         },
 
-        participantConnected(participant) {
-            participant.tracks.forEach(publication => {
-                if (publication.isSubscribed && publication.track) {
-                    document.getElementById('remote-media').appendChild(publication.track.attach());
+        attachParticipant(participant) {
+            participant.tracks.forEach(pub => {
+                if (pub.isSubscribed && pub.track) {
+                    document.getElementById('remote-media')
+                        .appendChild(pub.track.attach());
                 }
             });
 
             participant.on('trackSubscribed', track => {
-                document.getElementById('remote-media').appendChild(track.attach());
+                document.getElementById('remote-media')
+                    .appendChild(track.attach());
+            });
+
+            participant.on('trackUnsubscribed', track => {
+                track.detach().forEach(el => el.remove());
             });
         },
 
@@ -477,99 +436,17 @@ export function expertChatComponent(chatId) {
                         this.typingTimer = setTimeout(() => this.customerTyping = false, 2000);
                     }
                 })
-                // Expert Side Fix
                 .listenForWhisper('incoming-call', async (data) => {
-                    console.log('🟢 Whisper received: incoming-call', data);
+                    console.log('📞 Incoming call:', data);
 
                     this.isVideo = data.type === 'video';
                     this.callState = 'incoming';
+                    this.callStatusText = 'Incoming call…';
 
-                    // Modal dikhao pehle
-                    console.log('📌 Showing call modal...');
                     $('#callModal').modal('show');
 
-                    try {
-                        console.log('🎤 Requesting microphone/camera access...');
-                        let stream;
-                        try {
-                            stream = await navigator.mediaDevices.getUserMedia({
-                                audio: true,
-                                video: this.isVideo ? { width: 640 } : false
-                            });
-                            console.log('✅ Media access granted');
-                        } catch (mediaErr) {
-                            console.error('❌ Media access denied or unavailable:', mediaErr);
-                            alert('Please allow Camera/Microphone access to join the call.');
-                            this.rejectCall();
-                            return; // Stop further execution
-                        }
-
-                        // Step 2: Request Twilio Token
-                        const chatIdToUse = data.chatId || data.id || 0; // Ensure proper chatId
-                        console.log('📡 Requesting Twilio token for chatId:', chatIdToUse);
-                        const res = await axios.post(`/chat/${chatIdToUse}/generate-token`);
-                        console.log('✅ Token received:', res.data.token);
-
-                        // Step 3: Prevent duplicate Twilio room
-                        if (window.twilioRoom) {
-                            console.log('⚠️ Disconnecting existing Twilio room before joining new one...');
-                            window.twilioRoom.disconnect();
-                            window.twilioRoom = null;
-                        }
-
-                        // Step 4: Connect to Twilio Room
-                        const tracks = await Twilio.Video.createLocalTracks({
-                            audio: true,
-                            video: this.isVideo ? { width: 640, height: 480 } : false
-                        });
-
-                        const connectOptions = {
-                            name: 'chat_room_' + chatIdToUse,
-                            tracks: tracks
-                        };
-
-                        console.log('🔗 Connecting to Twilio room...', connectOptions);
-
-                        if (typeof Twilio === 'undefined') {
-                            throw new Error('Twilio SDK not loaded');
-                        }
-                        const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
-                        navigator.mediaDevices.getUserMedia = async (constraints) => {
-                            console.log('🎥 getUserMedia called with constraints:', constraints);
-                            return originalGetUserMedia.apply(navigator.mediaDevices, [constraints]);
-                        };
-                        if (window.twilioRoom) {
-                            console.log('⚠️ Already connected, skipping new connection.');
-                            return;
-                        }
-
-                        const room = await Twilio.Video.connect(res.data.token, connectOptions);
-                        window.twilioRoom = room;
-                        console.log('✅ Twilio Room connected:', room);
-
-                        // Step 5: Setup UI & participants
-                        this.setupCallUI(room);
-                        console.log('🎥 Expert joined room successfully, call UI setup complete');
-                        console.log('👥 Current participants in room:', Array.from(room.participants.keys()));
-
-                    } catch (err) {
-                        console.error('❌ Expert failed to join room. Error details:');
-                        if (err.code) console.error('Twilio Error Code:', err.code);
-                        if (err.message) console.error('Message:', err.message);
-                        if (err.stack) console.error('Stack Trace:', err.stack);
-
-                        // Twilio-specific hints
-                        if (err.message && err.message.includes('Permission')) {
-                            console.warn('⚠️ Likely cause: Camera/Microphone access denied by user');
-                        } else if (err.code === 53400) {
-                            console.warn('⚠️ Likely cause: Client unable to create local media description');
-                        } else if (err.code === 53113) {
-                            console.warn('⚠️ Likely cause: Duplicate identity or room issue');
-                        }
-
-                        alert('Unable to join call. Please check your Camera/Microphone permissions and try again.');
-                        this.rejectCall();
-                    }
+                    // Test media availability only
+                    await this.testMediaAvailability();
                 });
 
 
@@ -595,48 +472,125 @@ export function expertChatComponent(chatId) {
                 this.appendMessage(res.data.message_data);
             });
         },
+        async acceptCall() {
+            if (this.mediaTestResult !== 'ok') {
+                alert(this.mediaErrorMessage);
+                return;
+            }
 
-        acceptCall() {
-            window.Echo.private(`chat.${chatId}`).whisper('call-accepted');
+            try {
+                this.callState = 'connecting';
+                this.callStatusText = 'Connecting…';
+
+                const res = await axios.post(`/chat/${chatId}/generate-token`);
+                const token = res.data.token;
+
+                // 🔥 CREATE FRESH TWILIO TRACKS
+                const tracks = [];
+
+                const audioTrack = await Twilio.Video.createLocalAudioTrack({
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                });
+                tracks.push(audioTrack);
+
+                if (this.isVideo) {
+                    const videoTrack = await Twilio.Video.createLocalVideoTrack({
+                        width: 640,
+                        height: 480
+                    });
+                    tracks.push(videoTrack);
+                }
+
+                // Safety: disconnect old room
+                if (this.twilioRoom) {
+                    this.twilioRoom.disconnect();
+                    this.twilioRoom = null;
+                }
+
+                const room = await Twilio.Video.connect(token, {
+                    name: `chat_room_${chatId}`,
+                    tracks,
+                    dominantSpeaker: true
+                });
+
+                this.twilioRoom = room;
+                this.callState = 'connected';
+                this.callStatusText = 'Connected';
+
+                this.setupCallUI(room);
+
+                console.log('✅ Joined Twilio room');
+
+            } catch (err) {
+                console.error('❌ Join failed:', err);
+
+                if (err.code === 53400) {
+                    alert(`
+Microphone or Camera is still busy.
+
+Close other apps and try again.
+            `);
+                } else {
+                    alert('Unable to join call.');
+                }
+
+                this.rejectCall();
+            }
+        },
+
+        get mediaErrorMessage() {
+            if (this.mediaTestResult === 'busy') {
+                return `
+Microphone or Camera is currently being used elsewhere.
+
+Please:
+• Close Zoom / Google Meet / WhatsApp Web
+• Close other browser tabs using mic
+• Refresh this page
+        `;
+            }
+
+            if (this.mediaTestResult === 'denied') {
+                return `
+Camera/Microphone permission denied.
+
+Steps:
+1. Click 🔒 lock icon near address bar
+2. Allow Camera & Microphone
+3. Reload page
+        `;
+            }
+
+            return '';
         },
         setupCallUI(room) {
-            console.log('Setting up Call UI...');
+            // Local video
+            room.localParticipant.videoTracks.forEach(pub => {
+                const el = pub.track.attach();
+                document.getElementById('local-media').appendChild(el);
+            });
 
             // Existing participants
-            room.participants.forEach(participant => {
-                this.attachParticipant(participant);
+            room.participants.forEach(p => this.attachParticipant(p));
+
+            room.on('participantConnected', p => {
+                this.attachParticipant(p);
             });
 
-            // New join
-            room.on('participantConnected', participant => {
-                console.log('User joined – call connected!');
-                this.callState = 'connected';
-                document.getElementById('video-wrapper').classList.remove('d-none');
-                document.getElementById('call-status').textContent = 'Connected';
-
-                this.attachParticipant(participant);
-            });
-
-            room.on('participantDisconnected', participant => {
-                participant.tracks.forEach(pub => {
+            room.on('participantDisconnected', p => {
+                p.tracks.forEach(pub => {
                     if (pub.track) {
                         pub.track.detach().forEach(el => el.remove());
                     }
                 });
             });
 
-            room.localParticipant.videoTracks.forEach(publication => {
-                if (publication.track) {
-                    const element = publication.track.attach();
-                    document.getElementById('local-media').appendChild(element);
-                }
-            });
-
             room.on('disconnected', () => {
-                this.endCall();
+                this.resetCallUI();
             });
-        }
-        ,
+        },
 
 
         resetCallUI() {
@@ -646,14 +600,14 @@ export function expertChatComponent(chatId) {
             }
 
             this.callState = '';
-            this.isIncoming = false;
-            this.isVideo = false;
-
-            $('#callModal').modal('hide');
+            this.mediaTestResult = null;
 
             document.getElementById('local-media').innerHTML = '';
             document.getElementById('remote-media').innerHTML = '';
+
+            $('#callModal').modal('hide');
         },
+
 
         rejectCall() {
             window.Echo.private(`chat.${chatId}`)
@@ -670,15 +624,20 @@ export function expertChatComponent(chatId) {
                 });
             }
         },
-        toggleVideo() {
-            this.videoEnabled = !this.videoEnabled;
+       toggleVideo() {
+    if (!this.twilioRoom) return;
 
-            if (this.twilioRoom) {
-                this.twilioRoom.localParticipant.videoTracks.forEach(pub => {
-                    if (pub.track) pub.track.enable(this.videoEnabled);
-                });
-            }
-        },
+    this.twilioRoom.localParticipant.videoTracks.forEach(pub => {
+        if (pub.track.isEnabled) {
+            pub.track.disable();
+            this.videoEnabled = false;
+        } else {
+            pub.track.enable();
+            this.videoEnabled = true;
+        }
+    });
+}
+,
         typingEvent() {
             window.Echo.private(`chat.${chatId}`).whisper('typing', { role: 'expert' });
         },
@@ -793,10 +752,6 @@ export function expertChatComponent(chatId) {
         },
         markAllAsRead() {
             axios.post('/expert/chat/mark-read', { chat_id: chatId });
-        },
-
-        markAsRead(messageId) {
-            axios.post('/expert/chat/mark-specific-read', { message_id: messageId });
         },
         handleFileUpload(event) {
             this.selectedFile = event.target.files[0];
