@@ -29,8 +29,11 @@ export function chatComponent(chatId) {
             this.callInitiator = 'user';
             this.callState = 'ringing';
 
-            this.callBootstrapModal.
-                this.playRingtone();
+            const modalEl = document.getElementById('callModal');
+            this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            this.callBootstrapModal.show();
+
+            this.playRingtone();
             window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
                 from: 'user',
                 type: withVideo ? 'video' : 'voice',
