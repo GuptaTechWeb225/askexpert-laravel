@@ -22,6 +22,7 @@ export function chatComponent(chatId) {
         callerInfo: null,
         callDuration: 0,
         timerInterval: null,
+        _dummy: false,
 
 
         initiateCall(withVideo) {
@@ -53,17 +54,24 @@ export function chatComponent(chatId) {
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         },
 
-       startTimer() {
+        startTimer() {
             this.callDuration = 0;
 
-            // Clear old interval if any
             if (this.timerInterval) {
                 clearInterval(this.timerInterval);
             }
 
-            // 🔥 Arrow function se 'this' bind rahega
             this.timerInterval = setInterval(() => {
-                this.callDuration++;  // Yeh direct change hoga → Alpine auto-update karega
+                // Direct property update
+                this.callDuration = this.callDuration + 1;
+
+                // Force Alpine to re-evaluate getters & bindings
+                // Yeh line sabse important hai
+                this.$nextTick(() => {
+                    // Optional: Dummy property trigger (Alpine ko jagane ke liye)
+                    this._dummy = !this._dummy; // Add this._dummy: false in data
+                });
+
                 console.log("User side timer ticking...", this.callDuration, "Formatted:", this.formattedDuration);
             }, 1000);
         },
