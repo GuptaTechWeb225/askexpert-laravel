@@ -379,7 +379,7 @@ export function expertChatComponent(chatId) {
                 setTimeout(() => {
                     stream.getTracks().forEach(t => t.stop());
                     console.log('🛑 Test stream stopped after delay');
-                }, 5000); 
+                }, 12000); 
 
                 this.mediaTestResult = 'ok';
                 this.callStatusText = 'Mic & Camera ready';
@@ -462,7 +462,7 @@ export function expertChatComponent(chatId) {
                     // Test media availability only
                     await this.testMediaAvailability();
 
-                    await new Promise(r => setTimeout(r, 7000));
+                    await new Promise(r => setTimeout(r, 12000));
 
                 });
 
@@ -503,7 +503,7 @@ export function expertChatComponent(chatId) {
                 const token = res.data.token;
 
                 console.log('⏳ Waiting 10-15 seconds for media recovery...');
-                await new Promise(r => setTimeout(r, 12000));
+                await new Promise(r => setTimeout(r, 14000));
 
                 // 🔒 Prevent double execution
                 if (this._joining) return;
