@@ -56,23 +56,14 @@ export function chatComponent(chatId) {
 
         startTimer() {
             this.callDuration = 0;
-
-            if (this.timerInterval) {
-                clearInterval(this.timerInterval);
-            }
+            if (this.timerInterval) clearInterval(this.timerInterval);
 
             this.timerInterval = setInterval(() => {
-                // Direct property update
-                this.callDuration = this.callDuration + 1;
+                // Alpine ko force update karne ke liye property ko re-assign karo
+                const current = this.callDuration;
+                this.callDuration = current + 1;  // Re-assign same value +1
 
-                // Force Alpine to re-evaluate getters & bindings
-                // Yeh line sabse important hai
-                this.$nextTick(() => {
-                    // Optional: Dummy property trigger (Alpine ko jagane ke liye)
-                    this._dummy = !this._dummy; // Add this._dummy: false in data
-                });
-
-                console.log("User side timer ticking...", this.callDuration, "Formatted:", this.formattedDuration);
+                console.log("Timer:", this.callDuration, this.formattedDuration);
             }, 1000);
         },
 
