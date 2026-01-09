@@ -472,11 +472,6 @@ export function expertChatComponent(chatId) {
 
                     $('#callModal').modal('show');
 
-                    // Test media availability only
-                    await this.testMediaAvailability();
-
-                    await new Promise(r => setTimeout(r, 12000));
-
                 });
 
 
@@ -558,22 +553,35 @@ export function expertChatComponent(chatId) {
                     room = await Twilio.Video.connect(token, {
                         name: `chat_room_${chatId}`,
                         tracks: localTracks,
-                        iceTransportPolicy: 'relay',
-                        maxAudioBitrate: 16000
+                        iceTransportPolicy: 'relay', // Firewall bypass karne ke liye
+                        preferredVideoCodecs: [{ codec: 'VP8' }], // Codec mismatch rokne ke liye
+                        bandwidthProfile: {
+                            video: {
+                                mode: 'collaboration',
+                                renderDimensions: {
+                                    high: { width: 640, height: 480 }
+                                }
+                            }
+                        }
                     });
                     console.log('✅ Step 5: Twilio Connection Successful!');
-                } catch (twilioErr) {
-                    let userMessage = "Connection failed.";
+                } catch (err) {
+                    console.error('🔴 FINAL ERROR SUMMARY:', err);
 
-                    if (twilioErr.code === 53400) {
-                        userMessage = "Network/Firewall issue detected. Please turn off VPN or try another internet connection.";
-                    } else if (twilioErr.name === 'NotReadableError') {
-                        userMessage = "Your Mic/Camera is already being used by another app.";
+                    // Safe cleanup
+                    if (this.twilioRoom) {
+                        this.twilioRoom.disconnect();
+                        this.twilioRoom = null;
                     }
 
-                    console.error('❌ Step 4 Fail:', twilioErr);
-                    alert(userMessage);
-                    this.rejectCall();
+                    // Stop local tracks manually if they were created
+                    if (localTracks) {
+                        localTracks.forEach(track => track.stop());
+                    }
+
+                    this._joining = false;
+                    this.callState = 'idle';
+                    alert(`Call failed: ${err.message}`);
                 }
 
                 this.twilioRoom = room;
