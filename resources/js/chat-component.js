@@ -44,6 +44,31 @@ export function chatComponent(chatId) {
                 chatId: chatId
             });
         },
+
+        createAgoraClient() {
+            console.log("Creating Agora Client...");
+            const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+            client.on("user-published", async (user, mediaType) => {
+                await client.subscribe(user, mediaType);
+                if (mediaType === "video") {
+                    const remoteDiv = document.getElementById('remote-media');
+                    if (remoteDiv) {
+                        remoteDiv.innerHTML = '';
+                        user.videoTrack.play(remoteDiv);
+                    }
+                }
+                if (mediaType === "audio") {
+                    user.audioTrack.play();
+                }
+            });
+
+            client.on("user-left", () => {
+                this.endCall();
+            });
+
+            return client;
+        },
         playRingtone() {
             const ringtone = document.getElementById('ringtone');
             if (ringtone) {
@@ -106,10 +131,16 @@ export function chatComponent(chatId) {
                         this.stopRingtone();
                         this.callStatusText = 'Connecting...';
                         this.callState = 'connecting';
+
+                        // FIX: Pehle client create karein
+                        if (!this.agoraClient) {
+                            this.agoraClient = this.createAgoraClient();
+                        }
+
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
 
+                        // Ab join error nahi dega
                         await this.agoraClient.join(res.data.appId, res.data.channel, res.data.token, res.data.uid);
-
 
                         const tracks = await AgoraRTC.createMicrophoneAndCameraTracks(
                             {},
@@ -126,16 +157,13 @@ export function chatComponent(chatId) {
                         this.callState = 'connected';
                         this.inCall = true;
 
-                        // Show modal explicitly if hidden
                         if (this.callBootstrapModal) this.callBootstrapModal.show();
 
                     } catch (err) {
                         console.error('❌ Agora join failed:', err);
-                        toastr.error('Call connection failed. Please try again.');
-                        // Optionally keep modal visible for retry instead of endCall()
-                        // this.endCall();  <-- remove this line
-                    }
-                    finally {
+                        toastr.error('Connection failed');
+                        this.endCall();
+                    } finally {
                         this._joining = false;
                     }
                 })
