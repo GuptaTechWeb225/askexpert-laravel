@@ -19,6 +19,8 @@ export function chatComponent(chatId) {
         localVideoTrack: null,
         _joining: false,
         callInitiator: null,
+        callerInfo: null,
+        callStatusText: '',
 
 
         async initiateCall(withVideo) {
@@ -28,6 +30,8 @@ export function chatComponent(chatId) {
             this.inCall = true;
             this.callInitiator = 'user';
             this.callState = 'ringing';
+            this.callStatusText = 'Calling...';
+            this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'You' };
 
             const modalEl = document.getElementById('callModal');
             this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -39,7 +43,6 @@ export function chatComponent(chatId) {
                 type: withVideo ? 'video' : 'voice',
                 chatId: chatId
             });
-
         },
         playRingtone() {
             const ringtone = document.getElementById('ringtone');
@@ -135,8 +138,8 @@ export function chatComponent(chatId) {
                     this._joining = true;
                     try {
                         this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
                         this.callState = 'connecting';
-
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
 
                         await this.agoraClient.join(res.data.appId, res.data.channel, res.data.token, res.data.uid);
@@ -177,19 +180,21 @@ export function chatComponent(chatId) {
                         this.callInitiator = 'expert';
                         this.callState = 'incoming';
                         this.isVideo = data.type === 'video';
+                        this.callStatusText = 'Incoming Call';
+                        this.callerInfo = { avatar: '/assets/front-end/img/placeholder/user.png', name: 'Expert' };
                         const modalEl = document.getElementById('callModal');
                         this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
                         this.callBootstrapModal.show();
                         this.playRingtone();
                     }
                 })
-
                 .listenForWhisper('call-rejected', () => {
+                    this.callStatusText = 'Call Rejected';
                     this.stopRingtone();
                     this.endCall();
-                    toastr.info('Call rejected');
                 })
                 .listenForWhisper('call-ended', () => {
+                    this.callStatusText = 'Call Ended';
                     this.endCall();
                 })
 
