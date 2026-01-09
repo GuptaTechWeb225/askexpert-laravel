@@ -254,43 +254,65 @@ export function chatComponent(chatId) {
         async acceptCall() {
             if (this._joining) return;
             this._joining = true;
-            this.callState = 'connecting';
-            this.callStatusText = 'Connecting...';
+
 
             try {
+                this.callState = 'connecting';
+                this.callStatusText = 'Connecting...';
                 const res = await axios.post(`/chat/${chatId}/generate-token`);
-                const { token, channel, uid, app_id } = res.data; // app_id bhi le agar alag hai
+                const { token, channel, uid } = res.data; // app_id bhi le agar alag hai
 
-                this.agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+                const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
                 // Events pehle set karo (jaise pehle suggest kiya tha)
-                this.agoraClient.on('user-published', async (user, mediaType) => {
-                    await this.agoraClient.subscribe(user, mediaType);
+                client.on('user-published', async (user, mediaType) => {
+                    await client.subscribe(user, mediaType);
                     if (mediaType === 'video') {
-                        user.videoTrack.play('remote-media');
+                        setTimeout(() => {
+                            const remoteDiv = document.getElementById('remote-media');
+                            if (remoteDiv) {
+                                remoteDiv.innerHTML = '';
+                                user.videoTrack.play(remoteDiv); // ID pass karne ke bajaye element pass karein
+                            }
+                        }, 500);
                     }
                     if (mediaType === 'audio') {
                         user.audioTrack.play();
                     }
                 });
 
-                await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+                client.on("user-unpublished", (user, mediaType) => {
+                    console.log('❌ Remote user unpublished:', user.uid, mediaType);
+                    if (mediaType === "video") {
+                        document.getElementById('remote-media').innerHTML = '';
+                    }
+                });
 
-                const tracks = await AgoraRTC.createMicrophoneAndCameraTracks(
-                    {}, this.isVideo ? {} : null
-                );
+                client.on("user-left", (user) => {
+                    console.log('👋 Remote user left:', user.uid);
+                    this.resetCallUI();
+                });
 
-                this.localAudioTrack = tracks[0];
-                this.localVideoTrack = tracks[1] || null;
+                // Join
+                 const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                const micTrack = tracks[0];
+                const camTrack = this.isVideo ? tracks[1] : null;
 
-                if (this.localVideoTrack) {
-                    this.localVideoTrack.play('local-media');
-                }
+                if (camTrack) camTrack.play(document.getElementById('local-media'));
 
-                await this.agoraClient.publish(tracks.filter(Boolean));
+                const publishTracks = [micTrack];
+                if (camTrack) publishTracks.push(camTrack);
 
+                await client.publish(publishTracks);
+
+                this.agoraClient = client;
+                this.micTrack = micTrack;
+                this.cameraTrack = camTrack;
+                this.videoEnabled = !!camTrack;
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
+                this.startTimer();
+
                 window.Echo.private(`chat.${chatId}`)
                     .whisper('call-accepted', { chatId });
 
