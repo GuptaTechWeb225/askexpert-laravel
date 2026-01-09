@@ -210,7 +210,6 @@
                 <button @click="cancelCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
                   <i class="fa-solid fa-phone-slash fa-2x"></i>
                 </button>
-                <p class="mt-2 text-white">Calling...</p>
               </div>
 
               <div x-show="callState === 'connected'" class="d-flex gap-4 align-items-center" x-cloak>

@@ -54,13 +54,16 @@ export function chatComponent(chatId) {
         },
 
         // Timer start karne ka function
-        startTimer() {
-            this.callDuration = 0;
-            if (this.timerInterval) clearInterval(this.timerInterval);
-            this.timerInterval = setInterval(() => {
-                this.callDuration++;
-            }, 1000);
-        },
+       startTimer() {
+    this.callDuration = 0;
+    if (this.timerInterval) clearInterval(this.timerInterval);
+
+    // Arrow function use karein taaki 'this' sahi rahe
+    this.timerInterval = setInterval(() => {
+        console.log("Timer ticking...", this.callDuration); // Console mein check karein
+        this.callDuration++;
+    }, 1000);
+},
 
         createAgoraClient() {
             const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
