@@ -543,7 +543,7 @@ export function expertChatComponent(chatId) {
         alert('Connection failed. Please check your devices and try again.');
         this.rejectCall();
     }
-}
+},
 
         get mediaErrorMessage() {
             if (this.mediaTestResult === 'busy') {
