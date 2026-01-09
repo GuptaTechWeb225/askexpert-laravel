@@ -490,60 +490,60 @@ export function expertChatComponent(chatId) {
             });
         },
         async acceptCall() {
-            if (this.mediaTestResult !== 'ok') {
-                alert(this.mediaErrorMessage);
-                return;
-            }
+    // 1. Immediate Lock
+    if (this._joining || this.mediaTestResult !== 'ok') {
+        if (this.mediaTestResult !== 'ok') alert(this.mediaErrorMessage);
+        return;
+    }
+    this._joining = true;
 
-            try {
-                this.callState = 'connecting';
-                this.callStatusText = 'Connecting…';
+    try {
+        this.callState = 'connecting';
+        this.callStatusText = 'Connecting…';
 
-                const res = await axios.post(`/chat/${chatId}/generate-token`);
-                const token = res.data.token;
+        const res = await axios.post(`/chat/${chatId}/generate-token`);
+        const token = res.data.token;
 
-                console.log('⏳ Waiting 10-15 seconds for media recovery...');
-                await new Promise(r => setTimeout(r, 14000));
+        // Reduced wait or handle recovery more gracefully
+        console.log('⏳ Preparing media...');
+        
+        const localTracks = [];
+        
+        // Use a try-catch specifically for track creation
+        try {
+            const audioTrack = await Twilio.Video.createLocalAudioTrack();
+            if (audioTrack) localTracks.push(audioTrack);
 
-                // 🔒 Prevent double execution
-                if (this._joining) return;
-                this._joining = true;
-
-                const tracks = [];
-
-                const audioTrack = await Twilio.Video.createLocalAudioTrack();
-                tracks.push(audioTrack);
-
-                if (this.isVideo) {
-                    const videoTrack = await Twilio.Video.createLocalVideoTrack({
-                        width: 640,
-                        height: 480
-                    });
-                    tracks.push(videoTrack);
-                }
-
-                const room = await Twilio.Video.connect(token, {
-                    name: `chat_room_${chatId}`,
-                    tracks
+            if (this.isVideo) {
+                const videoTrack = await Twilio.Video.createLocalVideoTrack({
+                    width: 640,
+                    height: 480
                 });
-
-                this.twilioRoom = room;
-                this.callState = 'connected';
-                this.callStatusText = 'Connected';
-
-                this.setupCallUI(room);
-
-                console.log('✅ Twilio connected');
-
-            } catch (err) {
-                console.error('❌ Join failed:', err);
-                this._joining = false;
-
-                alert('Mic/Camera not ready. Please wait 2 seconds and try again.');
-                this.rejectCall();
+                if (videoTrack) localTracks.push(videoTrack);
             }
+        } catch (mediaErr) {
+            console.error("Track creation failed", mediaErr);
+            throw new Error("Could not access Mic or Camera.");
         }
-        ,
+
+        // 2. Connect with validated array
+        const room = await Twilio.Video.connect(token, {
+            name: `chat_room_${chatId}`,
+            tracks: localTracks // Ensure this is definitely an array
+        });
+
+        this.twilioRoom = room;
+        this.callState = 'connected';
+        this.callStatusText = 'Connected';
+        this.setupCallUI(room);
+
+    } catch (err) {
+        console.error('❌ Join failed:', err);
+        this._joining = false; // Reset lock on failure
+        alert('Connection failed. Please check your devices and try again.');
+        this.rejectCall();
+    }
+}
 
         get mediaErrorMessage() {
             if (this.mediaTestResult === 'busy') {
