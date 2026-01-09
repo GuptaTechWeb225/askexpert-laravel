@@ -341,6 +341,13 @@ export function expertChatComponent(chatId) {
 
     console.log('Expert Chat ID:', chatId, typeof chatId);
 
+    if (typeof chatId === 'object') {
+        console.error('❌ chatId object aa raha hai:', chatId);
+        chatId = chatId.id;
+    }
+
+    chatId = Number(chatId);
+
     return {
         newMessage: '',
         selectedFile: null,
@@ -357,6 +364,7 @@ export function expertChatComponent(chatId) {
         callState: '', // 'incoming', 'ringing', 'connected'
         videoEnabled: false,
         mediaTestResult: null, // 'ok' | 'busy' | 'denied'
+        _initialized: false,
 
 
         async testMediaAvailability() {
@@ -414,6 +422,11 @@ export function expertChatComponent(chatId) {
             this.resetCallUI();
         },
         init() {
+
+            if (this._initialized) return;
+            this._initialized = true;
+
+            console.log('🟢 Expert chat initialized ONCE');
             this.scrollToBottom();
             this.markAllAsRead();
 
@@ -624,20 +637,20 @@ Steps:
                 });
             }
         },
-       toggleVideo() {
-    if (!this.twilioRoom) return;
+        toggleVideo() {
+            if (!this.twilioRoom) return;
 
-    this.twilioRoom.localParticipant.videoTracks.forEach(pub => {
-        if (pub.track.isEnabled) {
-            pub.track.disable();
-            this.videoEnabled = false;
-        } else {
-            pub.track.enable();
-            this.videoEnabled = true;
+            this.twilioRoom.localParticipant.videoTracks.forEach(pub => {
+                if (pub.track.isEnabled) {
+                    pub.track.disable();
+                    this.videoEnabled = false;
+                } else {
+                    pub.track.enable();
+                    this.videoEnabled = true;
+                }
+            });
         }
-    });
-}
-,
+        ,
         typingEvent() {
             window.Echo.private(`chat.${chatId}`).whisper('typing', { role: 'expert' });
         },
