@@ -169,7 +169,7 @@
 
           <!-- Body -->
           <div class="modal-body position-relative p-0">
-            <div id="video-wrapper" class="w-100 h-100" x-show="callState === 'connected' && isVideo" x-cloak>
+            <div id="video-wrapper" class="w-100 h-100" x-show="callState === 'connected' && isVideo">
               <div id="remote-media" class="w-100 h-100"></div>
               <div id="local-media"
                 class="position-absolute bottom-0 end-0 m-3 rounded overflow-hidden border border-white"
@@ -183,7 +183,7 @@
 
             <!-- Incoming call buttons -->
             <!-- Incoming call from expert -->
-            <div x-show="callState === 'incoming' && callInitiator === 'expert'" class="d-flex gap-4 align-items-center" x-cloak>
+            <div x-show="callState === 'incoming' && callInitiator === 'expert'" class="d-flex gap-4 align-items-center">
               <button @click="acceptCall()" class="btn btn-success rounded-circle p-4 shadow-lg">
                 <i class="fa-solid fa-phone fa-2x"></i>
               </button>
@@ -193,7 +193,7 @@
             </div>
 
             <!-- Outgoing call (user is calling) -->
-            <div x-show="callState === 'ringing' && callInitiator === 'user'" class="text-center" x-cloak>
+            <div x-show="callState === 'ringing' && callInitiator === 'user'" class="text-center">
               <button @click="cancelCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
                 <i class="fa-solid fa-phone-slash fa-2x"></i>
               </button>
@@ -201,7 +201,7 @@
             </div>
 
             <!-- Connected call -->
-            <div x-show="callState === 'connected'" class="d-flex gap-4 align-items-center" x-cloak>
+            <div x-show="callState === 'connected'" class="d-flex gap-4 align-items-center">
               <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary'" class="btn rounded-circle p-3">
                 <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
               </button>
