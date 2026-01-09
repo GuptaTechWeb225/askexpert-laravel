@@ -128,10 +128,16 @@ export function chatComponent(chatId) {
 
         endCall() {
             if (twilioRoom) {
+                // Tracks ko band karna zaroori hai
+                twilioRoom.localParticipant.tracks.forEach(publication => {
+                    publication.track.stop();
+                    const attachedElements = publication.track.detach();
+                    attachedElements.forEach(element => element.remove());
+                });
+
                 twilioRoom.disconnect();
                 twilioRoom = null;
             }
-
             this.callState = 'idle';
             this.inCall = false;
 
@@ -185,18 +191,28 @@ export function chatComponent(chatId) {
                     }
                 })
                 .listenForWhisper('call-accepted', async () => {
-                    if (twilioRoom) return; // 👈 ADD THIS
+                    if (twilioRoom) return;
 
-                    const res = await axios.post(`/chat/${chatId}/generate-token`);
+                    try {
+                        const res = await axios.post(`/chat/${chatId}/generate-token`);
 
-                    const room = await Twilio.Video.connect(res.data.token, {
-                        name: 'chat_room_' + chatId,
-                        audio: true,
-                        video: this.isVideo
-                    });
+                        // Tracks pehle khud banayein taaki error detect ho sake
+                        const localTracks = await Twilio.Video.createLocalTracks({
+                            audio: true,
+                            video: this.isVideo
+                        });
 
-                    twilioRoom = room;
-                    this.setupCallUI(room);
+                        const room = await Twilio.Video.connect(res.data.token, {
+                            name: 'chat_room_' + chatId,
+                            tracks: localTracks // <--- Safe approach
+                        });
+
+                        twilioRoom = room;
+                        this.setupCallUI(room);
+                    } catch (err) {
+                        console.error("User side hardware error:", err);
+                        toastr.error("Please check Mic/Camera permissions.");
+                    }
                 })
 
 
@@ -379,7 +395,7 @@ export function expertChatComponent(chatId) {
                 setTimeout(() => {
                     stream.getTracks().forEach(t => t.stop());
                     console.log('🛑 Test stream stopped after delay');
-                }, 12000); 
+                }, 12000);
 
                 this.mediaTestResult = 'ok';
                 this.callStatusText = 'Mic & Camera ready';
@@ -490,60 +506,90 @@ export function expertChatComponent(chatId) {
             });
         },
         async acceptCall() {
-    // 1. Immediate Lock
-    if (this._joining || this.mediaTestResult !== 'ok') {
-        if (this.mediaTestResult !== 'ok') alert(this.mediaErrorMessage);
-        return;
-    }
-    this._joining = true;
-
-    try {
-        this.callState = 'connecting';
-        this.callStatusText = 'Connecting…';
-
-        const res = await axios.post(`/chat/${chatId}/generate-token`);
-        const token = res.data.token;
-
-        // Reduced wait or handle recovery more gracefully
-        console.log('⏳ Preparing media...');
-        
-        const localTracks = [];
-        
-        // Use a try-catch specifically for track creation
-        try {
-            const audioTrack = await Twilio.Video.createLocalAudioTrack();
-            if (audioTrack) localTracks.push(audioTrack);
-
-            if (this.isVideo) {
-                const videoTrack = await Twilio.Video.createLocalVideoTrack({
-                    width: 640,
-                    height: 480
-                });
-                if (videoTrack) localTracks.push(videoTrack);
+            // 1. Initial Checks
+            console.log('🚀 Step 1: Initialization started');
+            if (this._joining || this.mediaTestResult !== 'ok') {
+                console.warn('⚠️ Join blocked:', { joining: this._joining, mediaStatus: this.mediaTestResult });
+                if (this.mediaTestResult !== 'ok') alert(this.mediaErrorMessage);
+                return;
             }
-        } catch (mediaErr) {
-            console.error("Track creation failed", mediaErr);
-            throw new Error("Could not access Mic or Camera.");
-        }
+            this._joining = true;
 
-        // 2. Connect with validated array
-        const room = await Twilio.Video.connect(token, {
-            name: `chat_room_${chatId}`,
-            tracks: localTracks // Ensure this is definitely an array
-        });
+            try {
+                this.callState = 'connecting';
+                this.callStatusText = 'Connecting…';
 
-        this.twilioRoom = room;
-        this.callState = 'connected';
-        this.callStatusText = 'Connected';
-        this.setupCallUI(room);
+                // 2. Token Generation Step
+                console.log('📡 Step 2: Fetching Twilio Token...');
+                let token;
+                try {
+                    const res = await axios.post(`/chat/${chatId}/generate-token`);
+                    token = res.data.token;
+                    console.log('✅ Token received successfully');
+                } catch (tokenErr) {
+                    console.error('❌ Failed at Step 2 (Token Generation):', tokenErr.response?.data || tokenErr.message);
+                    throw new Error(`Token Error: ${tokenErr.message}`);
+                }
 
-    } catch (err) {
-        console.error('❌ Join failed:', err);
-        this._joining = false; // Reset lock on failure
-        alert('Connection failed. Please check your devices and try again.');
-        this.rejectCall();
-    }
-},
+                // 3. Media Track Creation Step
+                console.log('🎙️ Step 3: Accessing Media Devices (Mic/Camera)...');
+                const localTracks = [];
+                try {
+                    const audioTrack = await Twilio.Video.createLocalAudioTrack();
+                    console.log('🎤 Audio track created');
+                    localTracks.push(audioTrack);
+
+                    if (this.isVideo) {
+                        const videoTrack = await Twilio.Video.createLocalVideoTrack({
+                            width: 640,
+                            height: 480
+                        });
+                        console.log('📹 Video track created');
+                        localTracks.push(videoTrack);
+                    }
+                } catch (mediaErr) {
+                    console.error('❌ Failed at Step 3 (Media Access):', mediaErr.name, mediaErr.message);
+                    // Agar hardware busy hai toh yahan error aayega
+                    throw new Error(`Media Error: ${mediaErr.message}`);
+                }
+
+                // 4. Twilio Connection Step
+                console.log('🔗 Step 4: Connecting to Twilio Room...', { roomName: `chat_room_${chatId}`, tracksCount: localTracks.length });
+
+                let room;
+                try {
+                    room = await Twilio.Video.connect(token, {
+                        name: `chat_room_${chatId}`,
+                        tracks: localTracks
+                    });
+                    console.log('✅ Step 5: Twilio Connection Successful!');
+                } catch (twilioErr) {
+                    // Is jagah aapko "Failed to create offer" ya "Code 53400" dikhayi dega
+                    console.error('❌ Failed at Step 4 (Twilio signaling):', {
+                        code: twilioErr.code,
+                        message: twilioErr.message,
+                        explanation: 'Check if tracks array is valid or ICE servers are reachable'
+                    });
+                    throw twilioErr;
+                }
+
+                this.twilioRoom = room;
+                this.callState = 'connected';
+                this.callStatusText = 'Connected';
+                this.setupCallUI(room);
+
+            } catch (err) {
+                // Final Global Catch
+                console.error('🔴 FINAL ERROR SUMMARY:', {
+                    step_failed: err.message,
+                    stack: err.stack
+                });
+
+                this._joining = false;
+                alert(`Call failed: ${err.message}`);
+                this.rejectCall();
+            }
+        },
 
         get mediaErrorMessage() {
             if (this.mediaTestResult === 'busy') {
