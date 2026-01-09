@@ -19,45 +19,47 @@
     <audio id="ringtone" loop>
       <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
     </audio>
- 
+
     @vite(['resources/js/app.js'])
 
 
-<style>
-    #video-container {
+    <style>
+      #video-container {
         background: #000;
         border-radius: 12px;
         overflow: hidden;
         margin: 15px 0;
         position: relative;
         height: 400px;
-    }
+      }
 
-    #remote-media {
+      #remote-media {
         width: 100%;
         height: 100%;
         object-fit: cover;
-    }
+      }
 
-    #local-media {
+      #local-media {
         width: 150px;
         height: 150px;
         border: 3px solid white;
         border-radius: 12px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    }
+      }
 
-#remote-media video, #local-media video {
-    position: relative !important;
-    object-fit: cover !important;
-}
-#remote-media {
-    background-color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-</style>
+      #remote-media video,
+      #local-media video {
+        position: relative !important;
+        object-fit: cover !important;
+      }
+
+      #remote-media {
+        background-color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
   </head>
 
   <body>
@@ -177,8 +179,8 @@
 
             <!-- Body -->
             <div class="modal-body position-relative p-0">
-<div id="video-wrapper" class="w-100 h-100" :class="callState === 'connected' ? 'd-block' : 'd-none'">
-                  <div id="remote-media" class="w-100 h-100"></div>
+              <div id="video-wrapper" class="w-100 h-100" :class="callState === 'connected' ? 'd-block' : 'd-none'">
+                <div id="remote-media" class="w-100 h-100"></div>
                 <div id="local-media"
                   class="position-absolute bottom-0 end-0 m-3 rounded overflow-hidden border border-white"
                   style="width:160px;height:200px">
@@ -213,15 +215,14 @@
                 <button @click="hangUp()" class="btn btn-danger rounded-circle p-4">
                   <i class="fa-solid fa-phone-slash fa-2x"></i>
                 </button>
-
-                <button x-show="isVideo" @click="toggleVideo()" :class="videoEnabled ? 'btn-secondary' : 'btn-danger'" class="btn rounded-circle p-3">
-                  <i class="fa-solid" :class="videoEnabled ? 'fa-video' : 'fa-video-slash'"></i>
-                </button>
               </div>
 
               <div x-show="callState === 'connecting'" class="text-center" x-cloak>
                 <div class="spinner-border text-light" role="status"></div>
                 <p class="mt-2">Connecting...</p>
+              </div>
+              <div x-show="callState === 'connected'" class="text-white mb-2">
+                <span x-text="formattedDuration" style="font-size: 1.2rem; font-weight: bold;"></span>
               </div>
 
             </div>

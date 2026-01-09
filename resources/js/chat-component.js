@@ -20,6 +20,8 @@ export function chatComponent(chatId) {
         localVideoTrack: null,
         _joining: false,
         callerInfo: null,
+        callDuration: 0,
+        timerInterval: null,
 
 
         initiateCall(withVideo) {
@@ -43,6 +45,21 @@ export function chatComponent(chatId) {
                 type: withVideo ? 'video' : 'voice',
                 chatId: chatId
             });
+        },
+
+        get formattedDuration() {
+            const mins = Math.floor(this.callDuration / 60);
+            const secs = this.callDuration % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        },
+
+        // Timer start karne ka function
+        startTimer() {
+            this.callDuration = 0;
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;
+            }, 1000);
         },
 
         createAgoraClient() {
@@ -82,7 +99,8 @@ export function chatComponent(chatId) {
 
         endCall() {
             this.stopRingtone();
-
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.callDuration = 0;
             if (this.localAudioTrack) {
                 this.localAudioTrack.close();
                 this.localAudioTrack = null;
@@ -172,7 +190,7 @@ export function chatComponent(chatId) {
                         this.callState = 'connected';
                         this.inCall = true;
                         this.callStatusText = 'Connected';
-
+                        this.startTimer();
                     } catch (err) {
                         console.error('❌ User side Agora join failed:', err);
                         toastr.error('Connection failed: ' + err.message);
@@ -412,8 +430,6 @@ export function chatComponent(chatId) {
         markAsRead(messageId) {
             axios.post('/chat/mark-read', { message_id: messageId });
         }
-
-
     }
 }
 
@@ -446,6 +462,8 @@ export function expertChatComponent(chatId) {
         mediaTestResult: null,
         _initialized: false,
         _joining: false,
+        callDuration: 0,
+        timerInterval: null,
 
 
 
@@ -477,7 +495,20 @@ export function expertChatComponent(chatId) {
             }
         },
 
+        get formattedDuration() {
+            const mins = Math.floor(this.callDuration / 60);
+            const secs = this.callDuration % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        },
 
+        // Timer start karne ka function
+        startTimer() {
+            this.callDuration = 0;
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;
+            }, 1000);
+        },
 
         hangUp() {
             window.Echo.private(`chat.${chatId}`)
@@ -617,6 +648,7 @@ export function expertChatComponent(chatId) {
                 this.videoEnabled = !!camTrack;
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
+                this.startTimer();
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
 
                 console.log('✅ Agora fully connected');
@@ -658,6 +690,9 @@ Steps:
 
 
         async resetCallUI() {
+
+            if (this.timerInterval) clearInterval(this.timerInterval); // 👈 Ye line add karein
+            this.callDuration = 0; // Reset duration
             if (this.agoraClient) {
                 await this.agoraClient.leave();
                 this.agoraClient = null;

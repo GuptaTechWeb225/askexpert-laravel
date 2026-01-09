@@ -34,16 +34,18 @@
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     }
 
-#remote-media video, #local-media video {
-    position: relative !important;
-    object-fit: cover !important;
-}
-#remote-media {
-    background-color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+    #remote-media video,
+    #local-media video {
+        position: relative !important;
+        object-fit: cover !important;
+    }
+
+    #remote-media {
+        background-color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 <div class="content container-fluid">
     <div class="whatsapp-container" x-data="expertChatComponent({{ $chat->id }})" x-init="init()">
@@ -170,11 +172,10 @@
                             <button @click="hangUp()" class="btn btn-danger rounded-circle p-4">
                                 <i class="fa-solid fa-phone-slash fa-2x"></i>
                             </button>
+                        </div>
 
-                            <button x-show="isVideo" @click="toggleVideo()"
-                                :class="videoEnabled ? 'btn-secondary' : 'btn-danger'" class="btn rounded-circle p-3">
-                                <i class="fa-solid" :class="videoEnabled ? 'fa-video' : 'fa-video-slash'"></i>
-                            </button>
+                        <div x-show="callState === 'connected'" class="text-white mb-2">
+                            <span x-text="formattedDuration" style="font-size: 1.2rem; font-weight: bold;"></span>
                         </div>
                     </div>
 
