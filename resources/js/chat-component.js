@@ -146,7 +146,6 @@ export function chatComponent(chatId) {
                     if (this._joining) return;
                     this._joining = true;
                     try {
-                        this.stopRingtone();
                         this.callStatusText = 'Connecting...';
                         this.callState = 'connecting';
 
@@ -191,11 +190,12 @@ export function chatComponent(chatId) {
                         }
 
                         await this.agoraClient.publish(tracks.filter(Boolean));
-
                         this.callState = 'connected';
                         this.inCall = true;
                         this.callStatusText = 'Connected';
+                        this.stopRingtone();
                         this.startTimer();
+
                     } catch (err) {
                         console.error('❌ User side Agora join failed:', err);
                         toastr.error('Connection failed: ' + err.message);
@@ -228,6 +228,7 @@ export function chatComponent(chatId) {
                 })
                 .listenForWhisper('call-ended', () => {
                     this.callStatusText = 'Call Ended';
+                    this.stopRingtone();
                     this.endCall();
                 })
 
@@ -600,7 +601,7 @@ export function expertChatComponent(chatId) {
 
                 })
 
-                 .listenForWhisper('call-accepted', async () => {
+                .listenForWhisper('call-accepted', async () => {
                     if (this._joining) return;
                     this._joining = true;
                     try {
@@ -608,17 +609,14 @@ export function expertChatComponent(chatId) {
                         this.callStatusText = 'Connecting...';
                         this.callState = 'connecting';
 
-
                         if (!this.agoraClient) {
-                            this.agoraClient = this.createAgoraClient(); 
+                            this.agoraClient = this.createAgoraClient();
                         }
-
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
                         const { token, channel, uid, app_id } = res.data;
 
                         await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-                        // --- SAFE TRACKS FOR USER SIDE ---
                         let tracks = [];
                         try {
                             if (this.isVideo) {
@@ -678,7 +676,7 @@ export function expertChatComponent(chatId) {
                 this.showEndedMessage();
             }
         },
-  playRingtone() {
+        playRingtone() {
             const ringtone = document.getElementById('ringtone');
             if (ringtone) {
                 ringtone.currentTime = 0;
@@ -867,7 +865,7 @@ Steps:
                 this.videoEnabled = true;
             }
         },
-         createAgoraClient() {
+        createAgoraClient() {
             const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
             client.on("user-published", async (user, mediaType) => {
                 await client.subscribe(user, mediaType);
