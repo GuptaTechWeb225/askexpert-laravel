@@ -173,7 +173,7 @@
             <!-- Header -->
             <div class="modal-header border-0 text-center">
               <div class="d-flex align-items-center gap-10px">
-                <div >
+                <div>
                   <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
                     style="width:50px;height:50px;object-fit:cover">
                 </div>
@@ -220,6 +220,10 @@
               </div>
 
               <div x-show="callState === 'connected'" class="row gap-4 align-items-center" x-cloak>
+                <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary'"
+                  class="btn rounded-circle p-3">
+                  <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
+                </button>
                 <button @click="hangUp()" class="btn btn-danger rounded-circle p-4">
                   <i class="fa-solid fa-phone-slash fa-2x"></i>
                 </button>
