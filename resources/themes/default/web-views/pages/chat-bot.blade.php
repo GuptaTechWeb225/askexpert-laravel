@@ -172,18 +172,18 @@
 
             <!-- Header -->
             <div class="modal-header border-0 text-center">
-              <div>
-                <div>
+              <div class="d-flex align-items-center gap-10px">
+                <div >
                   <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
-                    style="width:120px;height:120px;object-fit:cover">
+                    style="width:50px;height:50px;object-fit:cover">
                 </div>
                 <div>
                   <h4 class="modal-title" x-text="callerInfo?.name"></h4>
                   <p id="call-status" class="text-success mt-1" x-text="callStatusText"></p>
                 </div>
               </div>
-              <div x-show="callState === 'connected'" class="mt-2">
-                <span class="badge badge-pill badge-danger py-2 px-3"
+              <div x-show="callState === 'connected'">
+                <span class="badge badge-pill badge-soft-light py-2 px-3"
                   x-text="formattedDuration"
                   style="font-size: 1.1rem; letter-spacing: 1px;">
                 </span>
