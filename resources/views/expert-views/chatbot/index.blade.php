@@ -29,7 +29,7 @@
                 <button class="btn btn-success btn-sm" @click="initiateCall(true)">
                     <i class="fa-solid fa-video"></i>
                 </button>
-                <button class="btn btn-danger btn-sm" @click="endChat()">
+                <button class="btn btn-danger btn-sm" @click="endChatByExpert()">
                     <i class="fa-solid fa-phone-slash"></i>
                 </button>
                 @endif
