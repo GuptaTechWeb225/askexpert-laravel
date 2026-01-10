@@ -50,9 +50,9 @@
     $resolvedChatId = isset($chat) && isset($chat->id)
         ? $chat->id
         : (auth('expert')->user()->current_chat_id ?? null);
+
+        dd($resolvedChatId)
 @endphp
-
-
 
 <div x-data="expertChatComponent({{ $resolvedChatId }})" x-init="init()">
     <div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true" data-bs-keyboard="false" data-bs-backdrop="static">
