@@ -142,8 +142,6 @@
                             </span>
                         </div>
                     </div>
-
-                    <!-- Body -->
                     <div class="modal-body position-relative p-0">
                         <div id="video-wrapper" class="w-100 h-100" :class="callState === 'connected' ? 'd-block' : 'd-none'">
                             <div id="remote-media" class="w-100 h-100"></div>
@@ -154,10 +152,9 @@
                         </div>
                     </div>
 
-                    <!-- Footer Buttons -->
                     <div class="modal-footer justify-content-center border-0 bg-dark">
 
-                        <div x-show="callState === 'incoming'" class="d-flex gap-4 align-items-center">
+                        <div x-show="callState === 'incoming'" class="row gap-4 align-items-center">
                             <button @click="acceptCall()" class="btn btn-success rounded-circle p-4 shadow-lg">
                                 <i class="fa-solid fa-phone fa-2x"></i>
                             </button>
@@ -166,27 +163,22 @@
                             </button>
                         </div>
 
-                        <!-- Ringing / Calling buttons -->
                         <div x-show="callState === 'ringing'" class="text-center">
                             <button @click="cancelCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
                                 <i class="fa-solid fa-phone-slash fa-2x"></i>
                             </button>
-                            <p class="mt-2 text-white">Cancel Call</p>
                         </div>
 
-                        <!-- Connected call buttons -->
-                        <div x-show="callState === 'connected'" class="d-flex gap-4 align-items-center">
-                            <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary'"
-                                class="btn rounded-circle p-3">
-                                <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
-                            </button>
-
+                        <div x-show="callState === 'connected'" class="row gap-4 align-items-center">
                             <button @click="hangUp()" class="btn btn-danger rounded-circle p-4">
                                 <i class="fa-solid fa-phone-slash fa-2x"></i>
                             </button>
                         </div>
 
-
+   <div x-show="callState === 'connecting'" class="text-center" x-cloak>
+                <div class="spinner-border text-light" role="status"></div>
+                <p class="mt-2">Connecting...</p>
+              </div>
                     </div>
 
                 </div>

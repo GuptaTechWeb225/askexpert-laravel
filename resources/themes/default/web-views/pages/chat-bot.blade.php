@@ -204,7 +204,7 @@
             <!-- Footer Buttons -->
             <div class="modal-footer justify-content-center border-0 bg-dark">
 
-              <div x-show="callState === 'incoming'" class="d-flex gap-4 align-items-center" x-cloak>
+              <div x-show="callState === 'incoming'" class="row gap-4 align-items-center" x-cloak>
                 <button @click="acceptCall()" class="btn btn-success rounded-circle p-4 shadow-lg">
                   <i class="fa-solid fa-phone fa-2x"></i>
                 </button>
@@ -219,11 +219,7 @@
                 </button>
               </div>
 
-              <div x-show="callState === 'connected'" class="d-flex gap-4 align-items-center" x-cloak>
-                <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary'" class="btn rounded-circle p-3">
-                  <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
-                </button>
-
+              <div x-show="callState === 'connected'" class="row gap-4 align-items-center" x-cloak>
                 <button @click="hangUp()" class="btn btn-danger rounded-circle p-4">
                   <i class="fa-solid fa-phone-slash fa-2x"></i>
                 </button>

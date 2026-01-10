@@ -870,34 +870,28 @@ Steps:
 
         async resetCallUI() {
 
-            if (this.timerInterval) clearInterval(this.timerInterval); // 👈 Ye line add karein
-            this.callDuration = 0; // Reset duration
+            if (this.timerInterval) clearInterval(this.timerInterval); 
+            this.callDuration = 0;
             if (this.agoraClient) {
                 await this.agoraClient.leave();
                 this.agoraClient = null;
             }
-
             if (this.micTrack) {
                 this.micTrack.stop();
                 this.micTrack = null;
             }
-
             if (this.cameraTrack) {
                 this.cameraTrack.stop();
                 this.cameraTrack = null;
             }
-
             this.callState = '';
             this.mediaTestResult = null;
             this.cleanupMedia();
-
-
             document.getElementById('local-media').innerHTML = '';
             document.getElementById('remote-media').innerHTML = '';
 
             $('#callModal').modal('hide');
-        }
-        ,
+        },
         rejectCall() {
             window.Echo.private(`chat.${chatId}`)
                 .whisper('call-rejected', { chatId });
@@ -909,8 +903,7 @@ Steps:
             if (this.micTrack) {
                 this.micTrack.setEnabled(!this.isMuted);
             }
-        }
-        ,
+        },
 
         cleanupMedia() {
             console.log('Cleaning up all media resources...');
