@@ -784,7 +784,7 @@ export function expertChatComponent(chatId) {
             const wasInCall = sessionStorage.getItem('activeCall') === 'true';
             if (wasInCall) {
                 console.log('Page refreshed during active call – auto ending call');
-                this.endCall();
+                this.resetCallUI();
                 sessionStorage.removeItem('activeCall');
                 toastr.warning('Call ended due to page refresh');
             }
