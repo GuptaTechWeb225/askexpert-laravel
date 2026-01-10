@@ -231,7 +231,22 @@ export function chatComponent(chatId) {
                     }
                 });
 
-            // Polling for expert online
+            const wasInCall = sessionStorage.getItem('activeCall') === 'true';
+            if (wasInCall) {
+                console.log('Page refreshed during active call – auto ending call');
+                this.endCall();
+                sessionStorage.removeItem('activeCall');
+                toastr.warning('Call ended due to page refresh');
+            }
+
+            this.$watch('callState', (newVal) => {
+                if (newVal === 'connected') {
+                    sessionStorage.setItem('activeCall', 'true');
+                } else {
+                    sessionStorage.removeItem('activeCall');
+                }
+            });
+
             this.checkExpertOnline();
             setInterval(() => this.checkExpertOnline(), 10000);
         },
@@ -754,6 +769,22 @@ export function expertChatComponent(chatId) {
                     this.stopRingtone();
                     this.resetCallUI();
                 });
+
+            const wasInCall = sessionStorage.getItem('activeCall') === 'true';
+            if (wasInCall) {
+                console.log('Page refreshed during active call – auto ending call');
+                this.endCall();
+                sessionStorage.removeItem('activeCall');
+                toastr.warning('Call ended due to page refresh');
+            }
+
+            this.$watch('callState', (newVal) => {
+                if (newVal === 'connected') {
+                    sessionStorage.setItem('activeCall', 'true');
+                } else {
+                    sessionStorage.removeItem('activeCall');
+                }
+            });
 
             if ('{{ $chat->status }}' === 'ended') {
                 this.chatEnded = true;

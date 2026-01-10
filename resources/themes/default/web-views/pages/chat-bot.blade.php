@@ -166,7 +166,7 @@
         </button>
       </div>
 
-      <div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true">
+      <div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-dialog-centered modal-fullscreen">
           <div class="modal-content bg-dark text-white border-0">
 
