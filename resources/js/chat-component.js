@@ -620,7 +620,6 @@ export function expertChatComponent(chatId) {
         hangUp() {
             window.Echo.private(`chat.${chatId}`)
                 .whisper('call-ended', { chatId });
-
             this.resetCallUI();
         },
         init() {
@@ -766,6 +765,12 @@ export function expertChatComponent(chatId) {
                 this.selectedFile = null;
                 this.appendMessage(res.data.message_data);
             });
+        },
+        cancelCall() {
+            this.stopRingtone();
+            window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
+            this.endCall();
+
         },
         async acceptCall() {
             if (this._joining) return;

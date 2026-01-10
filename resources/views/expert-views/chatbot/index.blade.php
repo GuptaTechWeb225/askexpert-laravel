@@ -175,10 +175,10 @@
                             </button>
                         </div>
 
-   <div x-show="callState === 'connecting'" class="text-center" x-cloak>
-                <div class="spinner-border text-light" role="status"></div>
-                <p class="mt-2">Connecting...</p>
-              </div>
+                        <div x-show="callState === 'connecting'" class="text-center" x-cloak>
+                            <div class="spinner-border text-light" role="status"></div>
+                            <p class="mt-2">Connecting...</p>
+                        </div>
                     </div>
 
                 </div>
@@ -192,8 +192,7 @@
 <script>
     window.EXPERT_ID = "{{ auth('expert')->id() }}";
     window.AGORA_APP_ID = "{{ config('services.agora.app_id') }}";
-        window.AUTH_USER_AVATAR = "{{ getStorageImages(path: auth('expert')->user()->image_full_url, type: 'avatar') }}";
-
+    window.AUTH_USER_AVATAR = "{{ getStorageImages(path: auth('expert')->user()->image_full_url, type: 'avatar') }}";
 </script>
 @endsection
 
