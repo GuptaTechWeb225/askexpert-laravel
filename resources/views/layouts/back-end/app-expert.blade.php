@@ -59,9 +59,17 @@ use App\Utils\Helpers;
 <body class="footer-offset">
 
 @php
-$resolvedChatId = isset($chat) && !empty($chat->id)
-? $chat->id
-: (auth('expert')->check() ? auth('expert')->user()->current_chat_id : null);
+    $resolvedChatId = null;
+
+    if (isset($chat) && !empty($chat->id) && !isset($oldChats)) {
+        $resolvedChatId = $chat->id;
+    }
+    elseif (isset($oldChats) && auth('expert')->check() && auth('expert')->user()->current_chat_id) {
+        $resolvedChatId = auth('expert')->user()->current_chat_id;
+    }
+    elseif (auth('expert')->check() && auth('expert')->user()->current_chat_id) {
+        $resolvedChatId = auth('expert')->user()->current_chat_id;
+    }
 @endphp
     @include('layouts.back-end.partials._front-settings')
     <div class="row">
