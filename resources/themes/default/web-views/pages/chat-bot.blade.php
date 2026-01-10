@@ -98,7 +98,7 @@
           </div>
 
         </div>
-        <div class="ms-auto pe-3 d-flex align-items-center gap-3">
+        <div class="">
           @if($chat->status !== 'ended')
           <button class="btn btn-primary btn-sm" @click="initiateCall(false)">
             <i class="fa-solid fa-phone"></i>

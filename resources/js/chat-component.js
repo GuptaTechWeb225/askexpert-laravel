@@ -324,6 +324,7 @@ export function chatComponent(chatId) {
 
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
+                this.stopRingtone();
                 this.startTimer();
 
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });

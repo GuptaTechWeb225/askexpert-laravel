@@ -61,7 +61,7 @@
             </div>
             <div class="ms-auto pe-3 d-flex align-items-center gap-3">
                 @if($chat->status !== 'ended')
-                <button class="btn btn-primary btn-sm" @click="initiateCall(false)">
+                <button class="btn btn-accent btn-sm" @click="initiateCall(false)">
                     <i class="fa-solid fa-phone"></i>
                 </button>
                 <button class="btn btn-success btn-sm" @click="initiateCall(true)">
