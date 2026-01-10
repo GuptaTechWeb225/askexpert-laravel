@@ -1152,7 +1152,7 @@ Steps:
             const footer = document.querySelector('.chat-footer');
             if (footer) footer.style.display = 'none';
 
-            const endBtn = document.querySelector('.chat-header .btn-danger');
+            const endBtn = document.querySelector('.chat-header .btn-danger .btn-hide-from');
             if (endBtn) endBtn.style.display = 'none';
         },
 
