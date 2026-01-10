@@ -264,74 +264,73 @@ export function chatComponent(chatId) {
 
                 this.agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
-                // Remote user events (pehla set karo)
+                // 🔥 Events join se PEHLE set karo + retry logic
                 this.agoraClient.on('user-published', async (user, mediaType) => {
-                    console.log('Remote published:', mediaType, 'from UID:', user.uid);
-                    await this.agoraClient.subscribe(user, mediaType);
+                    console.log('User side: Remote published', mediaType, 'UID:', user.uid);
 
-                    if (mediaType === 'video') {
-                        setTimeout(() => {
-                            const remoteDiv = document.getElementById('remote-media');
-                            if (remoteDiv) {
-                                remoteDiv.innerHTML = ''; // Clear old content
-                                user.videoTrack.play(remoteDiv);
+                    try {
+                        await this.agoraClient.subscribe(user, mediaType);
+                        console.log('Subscribe success for', mediaType);
+
+                        if (mediaType === 'video') {
+                            setTimeout(() => {
+                                const remoteDiv = document.getElementById('remote-media');
+                                if (remoteDiv) {
+                                    remoteDiv.innerHTML = '';
+                                    user.videoTrack.play(remoteDiv);
+                                    console.log('Remote video playing');
+                                }
+                            }, 500);
+                        }
+                        if (mediaType === 'audio') {
+                            user.audioTrack.play();
+                            console.log('Remote audio playing');
+                        }
+                    } catch (subErr) {
+                        console.warn('Subscribe failed, retrying in 1s...', subErr);
+                        // Retry once after delay (common fix for race condition)
+                        setTimeout(async () => {
+                            try {
+                                await this.agoraClient.subscribe(user, mediaType);
+                                console.log('Retry subscribe success');
+                                // Play again...
+                            } catch (retryErr) {
+                                console.error('Retry also failed:', retryErr);
                             }
-                        }, 300); // Small delay for DOM ready
-                    }
-                    if (mediaType === 'audio') {
-                        user.audioTrack.play();
+                        }, 1000);
                     }
                 });
 
-                // Join channel
+                // Join
                 await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-                // SAFE TRACKS – Voice/Video alag handle
+                // Tracks creation (voice/video safe)
                 let tracks = [];
-                try {
-                    if (this.isVideo) {
-                        // Video call – both mic + camera
-                        console.log('Creating video + audio tracks...');
-                        tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-                    } else {
-                        // Voice call – only mic (no camera crash)
-                        console.log('Creating audio-only track...');
-                        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-                        tracks = [audioTrack];
-                    }
-                } catch (mediaErr) {
-                    console.error('Media access failed:', mediaErr);
-                    throw new Error('Failed to access microphone' + (this.isVideo ? ' or camera' : ''));
+                if (this.isVideo) {
+                    tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                } else {
+                    const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                    tracks = [audioTrack];
                 }
 
-                // Assign tracks safely
-                this.localAudioTrack = tracks.find(t => t.trackMediaType === 'audio') || tracks[0];
+                this.localAudioTrack = tracks.find(t => t.trackMediaType === 'audio');
                 this.localVideoTrack = tracks.find(t => t.trackMediaType === 'video') || null;
 
-                // Play local video if exists
                 if (this.localVideoTrack) {
-                    const localDiv = document.getElementById('local-media');
-                    if (localDiv) {
-                        localDiv.innerHTML = '';
-                        this.localVideoTrack.play(localDiv);
-                    }
+                    this.localVideoTrack.play('local-media');
                 }
 
-                // Publish
                 await this.agoraClient.publish(tracks);
 
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
-                this.startTimer(); // Timer start
+                this.startTimer();
 
-                // Whisper to expert: call accepted
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
-
-                console.log('✅ Call connected successfully (isVideo:', this.isVideo, ')');
 
             } catch (err) {
                 console.error('❌ Call failed:', err);
-                alert('Call connection failed: ' + (err.message || 'Unknown error'));
+                alert('Call failed: ' + err.message);
                 this.endCall();
             } finally {
                 this._joining = false;
@@ -624,10 +623,37 @@ export function expertChatComponent(chatId) {
 
                         this.agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-                        this.agoraClient.on("user-published", async (user, mediaType) => {
-                            await this.agoraClient.subscribe(user, mediaType);
-                            if (mediaType === "video") user.videoTrack.play('remote-media');
-                            if (mediaType === "audio") user.audioTrack.play();
+                        // expert side acceptCall() ke andar user-published handler ko update karo
+                        client.on("user-published", async (user, mediaType) => {
+                            console.log('Expert side: Remote published', mediaType, 'UID:', user.uid);
+
+                            try {
+                                await client.subscribe(user, mediaType);
+                                console.log('Expert subscribe success');
+
+                                if (mediaType === "video") {
+                                    setTimeout(() => {
+                                        const remoteDiv = document.getElementById('remote-media');
+                                        if (remoteDiv) {
+                                            remoteDiv.innerHTML = '';
+                                            user.videoTrack.play(remoteDiv);
+                                        }
+                                    }, 500);
+                                }
+                                if (mediaType === "audio") {
+                                    user.audioTrack.play();
+                                }
+                            } catch (subErr) {
+                                console.warn('Expert subscribe failed, retrying...', subErr);
+                                setTimeout(async () => {
+                                    try {
+                                        await client.subscribe(user, mediaType);
+                                        console.log('Expert retry success');
+                                    } catch (retryErr) {
+                                        console.error('Expert retry failed:', retryErr);
+                                    }
+                                }, 1000);
+                            }
                         });
 
                         await this.agoraClient.join(
