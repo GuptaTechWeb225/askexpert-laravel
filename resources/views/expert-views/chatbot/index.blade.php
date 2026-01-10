@@ -14,10 +14,10 @@
         <div class="chat-header d-flex justify-content-between px-3 py-3 text-white">
             <div class="bot-info d-flex align-items-center w-100">
                 <div class="avatar-wrapper">
-                    <img src="{{ getStorageImages(path: $customer->image_full_url, type: 'avatar') }}" class="avatar">
+                    <img src="{{ getStorageImages(path: $customer?->image_full_url, type: 'avatar') }}" class="avatar">
                 </div>
                 <div class="bot-details w-100 ms-2">
-                    <div class="bot-name">{{ $customer->f_name }} {{ $customer->l_name }}</div>
+                    <div class="bot-name">{{ $customer?->f_name }} {{ $customer?->l_name }}</div>
                     <small class="text-white" x-show="customerTyping" style="display:none;">typing...</small>
                 </div>
             </div>
