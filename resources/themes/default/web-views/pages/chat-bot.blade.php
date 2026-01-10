@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="{{ theme_asset('public/assets/front-end/css/cat-chatboat.css') }}">
     <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-        <link rel="stylesheet" href="{{dynamicAsset(path: 'public/assets/back-end/css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="{{dynamicAsset(path: 'public/assets/back-end/css/bootstrap.min.css')}}">
     <meta name="user-id" content="{{ auth('customer')->id() }}">
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/style.css') }}">
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
@@ -171,17 +171,23 @@
           <div class="modal-content bg-dark text-white border-0">
 
             <!-- Header -->
-            <div class="modal-header border-0 text-center flex-column">
-              <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
-                style="width:120px;height:120px;object-fit:cover">
-              <h4 class="modal-title" x-text="callerInfo?.name"></h4>
-              <p id="call-status" class="text-success mt-1" x-text="callStatusText"></p>
-                <div x-show="callState === 'connected'" class="mt-2">
-                  <span class="badge badge-pill badge-danger py-2 px-3"
-                    x-text="formattedDuration"
-                    style="font-size: 1.1rem; letter-spacing: 1px;">
-                  </span>
+            <div class="modal-header border-0 text-center">
+              <div>
+                <div>
+                  <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
+                    style="width:120px;height:120px;object-fit:cover">
                 </div>
+                <div>
+                  <h4 class="modal-title" x-text="callerInfo?.name"></h4>
+                  <p id="call-status" class="text-success mt-1" x-text="callStatusText"></p>
+                </div>
+              </div>
+              <div x-show="callState === 'connected'" class="mt-2">
+                <span class="badge badge-pill badge-danger py-2 px-3"
+                  x-text="formattedDuration"
+                  style="font-size: 1.1rem; letter-spacing: 1px;">
+                </span>
+              </div>
             </div>
 
             <!-- Body -->
