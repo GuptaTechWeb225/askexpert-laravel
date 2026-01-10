@@ -333,12 +333,9 @@ export function chatComponent(chatId) {
             this.stopRingtone();
             window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
             this.endCall();
-
         },
         cleanupMedia() {
             console.log('Cleaning up all media resources...');
-
-            // Local tracks stop + close
             if (this.localAudioTrack) {
                 this.localAudioTrack.stop();
                 this.localAudioTrack.close();
@@ -349,8 +346,6 @@ export function chatComponent(chatId) {
                 this.localVideoTrack.close();
                 this.localVideoTrack = null;
             }
-
-            // Expert side ke variables (agar exist karein)
             if (this.micTrack) {
                 this.micTrack.stop();
                 this.micTrack.close();
@@ -361,8 +356,6 @@ export function chatComponent(chatId) {
                 this.cameraTrack.close();
                 this.cameraTrack = null;
             }
-
-            // Agora client forcefully leave + null
             if (this.agoraClient) {
                 try {
                     this.agoraClient.leave();
@@ -372,14 +365,10 @@ export function chatComponent(chatId) {
                 }
                 this.agoraClient = null;
             }
-
-            // DOM clear
             const localDiv = document.getElementById('local-media');
             if (localDiv) localDiv.innerHTML = '';
             const remoteDiv = document.getElementById('remote-media');
             if (remoteDiv) remoteDiv.innerHTML = '';
-
-            // State reset
             this.callState = 'idle';
             this.inCall = false;
             this.callInitiator = null;
@@ -387,7 +376,6 @@ export function chatComponent(chatId) {
             this.callDuration = 0;
             this.videoEnabled = false;
             this.isMuted = false;
-
             console.log('Media cleanup complete!');
         },
 
@@ -396,45 +384,57 @@ export function chatComponent(chatId) {
             this.endCall();
         },
 
-       toggleMute() {
-    if (this.isMuted) {
-        // Unmute kar rahe ho
-        this.isMuted = false;
-    } else {
-        // Mute kar rahe ho
-        this.isMuted = true;
-    }
+        toggleMute() {
+            this.isMuted = !this.isMuted;  // Toggle state
+            let audioTrack = this.localAudioTrack || this.micTrack;
 
-    // 🔥 Dono taraf ke possible track references check karo
-    const audioTrack = this.localAudioTrack || this.micTrack;
-
-    if (audioTrack) {
-        try {
-            audioTrack.setEnabled(!this.isMuted);
-            console.log(`Mic ${this.isMuted ? 'muted' : 'unmuted'} successfully`);
-
-            // Extra force: Agar unmute hai to track ko restart karo (best fix)
-            if (!this.isMuted) {
-                // Stop + recreate audio track (100% working trick)
-                audioTrack.stop();
-                audioTrack.close();
-
-                // New fresh audio track create karo
-                AgoraRTC.createMicrophoneAudioTrack()
-                    .then(newTrack => {
-                        this.localAudioTrack = newTrack; // Ya micTrack
-                        this.agoraClient?.publish(newTrack); // Re-publish fresh track
-                        console.log('Fresh mic track re-published after unmute');
-                    })
-                    .catch(err => console.error('Re-create mic failed:', err));
+            if (!audioTrack) {
+                console.warn('No audio track available for mute/unmute');
+                return;
             }
-        } catch (err) {
-            console.error('setEnabled failed:', err);
-        }
-    } else {
-        console.warn('No audio track found for mute/unmute');
-    }
-},
+
+            try {
+                if (this.isMuted) {
+                    // Mute – simple disable
+                    audioTrack.setEnabled(false);
+                    console.log('Mic muted successfully');
+                } else {
+                    // Unmute – critical part: Purana track close + fresh create + republish
+                    console.log('Unmuting: Stopping & replacing old track...');
+
+                    // Purana track stop/close
+                    audioTrack.stop();
+                    audioTrack.close();
+
+                    // Fresh new mic track banao
+                    AgoraRTC.createMicrophoneAudioTrack()
+                        .then(newTrack => {
+                            // Update reference
+                            this.localAudioTrack = newTrack;
+                            this.micTrack = newTrack;  // Expert side ke liye bhi
+
+                            // Publish new track
+                            if (this.agoraClient) {
+                                this.agoraClient.publish(newTrack)
+                                    .then(() => {
+                                        console.log('Fresh mic track published after unmute – success!');
+                                    })
+                                    .catch(err => {
+                                        console.error('Republish failed:', err);
+                                    });
+                            } else {
+                                console.warn('No agoraClient found for republish');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Failed to create fresh mic track:', err);
+                            alert('Mic access failed. Please check permissions.');
+                        });
+                }
+            } catch (err) {
+                console.error('toggleMute error:', err);
+            }
+        },
 
         toggleVideo() {
             if (this.localVideoTrack) {
@@ -586,6 +586,8 @@ export function expertChatComponent(chatId) {
         _joining: false,
         callDuration: 0,
         timerInterval: null,
+        localAudioTrack: null,
+        localVideoTrack: null,
 
         initiateCall(withVideo) {
             if (this.callState && this.callState !== '') return;
@@ -947,45 +949,59 @@ Steps:
                 .whisper('call-rejected', { chatId });
             this.resetCallUI();
         },
-       toggleMute() {
-    if (this.isMuted) {
-        // Unmute kar rahe ho
-        this.isMuted = false;
-    } else {
-        // Mute kar rahe ho
-        this.isMuted = true;
-    }
+        toggleMute() {
+            this.isMuted = !this.isMuted;  // Toggle state
 
-    // 🔥 Dono taraf ke possible track references check karo
-    const audioTrack = this.localAudioTrack || this.micTrack;
+            // Dono possible track references
+            let audioTrack = this.localAudioTrack || this.micTrack;
 
-    if (audioTrack) {
-        try {
-            audioTrack.setEnabled(!this.isMuted);
-            console.log(`Mic ${this.isMuted ? 'muted' : 'unmuted'} successfully`);
-
-            // Extra force: Agar unmute hai to track ko restart karo (best fix)
-            if (!this.isMuted) {
-                // Stop + recreate audio track (100% working trick)
-                audioTrack.stop();
-                audioTrack.close();
-
-                // New fresh audio track create karo
-                AgoraRTC.createMicrophoneAudioTrack()
-                    .then(newTrack => {
-                        this.localAudioTrack = newTrack; // Ya micTrack
-                        this.agoraClient?.publish(newTrack); // Re-publish fresh track
-                        console.log('Fresh mic track re-published after unmute');
-                    })
-                    .catch(err => console.error('Re-create mic failed:', err));
+            if (!audioTrack) {
+                console.warn('No audio track available for mute/unmute');
+                return;
             }
-        } catch (err) {
-            console.error('setEnabled failed:', err);
-        }
-    } else {
-        console.warn('No audio track found for mute/unmute');
-    }
-},
+
+            try {
+                if (this.isMuted) {
+                    // Mute – simple disable
+                    audioTrack.setEnabled(false);
+                    console.log('Mic muted successfully');
+                } else {
+                    // Unmute – critical part: Purana track close + fresh create + republish
+                    console.log('Unmuting: Stopping & replacing old track...');
+
+                    // Purana track stop/close
+                    audioTrack.stop();
+                    audioTrack.close();
+
+                    // Fresh new mic track banao
+                    AgoraRTC.createMicrophoneAudioTrack()
+                        .then(newTrack => {
+                            // Update reference
+                            this.localAudioTrack = newTrack;
+                            this.micTrack = newTrack;  // Expert side ke liye bhi
+
+                            // Publish new track
+                            if (this.agoraClient) {
+                                this.agoraClient.publish(newTrack)
+                                    .then(() => {
+                                        console.log('Fresh mic track published after unmute – success!');
+                                    })
+                                    .catch(err => {
+                                        console.error('Republish failed:', err);
+                                    });
+                            } else {
+                                console.warn('No agoraClient found for republish');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Failed to create fresh mic track:', err);
+                            alert('Mic access failed. Please check permissions.');
+                        });
+                }
+            } catch (err) {
+                console.error('toggleMute error:', err);
+            }
+        },
 
         cleanupMedia() {
             console.log('Cleaning up all media resources...');
