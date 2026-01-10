@@ -5,6 +5,10 @@
 @endpush
 
 @section('content')
+
+<pre>
+    {{ dd(auth('expert')->user()) }}
+</pre>
 <div class="content container-fluid">
     <div class="main-content">
         <!-- banner card -->
