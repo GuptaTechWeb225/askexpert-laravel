@@ -90,7 +90,6 @@ use App\Utils\Helpers;
     window.EXPERT_ID = "{{ auth('expert')->id() }}";
     window.AGORA_APP_ID = "{{ config('services.agora.app_id') }}";
     window.AUTH_USER_AVATAR = "{{ getStorageImages(path: auth('expert')->user()->image_full_url, type: 'avatar') }}";
-       window.EXPERT_CURRENT_CHAT_ID = @json(auth('expert')->user()->current_chat_id);
 </script>
     <span class="please_fill_out_this_field" data-text="{{ translate('please_fill_out_this_field') }}"></span>
     <span id="onerror-chatting" data-onerror-chatting="{{dynamicAsset(path: 'public/assets/back-end/img/image-place-holder.png')}}"></span>
