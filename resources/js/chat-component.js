@@ -769,7 +769,7 @@ export function expertChatComponent(chatId) {
         cancelCall() {
             this.stopRingtone();
             window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
-            this.endCall();
+            this.resetCallUI();
 
         },
         async acceptCall() {
