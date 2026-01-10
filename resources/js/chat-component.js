@@ -572,6 +572,7 @@ export function expertChatComponent(chatId) {
         customerOnline: false,
         typingTimer: null,
         chatEnded: false,
+        inCall: false,
         isVideo: false,
         isIncoming: false,
         isMuted: false,
@@ -589,7 +590,7 @@ export function expertChatComponent(chatId) {
         localVideoTrack: null,
 
         initiateCall(withVideo) {
-            if (this.callState && this.callState !== '') return;
+            if (this.inCall) return;
 
             this.isVideo = withVideo;
             this.callState = 'ringing';
