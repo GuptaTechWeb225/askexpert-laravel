@@ -260,40 +260,34 @@ export function chatComponent(chatId) {
                 this.callStatusText = 'Connecting...';
 
                 const res = await axios.post(`/chat/${chatId}/generate-token`);
-                const { token, channel, uid, app_id } = res.data;
+                const { token, channel, uid } = res.data;
 
-                this.agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+                const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-                // 🔥 Events join se PEHLE set karo + retry logic
-                this.agoraClient.on('user-published', async (user, mediaType) => {
-                    console.log('User side: Remote published', mediaType, 'UID:', user.uid);
+                client.on("user-published", async (user, mediaType) => {
 
                     try {
-                        await this.agoraClient.subscribe(user, mediaType);
-                        console.log('Subscribe success for', mediaType);
+                        await client.subscribe(user, mediaType);
 
-                        if (mediaType === 'video') {
+                        if (mediaType === "video") {
+                            // Timeout thoda delay deta hai taaki DOM ready ho jaye
                             setTimeout(() => {
                                 const remoteDiv = document.getElementById('remote-media');
                                 if (remoteDiv) {
                                     remoteDiv.innerHTML = '';
                                     user.videoTrack.play(remoteDiv);
-                                    console.log('Remote video playing');
                                 }
                             }, 500);
                         }
-                        if (mediaType === 'audio') {
+                        if (mediaType === "audio") {
                             user.audioTrack.play();
-                            console.log('Remote audio playing');
                         }
                     } catch (subErr) {
                         console.warn('Subscribe failed, retrying in 1s...', subErr);
-                        // Retry once after delay (common fix for race condition)
                         setTimeout(async () => {
                             try {
-                                await this.agoraClient.subscribe(user, mediaType);
+                                await client.subscribe(user, mediaType);
                                 console.log('Retry subscribe success');
-                                // Play again...
                             } catch (retryErr) {
                                 console.error('Retry also failed:', retryErr);
                             }
@@ -302,31 +296,25 @@ export function chatComponent(chatId) {
                 });
 
                 // Join
-                await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+                await client.join(window.AGORA_APP_ID, channel, token, uid);
+                const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                const micTrack = tracks[0];
+                const camTrack = this.isVideo ? tracks[1] : null;
 
-                // Tracks creation (voice/video safe)
-                let tracks = [];
-                if (this.isVideo) {
-                    tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-                } else {
-                    const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-                    tracks = [audioTrack];
-                }
+                if (camTrack) camTrack.play(document.getElementById('local-media'));
 
-                this.localAudioTrack = tracks.find(t => t.trackMediaType === 'audio');
-                this.localVideoTrack = tracks.find(t => t.trackMediaType === 'video') || null;
+                const publishTracks = [micTrack];
+                if (camTrack) publishTracks.push(camTrack);
 
-                if (this.localVideoTrack) {
-                    this.localVideoTrack.play('local-media');
-                }
+                await client.publish(publishTracks);
 
-                await this.agoraClient.publish(tracks);
-
+                this.agoraClient = client;
+                this.micTrack = micTrack;
+                this.cameraTrack = camTrack;
+                this.videoEnabled = !!camTrack;
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
-                this.stopRingtone();
                 this.startTimer();
-
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
 
             } catch (err) {
@@ -611,82 +599,71 @@ export function expertChatComponent(chatId) {
                     $('#callModal').modal('show');
 
                 })
-                .listenForWhisper('call-accepted', async () => {
+
+                 .listenForWhisper('call-accepted', async () => {
                     if (this._joining) return;
                     this._joining = true;
-
                     try {
+                        this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
                         this.callState = 'connecting';
-                        this.callStatusText = 'Connecting…';
+
+
+                        if (!this.agoraClient) {
+                            this.agoraClient = this.createAgoraClient(); // Iske andar remote-media play karne ka logic pehle se hai
+                        }
 
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
                         const { token, channel, uid, app_id } = res.data;
 
-                        this.agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-                        // expert side acceptCall() ke andar user-published handler ko update karo
-                        client.on("user-published", async (user, mediaType) => {
-                            console.log('Expert side: Remote published', mediaType, 'UID:', user.uid);
-
-                            try {
-                                await client.subscribe(user, mediaType);
-                                console.log('Expert subscribe success');
-
-                                if (mediaType === "video") {
-                                    setTimeout(() => {
-                                        const remoteDiv = document.getElementById('remote-media');
-                                        if (remoteDiv) {
-                                            remoteDiv.innerHTML = '';
-                                            user.videoTrack.play(remoteDiv);
-                                        }
-                                    }, 500);
-                                }
-                                if (mediaType === "audio") {
-                                    user.audioTrack.play();
-                                }
-                            } catch (subErr) {
-                                console.warn('Expert subscribe failed, retrying...', subErr);
-                                setTimeout(async () => {
-                                    try {
-                                        await client.subscribe(user, mediaType);
-                                        console.log('Expert retry success');
-                                    } catch (retryErr) {
-                                        console.error('Expert retry failed:', retryErr);
-                                    }
-                                }, 1000);
+                        // --- SAFE TRACKS FOR USER SIDE ---
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                // Pehle dono try karo
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks().catch(async (e) => {
+                                    console.warn("Camera failed, falling back to audio only", e);
+                                    this.isVideo = false;
+                                    const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                    return [audio];
+                                });
+                            } else {
+                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                tracks = [audio];
                             }
-                        });
-
-                        await this.agoraClient.join(
-                            app_id || window.AGORA_APP_ID,
-                            channel,
-                            token,
-                            uid
-                        );
-
-                        const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-                        this.micTrack = tracks[0];
-                        this.cameraTrack = this.isVideo ? tracks[1] : null;
-
-                        if (this.cameraTrack) {
-                            this.cameraTrack.play('local-media');
+                        } catch (deviceErr) {
+                            throw new Error("Could not access microphone/camera");
                         }
 
-                        await this.agoraClient.publish(
-                            [this.micTrack, this.cameraTrack].filter(Boolean)
-                        );
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
+
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
+
+                        await this.agoraClient.publish(tracks.filter(Boolean));
 
                         this.callState = 'connected';
+                        this.inCall = true;
                         this.callStatusText = 'Connected';
                         this.startTimer();
-
-                    } catch (e) {
-                        console.error(e);
-                        this.resetCallUI();
+                    } catch (err) {
+                        console.error('❌ User side Agora join failed:', err);
+                        toastr.error('Connection failed: ' + err.message);
+                        this.endCall();
                     } finally {
                         this._joining = false;
                     }
                 })
+
+
 
                 .listenForWhisper('call-ended', () => {
                     this.resetCallUI();
