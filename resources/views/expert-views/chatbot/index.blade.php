@@ -170,7 +170,7 @@
                         </div>
 
                         <div x-show="callState === 'connected'" class="row gap-4 align-items-center">
-                            <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary'"
+                            <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary px-4'"
                                 class="btn rounded-circle p-3">
                                 <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
                             </button>
