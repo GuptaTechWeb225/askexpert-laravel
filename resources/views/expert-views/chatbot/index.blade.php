@@ -4,6 +4,9 @@
 <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 <meta name="csrf-token" content="{{ csrf_token() }}">
+ <audio id="ringtone" loop>
+      <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
+    </audio>
 @vite(['resources/js/app.js'])
 
 @endpush
@@ -142,7 +145,7 @@
                             </span>
                         </div>
                     </div>
-                    <div class="modal-body position-relative p-0">
+                    <div x-show="callState === 'connected'" class="modal-body position-relative p-0">
                         <div id="video-wrapper" class="w-100 h-100" :class="isVideo ? 'd-block' : 'd-none'">
                             <div id="remote-media" class="w-100 h-100"></div>
                             <div id="local-media"
