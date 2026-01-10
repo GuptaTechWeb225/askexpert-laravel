@@ -833,6 +833,7 @@ export function expertChatComponent(chatId) {
             this._joining = true;
 
             try {
+                this.stopRingtone();
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting…';
 
