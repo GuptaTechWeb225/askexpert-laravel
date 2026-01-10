@@ -610,7 +610,7 @@ export function expertChatComponent(chatId) {
 
 
                         if (!this.agoraClient) {
-                            this.agoraClient = this.createAgoraClient(); // Iske andar remote-media play karne ka logic pehle se hai
+                            this.agoraClient = this.createAgoraClient(); 
                         }
 
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
@@ -866,6 +866,25 @@ Steps:
                 this.cameraTrack.setEnabled(true);
                 this.videoEnabled = true;
             }
+        },
+         createAgoraClient() {
+            const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+            client.on("user-published", async (user, mediaType) => {
+                await client.subscribe(user, mediaType);
+                if (mediaType === "video") {
+                    // Force wait for Alpine.js to show the div
+                    this.$nextTick(() => {
+                        const remoteDiv = document.getElementById('remote-media');
+                        if (remoteDiv) {
+                            user.videoTrack.play(remoteDiv);
+                        }
+                    });
+                }
+                if (mediaType === "audio") {
+                    user.audioTrack.play();
+                }
+            });
+            return client;
         },
         typingEvent() {
             window.Echo.private(`chat.${chatId}`).whisper('typing', { role: 'expert' });
