@@ -123,7 +123,7 @@ export function chatComponent(chatId) {
             this.inCall = false;
             this.callInitiator = null;
             this.callerInfo = null;
-
+            this.cleanupMedia();
             document.getElementById('local-media').innerHTML = '';
             document.getElementById('remote-media').innerHTML = '';
 
@@ -330,6 +330,66 @@ export function chatComponent(chatId) {
             this.stopRingtone();
             window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
             this.endCall();
+
+        },
+        cleanupMedia() {
+            console.log('Cleaning up all media resources...');
+
+            // Local tracks stop + close
+            if (this.localAudioTrack) {
+                this.localAudioTrack.stop();
+                this.localAudioTrack.close();
+                this.localAudioTrack = null;
+            }
+            if (this.localVideoTrack) {
+                this.localVideoTrack.stop();
+                this.localVideoTrack.close();
+                this.localVideoTrack = null;
+            }
+
+            // Expert side ke variables (agar exist karein)
+            if (this.micTrack) {
+                this.micTrack.stop();
+                this.micTrack.close();
+                this.micTrack = null;
+            }
+            if (this.cameraTrack) {
+                this.cameraTrack.stop();
+                this.cameraTrack.close();
+                this.cameraTrack = null;
+            }
+
+            // Agora client forcefully leave + null
+            if (this.agoraClient) {
+                try {
+                    this.agoraClient.leave();
+                    this.agoraClient.removeAllListeners(); // All events hata do
+                } catch (e) {
+                    console.warn('Client leave failed, ignoring:', e);
+                }
+                this.agoraClient = null;
+            }
+
+            // DOM clear
+            const localDiv = document.getElementById('local-media');
+            if (localDiv) localDiv.innerHTML = '';
+            const remoteDiv = document.getElementById('remote-media');
+            if (remoteDiv) remoteDiv.innerHTML = '';
+
+            // State reset
+            this.callState = 'idle';
+            this.inCall = false;
+            this.callInitiator = null;
+            this.callerInfo = null;
+            this.callDuration = 0;
+            this.videoEnabled = false;
+            this.isMuted = false;
+
+            // Modal hide
+            const modal = bootstrap.Modal.getInstance(document.getElementById('callModal'));
+            if (modal) modal.hide();
+
+            console.log('Media cleanup complete!');
         },
 
         rejectCall() {
@@ -833,7 +893,7 @@ Steps:
 
             this.callState = '';
             this.mediaTestResult = null;
-
+            this.cleanupMedia();
             document.getElementById('local-media').innerHTML = '';
             document.getElementById('remote-media').innerHTML = '';
 
@@ -854,6 +914,61 @@ Steps:
             }
         }
         ,
+
+        cleanupMedia() {
+            console.log('Cleaning up all media resources...');
+
+            // Local tracks stop + close
+            if (this.localAudioTrack) {
+                this.localAudioTrack.stop();
+                this.localAudioTrack.close();
+                this.localAudioTrack = null;
+            }
+            if (this.localVideoTrack) {
+                this.localVideoTrack.stop();
+                this.localVideoTrack.close();
+                this.localVideoTrack = null;
+            }
+
+            if (this.micTrack) {
+                this.micTrack.stop();
+                this.micTrack.close();
+                this.micTrack = null;
+            }
+            if (this.cameraTrack) {
+                this.cameraTrack.stop();
+                this.cameraTrack.close();
+                this.cameraTrack = null;
+            }
+
+            if (this.agoraClient) {
+                try {
+                    this.agoraClient.leave();
+                    this.agoraClient.removeAllListeners(); // All events hata do
+                } catch (e) {
+                    console.warn('Client leave failed, ignoring:', e);
+                }
+                this.agoraClient = null;
+            }
+
+            const localDiv = document.getElementById('local-media');
+            if (localDiv) localDiv.innerHTML = '';
+            const remoteDiv = document.getElementById('remote-media');
+            if (remoteDiv) remoteDiv.innerHTML = '';
+
+            this.callState = 'idle';
+            this.inCall = false;
+            this.callInitiator = null;
+            this.callerInfo = null;
+            this.callDuration = 0;
+            this.videoEnabled = false;
+            this.isMuted = false;
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('callModal'));
+            if (modal) modal.hide();
+
+            console.log('Media cleanup complete!');
+        },
         toggleVideo() {
             if (!this.cameraTrack) return;
 
