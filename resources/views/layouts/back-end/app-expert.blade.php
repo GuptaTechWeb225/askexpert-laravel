@@ -50,6 +50,7 @@ use App\Utils\Helpers;
         }
     </style>
 
+@vite(['resources/js/app.js'])
 
   
 </head>

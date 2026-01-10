@@ -7,7 +7,6 @@
  <audio id="ringtone" loop>
       <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
     </audio>
-@vite(['resources/js/app.js'])
 
 @endpush
 
