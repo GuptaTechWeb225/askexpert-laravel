@@ -13,7 +13,7 @@
     <div class="mt-4">
         <div class="banner-container d-flex justify-content-between" style="background-image: url('{{ asset('assets/back-end/img/home-banner-bg-1.jpg') }}');">
             <div class="banner-content">
-                <div class="banner-text">
+                <div class="banner-text">   
                     <h3>Welcome Back, Mr. Admin👋</h3>
                     <p>Have a good day.</p>
                 </div>

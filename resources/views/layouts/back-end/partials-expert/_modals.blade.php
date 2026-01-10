@@ -52,7 +52,7 @@
         : (auth('expert')->user()->current_chat_id ?? null);
 @endphp
 
-<div x-data="expertChatComponent({{ 50 }})" x-init="init()">
+<div x-data="expertChatComponent({{ $resolvedChatId }})" x-init="init()">
     <div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true" data-bs-keyboard="false" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-fullscreen">
             <div class="modal-content bg-dark text-white border-0">

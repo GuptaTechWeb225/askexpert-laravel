@@ -38,48 +38,51 @@ class DashboardController extends BaseController
     /**
      * @return View
      */
-   public function getView(): View
-{
-    $expert = auth('expert')->user(); // authenticated expert
+    public function getView(): View
+    {
+        $expert = auth('expert')->user(); // authenticated expert
 
-    $expertId = $expert->id;
+        $expertId = $expert->id;
+        $currentChatId = $expert->current_chat_id;
+        $assignedChat = null;
+        if ($assignedChat) {
+            $assignedChat = ChatSession::where('id', $currentChatId)
+                ->with(['messages', 'customer'])
+                ->latest()
+                ->first();
+        }
 
-    $assignedChat = ChatSession::where('expert_id', $expertId)
-        ->with(['messages', 'customer'])
-        ->latest()
-        ->first();
-
-    $assignedQuestions = ChatMessage::whereHas('session', function ($q) use ($expertId) {
+        $assignedQuestions = ChatMessage::whereHas('session', function ($q) use ($expertId) {
             $q->where('expert_id', $expertId);
         })
-        ->with('session.customer')
-        ->get();
+            ->with('session.customer')
+            ->get();
 
-    $unreadMessages = ChatMessage::whereHas('session', function ($q) use ($expertId) {
+        $unreadMessages = ChatMessage::whereHas('session', function ($q) use ($expertId) {
             $q->where('expert_id', $expertId);
         })
-        ->where('sender_type', 'customer')
-        ->where('is_read', false)
-        ->get();
+            ->where('sender_type', 'customer')
+            ->where('is_read', false)
+            ->get();
 
-    $oldChats = ChatSession::where('expert_id', $expertId)
-        ->with(['customer'])
-        ->orderBy('updated_at', 'desc')
-        ->paginate(10);
+        $oldChats = ChatSession::where('expert_id', $expertId)
+            ->with(['customer'])
+            ->orderBy('updated_at', 'desc')
+            ->paginate(10);
 
-    $averageRating = $expert->average_rating;
-    $totalEarning = $expert->total_earned; // accessor se fetch
+        $averageRating = $expert->average_rating;
+        $totalEarning = $expert->total_earned; // accessor se fetch
 
-    return view(Dashboard::INDEX[VIEW], compact(
-        'expert',
-        'assignedChat',
-        'oldChats',
-        'assignedQuestions',
-        'unreadMessages',
-        'averageRating',
-        'totalEarning',
-    ));
-}
+        return view(Dashboard::INDEX[VIEW], compact(
+            'expert',
+            'assignedChat',
+            'oldChats',
+            'assignedQuestions',
+            'unreadMessages',
+            'averageRating',
+            'totalEarning',
+        ));
+    }
 
     public function updateStatus(Request $request): JsonResponse
     {
