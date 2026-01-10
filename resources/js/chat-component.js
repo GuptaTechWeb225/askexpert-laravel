@@ -396,12 +396,45 @@ export function chatComponent(chatId) {
             this.endCall();
         },
 
-        toggleMute() {
-            if (this.localAudioTrack) {
-                this.isMuted = !this.isMuted;
-                this.localAudioTrack.setEnabled(!this.isMuted);
+       toggleMute() {
+    if (this.isMuted) {
+        // Unmute kar rahe ho
+        this.isMuted = false;
+    } else {
+        // Mute kar rahe ho
+        this.isMuted = true;
+    }
+
+    // 🔥 Dono taraf ke possible track references check karo
+    const audioTrack = this.localAudioTrack || this.micTrack;
+
+    if (audioTrack) {
+        try {
+            audioTrack.setEnabled(!this.isMuted);
+            console.log(`Mic ${this.isMuted ? 'muted' : 'unmuted'} successfully`);
+
+            // Extra force: Agar unmute hai to track ko restart karo (best fix)
+            if (!this.isMuted) {
+                // Stop + recreate audio track (100% working trick)
+                audioTrack.stop();
+                audioTrack.close();
+
+                // New fresh audio track create karo
+                AgoraRTC.createMicrophoneAudioTrack()
+                    .then(newTrack => {
+                        this.localAudioTrack = newTrack; // Ya micTrack
+                        this.agoraClient?.publish(newTrack); // Re-publish fresh track
+                        console.log('Fresh mic track re-published after unmute');
+                    })
+                    .catch(err => console.error('Re-create mic failed:', err));
             }
-        },
+        } catch (err) {
+            console.error('setEnabled failed:', err);
+        }
+    } else {
+        console.warn('No audio track found for mute/unmute');
+    }
+},
 
         toggleVideo() {
             if (this.localVideoTrack) {
@@ -914,13 +947,45 @@ Steps:
                 .whisper('call-rejected', { chatId });
             this.resetCallUI();
         },
-        toggleMute() {
-            this.isMuted = !this.isMuted;
+       toggleMute() {
+    if (this.isMuted) {
+        // Unmute kar rahe ho
+        this.isMuted = false;
+    } else {
+        // Mute kar rahe ho
+        this.isMuted = true;
+    }
 
-            if (this.micTrack) {
-                this.micTrack.setEnabled(!this.isMuted);
+    // 🔥 Dono taraf ke possible track references check karo
+    const audioTrack = this.localAudioTrack || this.micTrack;
+
+    if (audioTrack) {
+        try {
+            audioTrack.setEnabled(!this.isMuted);
+            console.log(`Mic ${this.isMuted ? 'muted' : 'unmuted'} successfully`);
+
+            // Extra force: Agar unmute hai to track ko restart karo (best fix)
+            if (!this.isMuted) {
+                // Stop + recreate audio track (100% working trick)
+                audioTrack.stop();
+                audioTrack.close();
+
+                // New fresh audio track create karo
+                AgoraRTC.createMicrophoneAudioTrack()
+                    .then(newTrack => {
+                        this.localAudioTrack = newTrack; // Ya micTrack
+                        this.agoraClient?.publish(newTrack); // Re-publish fresh track
+                        console.log('Fresh mic track re-published after unmute');
+                    })
+                    .catch(err => console.error('Re-create mic failed:', err));
             }
-        },
+        } catch (err) {
+            console.error('setEnabled failed:', err);
+        }
+    } else {
+        console.warn('No audio track found for mute/unmute');
+    }
+},
 
         cleanupMedia() {
             console.log('Cleaning up all media resources...');
