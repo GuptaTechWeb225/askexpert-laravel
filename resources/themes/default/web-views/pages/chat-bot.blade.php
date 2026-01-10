@@ -190,7 +190,6 @@
               </div>
             </div>
 
-            <!-- Body -->
             <div class="modal-body position-relative p-0">
               <div id="video-wrapper" class="w-100 h-100" :class="isVideo ? 'd-block' : 'd-none'">
                 <div id="remote-media" class="w-100 h-100"></div>
@@ -201,7 +200,6 @@
               </div>
             </div>
 
-            <!-- Footer Buttons -->
             <div class="modal-footer justify-content-center border-0 bg-dark">
 
               <div x-show="callState === 'incoming'" class="row gap-4 align-items-center" x-cloak>

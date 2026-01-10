@@ -143,7 +143,7 @@
                         </div>
                     </div>
                     <div class="modal-body position-relative p-0">
-                        <div id="video-wrapper" class="w-100 h-100" :class="callState === 'connected' ? 'd-block' : 'd-none'">
+                        <div id="video-wrapper" class="w-100 h-100" :class="isVideo ? 'd-block' : 'd-none'">
                             <div id="remote-media" class="w-100 h-100"></div>
                             <div id="local-media"
                                 class="position-absolute bottom-0 end-0 m-3 rounded overflow-hidden border border-white"
