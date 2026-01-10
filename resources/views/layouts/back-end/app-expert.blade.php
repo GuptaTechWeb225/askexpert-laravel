@@ -62,7 +62,6 @@ use App\Utils\Helpers;
 $resolvedChatId = isset($chat) && !empty($chat->id)
 ? $chat->id
 : (auth('expert')->check() ? auth('expert')->user()->current_chat_id : null);
-dd($resolvedChatId)
 @endphp
     @include('layouts.back-end.partials._front-settings')
     <div class="row">
