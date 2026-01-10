@@ -543,17 +543,20 @@ export function chatComponent(chatId) {
 
         startTimer() {
             this.callDuration = 0;
+            this.formattedDuration = '00:00';
+
             if (this.timerInterval) clearInterval(this.timerInterval);
 
             this.timerInterval = setInterval(() => {
-                this.callDuration++;  // Value badhao
+                this.callDuration++;
 
-                // 🔥 Sabse important: Dummy trigger + $nextTick se UI force update
-                this._dummy = !this._dummy;  // Yeh line reactivity jagati hai
+                const mins = Math.floor(this.callDuration / 60);
+                const secs = this.callDuration % 60;
 
-                this.$nextTick(() => {
-                    console.log('Timer tick:', this.callDuration, this.formattedDuration);
-                });
+                this.formattedDuration =
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                console.log('Timer tick:', this.callDuration, this.formattedDuration);
             }, 1000);
         },
         markAsRead(messageId) {
