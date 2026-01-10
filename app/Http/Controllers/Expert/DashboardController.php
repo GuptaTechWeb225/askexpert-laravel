@@ -43,12 +43,11 @@ class DashboardController extends BaseController
         $expert = auth('expert')->user(); // authenticated expert
 
         $expertId = $expert->id;
-        $currentChatId = $expert->current_chat_id;
         $assignedChat = null;
-        if ($assignedChat) {
-            $assignedChat = ChatSession::where('id', $currentChatId)
-                ->with(['messages', 'customer'])
-                ->latest()
+
+        if ($expert && $expert->current_chat_id) {
+            $assignedChat = ChatSession::with(['messages', 'customer'])
+                ->where('id', $expert->current_chat_id)
                 ->first();
         }
 
