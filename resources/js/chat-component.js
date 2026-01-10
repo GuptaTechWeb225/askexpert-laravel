@@ -657,7 +657,7 @@ export function expertChatComponent(chatId) {
                     } catch (err) {
                         console.error('❌ User side Agora join failed:', err);
                         toastr.error('Connection failed: ' + err.message);
-                        this.endCall();
+                        this.resetCallUI();
                     } finally {
                         this._joining = false;
                     }
@@ -678,7 +678,21 @@ export function expertChatComponent(chatId) {
                 this.showEndedMessage();
             }
         },
+  playRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.currentTime = 0;
+                ringtone.play().catch(e => console.log('Autoplay blocked'));
+            }
+        },
 
+        stopRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.pause();
+                ringtone.currentTime = 0;
+            }
+        },
         sendMessage() {
             if (!this.newMessage.trim() && !this.selectedFile) return;
 
