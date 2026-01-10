@@ -203,11 +203,12 @@
             <div class="modal-footer justify-content-center border-0 bg-dark">
 
               <div x-show="callState === 'incoming'" class="row gap-4 align-items-center" x-cloak>
-                <button @click="acceptCall()" class="btn btn-success rounded-circle p-4 shadow-lg">
-                  <i class="fa-solid fa-phone fa-2x"></i>
-                </button>
+
                 <button @click="rejectCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
                   <i class="fa-solid fa-phone-slash fa-2x"></i>
+                </button>
+                <button @click="acceptCall()" class="btn btn-success rounded-circle p-4 shadow-lg">
+                  <i class="fa-solid fa-phone fa-2x"></i>
                 </button>
               </div>
 
