@@ -33,7 +33,7 @@ export function chatComponent(chatId) {
             this.callInitiator = 'user';
             this.callState = 'ringing';
             this.callStatusText = 'Calling...';
-            this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'You' };
+            this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'Expert' };
 
             const modalEl = document.getElementById('callModal');
             this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -606,7 +606,7 @@ export function expertChatComponent(chatId) {
             this.isVideo = withVideo;
             this.callState = 'ringing';
             this.callStatusText = 'Calling User...';
-            this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'You' };
+            this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'User' };
             this.callInitiator = 'user';
 
             $('#callModal').modal('show');
@@ -701,7 +701,7 @@ export function expertChatComponent(chatId) {
                     this.isVideo = data.type === 'video';
                     this.callState = 'incoming';
                     this.callStatusText = 'Incoming Call from User';
-                    this.callerInfo = { avatar: '/assets/front-end/img/placeholder/user.png', name: 'Expert' };
+                    this.callerInfo = { avatar: '/assets/front-end/img/placeholder/user.png', name: 'User' };
                     this.playRingtone();
                     $('#callModal').modal('show');
 
