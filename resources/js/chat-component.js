@@ -222,7 +222,7 @@ export function chatComponent(chatId) {
                     }
                 })
 
-                
+
                 .listenForWhisper('call-rejected', () => {
                     this.callStatusText = 'Call Rejected';
                     this.stopRingtone();
@@ -317,6 +317,7 @@ export function chatComponent(chatId) {
                 this.videoEnabled = !!camTrack;
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
+                this.stopRingtone();
                 this.startTimer();
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
 
@@ -657,6 +658,7 @@ export function expertChatComponent(chatId) {
                     this.callState = 'incoming';
                     this.callStatusText = 'Incoming Call from User';
                     this.callerInfo = { avatar: '/assets/front-end/img/placeholder/user.png', name: 'Expert' };
+                    this.playRingtone();
                     $('#callModal').modal('show');
 
                 })
