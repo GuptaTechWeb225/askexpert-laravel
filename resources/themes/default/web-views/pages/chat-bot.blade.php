@@ -101,10 +101,10 @@
         </div>
         <div class="">
           @if($chat->status !== 'ended')
-          <button class="btn btn-accent btn-sm" @click="initiateCall(false)">
+          <button class="btn btn-primary btn-sm mr-2" @click="initiateCall(false)">
             <i class="fa-solid fa-phone"></i>
           </button>
-          <button class="btn btn-success btn-sm" @click="initiateCall(true)">
+          <button class="btn btn-success btn-sm mr-2" @click="initiateCall(true)">
             <i class="fa-solid fa-video"></i>
           </button>
           <button class="btn btn-danger btn-sm" @click="endChat()">
