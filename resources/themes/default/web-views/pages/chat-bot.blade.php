@@ -21,6 +21,7 @@
       <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
     </audio>
     @vite(['resources/js/app.js'])
+
     <style>
        :root {
         --base: {{ $web_config['primary_color'] ?? '#000000' }};
