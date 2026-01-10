@@ -181,7 +181,7 @@
               <div x-show="callState === 'connected'">
                 <span class="badge badge-pill badge-soft-light py-2 px-3"
                   x-text="formattedDuration"
-                  :data-update="_dummy"
+                  x-init="$watch('callDuration', () => $el.textContent = formattedDuration)"
                   style="font-size: 1.1rem; letter-spacing: 1px;">
                 </span>
               </div>

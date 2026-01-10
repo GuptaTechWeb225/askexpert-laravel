@@ -545,10 +545,12 @@ export function chatComponent(chatId) {
             this.callDuration = 0;
             if (this.timerInterval) clearInterval(this.timerInterval);
 
-            this.timerInterval = setInterval(() => {  // ← Arrow function important hai
-                this.callDuration++;  // Direct update
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;  // Value badhao
 
-                // Force Alpine ko UI update karne ke liye
+                // 🔥 Sabse important: Dummy trigger + $nextTick se UI force update
+                this._dummy = !this._dummy;  // Yeh line reactivity jagati hai
+
                 this.$nextTick(() => {
                     console.log('Timer tick:', this.callDuration, this.formattedDuration);
                 });
