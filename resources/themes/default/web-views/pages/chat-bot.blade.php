@@ -174,7 +174,7 @@
                     style="width:50px;height:50px;object-fit:cover">
                 </div>
                 <div>
-                  <h4 class="modal-title" x-text="callerInfo?.name"></h4>
+                  <h4 class="modal-title text-white" x-text="callerInfo?.name"></h4>
                   <p id="call-status" class="text-success mt-1" x-text="callStatusText"></p>
                 </div>
               </div>
