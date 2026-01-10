@@ -34,7 +34,6 @@ class ExpertChatController extends Controller
     public function view(ChatSession $chat)
     {
 
-        Log::info('this 1 is called');
         if ($chat->expert_id !== auth('expert')->id()) {
             abort(403);
         }
