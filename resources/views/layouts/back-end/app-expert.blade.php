@@ -34,6 +34,7 @@ use App\Utils\Helpers;
     <link rel="stylesheet" href="{{dynamicAsset(path: 'public/assets/back-end/css/daterangepicker.css')}}">
     <link rel="stylesheet" href="{{dynamicAsset(path: 'public/assets/back-end/css/style.css')}}">
         <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 
     @if (Session::get('direction') === 'rtl')
     <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/menurtl.css')}}">
@@ -81,11 +82,15 @@ use App\Utils\Helpers;
         @include('layouts.back-end.partials-expert._sign-out-modal')
         @include('layouts.back-end._alert-message')
     </main>
-    <audio id="myAudio">
-        <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
+ <audio id="ringtone" loop>
+      <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
     </audio>
 
-
+<script>
+    window.EXPERT_ID = "{{ auth('expert')->id() }}";
+    window.AGORA_APP_ID = "{{ config('services.agora.app_id') }}";
+    window.AUTH_USER_AVATAR = "{{ getStorageImages(path: auth('expert')->user()->image_full_url, type: 'avatar') }}";
+</script>
     <span class="please_fill_out_this_field" data-text="{{ translate('please_fill_out_this_field') }}"></span>
     <span id="onerror-chatting" data-onerror-chatting="{{dynamicAsset(path: 'public/assets/back-end/img/image-place-holder.png')}}"></span>
     <span id="onerror-user" data-onerror-user="{{dynamicAsset(path: 'public/assets/back-end/img/160x160/img1.jpg')}}"></span>

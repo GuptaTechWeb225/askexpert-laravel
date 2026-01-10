@@ -2,11 +2,8 @@
 @section('title', translate('chat_Bot'))
 @push('css_or_js')
 <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
-<script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 <meta name="csrf-token" content="{{ csrf_token() }}">
- <audio id="ringtone" loop>
-      <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
-    </audio>
+
 
 @endpush
 
@@ -196,11 +193,7 @@
 
 
 </div>
-<script>
-    window.EXPERT_ID = "{{ auth('expert')->id() }}";
-    window.AGORA_APP_ID = "{{ config('services.agora.app_id') }}";
-    window.AUTH_USER_AVATAR = "{{ getStorageImages(path: auth('expert')->user()->image_full_url, type: 'avatar') }}";
-</script>
+
 @endsection
 
 @push('script_2')
