@@ -722,12 +722,18 @@ export function expertChatComponent(chatId) {
                     }
                 })
 
-
+                .listenForWhisper('call-cancelled', () => {
+                    this.stopRingtone();
+                    this.resetCallUI();
+                    toastr.info('Call cancelled');
+                })
 
                 .listenForWhisper('call-ended', () => {
+                    this.stopRingtone();
                     this.resetCallUI();
                 })
                 .listenForWhisper('call-rejected', () => {
+                    this.stopRingtone();
                     this.resetCallUI();
                 });
 
