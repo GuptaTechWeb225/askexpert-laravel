@@ -330,7 +330,7 @@ export function chatComponent(chatId) {
             this.stopRingtone();
             window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
             this.endCall();
-
+            
         },
         cleanupMedia() {
             console.log('Cleaning up all media resources...');
@@ -384,10 +384,6 @@ export function chatComponent(chatId) {
             this.callDuration = 0;
             this.videoEnabled = false;
             this.isMuted = false;
-
-            // Modal hide
-            const modal = bootstrap.Modal.getInstance(document.getElementById('callModal'));
-            if (modal) modal.hide();
 
             console.log('Media cleanup complete!');
         },
@@ -894,6 +890,8 @@ Steps:
             this.callState = '';
             this.mediaTestResult = null;
             this.cleanupMedia();
+
+
             document.getElementById('local-media').innerHTML = '';
             document.getElementById('remote-media').innerHTML = '';
 
@@ -903,7 +901,6 @@ Steps:
         rejectCall() {
             window.Echo.private(`chat.${chatId}`)
                 .whisper('call-rejected', { chatId });
-
             this.resetCallUI();
         },
         toggleMute() {
@@ -963,9 +960,6 @@ Steps:
             this.callDuration = 0;
             this.videoEnabled = false;
             this.isMuted = false;
-
-            const modal = bootstrap.Modal.getInstance(document.getElementById('callModal'));
-            if (modal) modal.hide();
 
             console.log('Media cleanup complete!');
         },
