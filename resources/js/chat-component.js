@@ -540,14 +540,18 @@ export function chatComponent(chatId) {
             const secs = this.callDuration % 60;
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         },
+
         startTimer() {
             this.callDuration = 0;
             if (this.timerInterval) clearInterval(this.timerInterval);
 
-            this.timerInterval = setInterval(() => {
-                this.callDuration++;
-     
-                this._dummy = !this._dummy;
+            this.timerInterval = setInterval(() => {  // ← Arrow function important hai
+                this.callDuration++;  // Direct update
+
+                // Force Alpine ko UI update karne ke liye
+                this.$nextTick(() => {
+                    console.log('Timer tick:', this.callDuration, this.formattedDuration);
+                });
             }, 1000);
         },
         markAsRead(messageId) {

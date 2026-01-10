@@ -20,10 +20,7 @@
     <audio id="ringtone" loop>
       <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
     </audio>
-
     @vite(['resources/js/app.js'])
-
-
     <style>
       #video-container {
         background: #000;
@@ -182,16 +179,16 @@
                 </div>
               </div>
               <div x-show="callState === 'connected'">
-             <span class="badge badge-pill badge-soft-light py-2 px-3"
-      x-text="formattedDuration"
-      :data-update="_dummy" 
-      style="font-size: 1.1rem; letter-spacing: 1px;">
-</span>
+                <span class="badge badge-pill badge-soft-light py-2 px-3"
+                  x-text="formattedDuration"
+                  :data-update="_dummy"
+                  style="font-size: 1.1rem; letter-spacing: 1px;">
+                </span>
               </div>
             </div>
 
-            <div  x-show="callState === 'connected'" class="modal-body  position-relative p-0">
-              <div  id="video-wrapper" class="w-100 h-100" :class="isVideo ? 'd-block' : 'd-none'">
+            <div x-show="callState === 'connected'" class="modal-body  position-relative p-0">
+              <div id="video-wrapper" class="w-100 h-100" :class="isVideo ? 'd-block' : 'd-none'">
                 <div id="remote-media" class="w-100 h-100"></div>
                 <div id="local-media"
                   class="position-absolute bottom-0 end-0 m-3 rounded overflow-hidden border border-white"
