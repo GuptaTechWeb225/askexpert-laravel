@@ -1020,7 +1020,7 @@
    }
 
    .send-btn {
-     color: var(--primary);
+     color: var(--base);
    }
 
    /* about */
@@ -2849,7 +2849,6 @@
    }
 
    .send-btn {
-     background: #075e54;
      color: white;
      width: 45px;
      height: 45px;
