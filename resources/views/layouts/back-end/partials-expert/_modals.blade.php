@@ -1,5 +1,5 @@
 <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-     aria-hidden="true">
+    aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -44,77 +44,3 @@
         </div>
     </div>
 </div>
-
-    <div x-data="expertChatComponent({{ $chat->id }})" x-init="init()">
-
-   <div class="modal fade" id="callModal" tabindex="-1" aria-hidden="true" data-bs-keyboard="false" data-bs-backdrop="static">
-            <div class="modal-dialog modal-dialog-centered modal-fullscreen">
-                <div class="modal-content bg-dark text-white border-0">
-
-                    <!-- Header -->
-                    <div class="modal-header border-0 text-center">
-                        <div class="d-flex align-items-center gap-2">
-                            <div>
-                                <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
-                                    style="width:50px;height:50px;object-fit:cover">
-                            </div>
-                            <div>
-                                <h4 class="modal-title" x-text="callerInfo?.name"></h4>
-                                <p id="call-status" class="text-success mt-1" x-text="callStatusText"></p>
-                            </div>
-                        </div>
-                        <div x-show="callState === 'connected'">
-                            <span class="badge badge-pill badge-soft-light py-2 px-3"
-                                x-text="formattedDuration"
-                                style="font-size: 1.1rem; letter-spacing: 1px;">
-                            </span>
-                        </div>
-                    </div>
-                    <div x-show="callState === 'connected'" class="modal-body position-relative p-0">
-                        <div id="video-wrapper" class="w-100 h-100" :class="isVideo ? 'd-block' : 'd-none'">
-                            <div id="remote-media" class="w-100 h-100"></div>
-                            <div id="local-media"
-                                class="position-absolute bottom-0 end-0 m-3 rounded overflow-hidden border border-white"
-                                style="width:160px;height:200px">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer justify-content-center border-0 bg-dark">
-
-                        <div x-show="callState === 'incoming'" class="row gap-4 align-items-center">
-
-                            <button @click="rejectCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
-                                <i class="fa-solid fa-phone-slash fa-2x"></i>
-                            </button>
-                            <button @click="acceptCall()" class="btn btn-success rounded-circle p-4 shadow-lg">
-                                <i class="fa-solid fa-phone fa-2x"></i>
-                            </button>
-                        </div>
-
-                        <div x-show="callState === 'ringing'" class="text-center">
-                            <button @click="cancelCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
-                                <i class="fa-solid fa-phone-slash fa-2x"></i>
-                            </button>
-                        </div>
-
-                        <div x-show="callState === 'connected'" class="row gap-4 align-items-center">
-                            <button @click="toggleMute()" :class="isMuted ? 'btn-danger' : 'btn-secondary px-4'"
-                                class="btn rounded-circle p-3">
-                                <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
-                            </button>
-                            <button @click="hangUp()" class="btn btn-danger rounded-circle p-4">
-                                <i class="fa-solid fa-phone-slash fa-2x"></i>
-                            </button>
-                        </div>
-
-                        <div x-show="callState === 'connecting'" class="text-center" x-cloak>
-                            <div class="spinner-border text-light" role="status"></div>
-                            <p class="mt-2">Connecting...</p>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </div>
