@@ -48,25 +48,6 @@ export function chatComponent(chatId) {
             });
         },
 
-        get formattedDuration() {
-            const mins = Math.floor(this.callDuration / 60);
-            const secs = this.callDuration % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        },
-
-        startTimer() {
-            this.callDuration = 0;
-            if (this.timerInterval) clearInterval(this.timerInterval);
-
-            this.timerInterval = setInterval(() => {
-                // Alpine ko force update karne ke liye property ko re-assign karo
-                const current = this.callDuration;
-                this.callDuration = current + 1;  // Re-assign same value +1
-
-                console.log("Timer:", this.callDuration, this.formattedDuration);
-            }, 1000);
-        },
-
         createAgoraClient() {
             const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
             client.on("user-published", async (user, mediaType) => {
@@ -378,14 +359,12 @@ export function chatComponent(chatId) {
             this.isMuted = false;
             console.log('Media cleanup complete!');
         },
-
         rejectCall() {
             window.Echo.private(`chat.${chatId}`).whisper('call-rejected', { chatId });
             this.endCall();
         },
-
         toggleMute() {
-            this.isMuted = !this.isMuted;  // Toggle state
+            this.isMuted = !this.isMuted;
             let audioTrack = this.localAudioTrack || this.micTrack;
 
             if (!audioTrack) {
@@ -395,14 +374,11 @@ export function chatComponent(chatId) {
 
             try {
                 if (this.isMuted) {
-                    // Mute – simple disable
                     audioTrack.setEnabled(false);
                     console.log('Mic muted successfully');
                 } else {
-                    // Unmute – critical part: Purana track close + fresh create + republish
                     console.log('Unmuting: Stopping & replacing old track...');
 
-                    // Purana track stop/close
                     audioTrack.stop();
                     audioTrack.close();
 
@@ -435,7 +411,6 @@ export function chatComponent(chatId) {
                 console.error('toggleMute error:', err);
             }
         },
-
         toggleVideo() {
             if (this.localVideoTrack) {
                 this.videoEnabled = !this.videoEnabled;
@@ -452,7 +427,6 @@ export function chatComponent(chatId) {
                 .then(res => this.expertOnline = res.data.expertOnline)
                 .catch(() => this.expertOnline = false);
         },
-
         appendMessage(msg) {
             if (msg.id && document.querySelector(`[data-message-id="${msg.id}"]`)) return;
 
@@ -502,7 +476,6 @@ export function chatComponent(chatId) {
         markAllAsRead() {
             axios.post('/chat/mark-read', { chat_id: chatId });
         },
-
         markAsRead(messageId) {
             axios.post('/chat/mark-specific-read', { message_id: messageId });
         },
@@ -544,11 +517,22 @@ export function chatComponent(chatId) {
                 })
                 .catch(err => console.error(err));
         },
-
         typingEvent() {
             window.Echo.private(`chat.${chatId}`).whisper('typing', { role: 'user' });
         },
+        get formattedDuration() {
+            const mins = Math.floor(this.callDuration / 60);
+            const secs = this.callDuration % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        },
 
+        startTimer() {
+            this.callDuration = 0;
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;
+            }, 1000);
+        },
         markAsRead(messageId) {
             axios.post('/chat/mark-read', { message_id: messageId });
         }
@@ -643,7 +627,6 @@ export function expertChatComponent(chatId) {
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         },
 
-        // Timer start karne ka function
         startTimer() {
             this.callDuration = 0;
             if (this.timerInterval) clearInterval(this.timerInterval);
@@ -824,20 +807,15 @@ export function expertChatComponent(chatId) {
                 const res = await axios.post(`/chat/${chatId}/generate-token`);
                 const { token, channel, uid } = res.data;
 
-                // Client create
                 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
-                // 🔥 Event listeners PEHLE set kar (miss na ho)
-                // expertChatComponent -> acceptCall ke andar
                 client.on("user-published", async (user, mediaType) => {
                     await client.subscribe(user, mediaType);
                     if (mediaType === "video") {
-                        // Timeout thoda delay deta hai taaki DOM ready ho jaye
                         setTimeout(() => {
                             const remoteDiv = document.getElementById('remote-media');
                             if (remoteDiv) {
                                 remoteDiv.innerHTML = '';
-                                user.videoTrack.play(remoteDiv); // ID pass karne ke bajaye element pass karein
+                                user.videoTrack.play(remoteDiv);
                             }
                         }, 500);
                     }
@@ -1006,7 +984,6 @@ Steps:
         cleanupMedia() {
             console.log('Cleaning up all media resources...');
 
-            // Local tracks stop + close
             if (this.localAudioTrack) {
                 this.localAudioTrack.stop();
                 this.localAudioTrack.close();
@@ -1128,7 +1105,6 @@ Steps:
             if (endBtn) endBtn.style.display = 'none';
         },
 
-        // NAYA METHOD: Ended message add
         showEndedMessage() {
             const messagesDiv = document.getElementById('messages');
             if (messagesDiv && !messagesDiv.querySelector('.chat-ended-message')) {
@@ -1163,11 +1139,7 @@ Steps:
                         .then(data => {
                             if (data.success) {
                                 toastr.success(data.message || 'Chat ended successfully!');
-
-                                // State update
                                 this.chatEnded = true;
-
-                                // UI updates
                                 this.hideFooterAndButton();
                                 this.showEndedMessage();
                             } else {
@@ -1187,7 +1159,7 @@ Steps:
                 const tickSpan = document.querySelector(`[data-message-id="${messageId}"] .read-ticks`);
                 if (tickSpan) {
                     tickSpan.innerText = '✓✓';
-                    tickSpan.style.color = '#34b7f1'; // Ya jo bhi expert theme ka color ho
+                    tickSpan.style.color = '#34b7f1';
                 }
             } else {
                 document.querySelectorAll('.read-ticks').forEach(tick => {
