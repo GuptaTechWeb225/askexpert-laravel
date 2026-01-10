@@ -726,7 +726,6 @@ export function expertChatComponent(chatId) {
                         let tracks = [];
                         try {
                             if (this.isVideo) {
-                                // Pehle dono try karo
                                 tracks = await AgoraRTC.createMicrophoneAndCameraTracks().catch(async (e) => {
                                     console.warn("Camera failed, falling back to audio only", e);
                                     this.isVideo = false;

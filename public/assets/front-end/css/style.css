@@ -831,7 +831,7 @@
 
 
    .chat-header {
-     background-color: #8B0000;
+     background-color: var(--base);
      color: white;
      padding: 20px 20px;
      display: flex;
@@ -955,7 +955,7 @@
    }
 
    .message.bot {
-     background-color: #8B0000;
+     background-color: var(--base);
      color: white;
      border-bottom-left-radius: 5px;
    }
@@ -2503,6 +2503,10 @@
      gap: 10px;
    }
 
+   .bg--primary {
+     background-color: var(--base);
+   }
+
 
 
    .__inline-14 {
@@ -2612,7 +2616,7 @@
 
    .select2-container--default .select2-selection--single:focus,
    .select2-container--default.select2-container--focus .select2-selection--single {
-     border-color: #8B0000;
+     border-color: var(--base);
      outline: 0;
      box-shadow: 0 0 0 0.25rem rgba(139, 0, 0, 0.25);
    }
@@ -2653,7 +2657,7 @@
 
    /* WhatsApp Header - Green */
    .chat-header {
-     background: #8B0000;
+     background: var(--base);
      color: white;
      display: flex;
      align-items: center;

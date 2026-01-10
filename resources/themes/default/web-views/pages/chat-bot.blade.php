@@ -158,7 +158,7 @@
 
         <input type="text" x-model="newMessage" @keyup.enter="sendMessage" @keyup="typingEvent" placeholder="Type a message">
 
-        <button class="send-btn bg-primary" @click="sendMessage">
+        <button class="send-btn bg--primary" @click="sendMessage">
           <i class="fa-solid fa-paper-plane"></i>
         </button>
       </div>
