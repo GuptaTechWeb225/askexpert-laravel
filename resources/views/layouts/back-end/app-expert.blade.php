@@ -57,6 +57,13 @@ use App\Utils\Helpers;
 </head>
 
 <body class="footer-offset">
+
+@php
+$resolvedChatId = isset($chat) && !empty($chat->id)
+? $chat->id
+: (auth('expert')->check() ? auth('expert')->user()->current_chat_id : null);
+dd($resolvedChatId)
+@endphp
     @include('layouts.back-end.partials._front-settings')
     <div class="row">
         <div class="col-12 position-fixed z-9999 mt-10rem">

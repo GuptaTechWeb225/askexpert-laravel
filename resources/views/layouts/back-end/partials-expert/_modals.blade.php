@@ -46,12 +46,7 @@
 </div>
 
 
-@php
-$resolvedChatId = isset($chat) && !empty($chat->id)
-? $chat->id
-: (auth('expert')->check() ? auth('expert')->user()->current_chat_id : null);
-dd($resolvedChatId)
-@endphp
+
 
 
 <div x-data="expertChatComponent({{ $resolvedChatId }})" x-init="init()">
