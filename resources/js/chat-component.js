@@ -540,12 +540,14 @@ export function chatComponent(chatId) {
             const secs = this.callDuration % 60;
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         },
-
         startTimer() {
             this.callDuration = 0;
             if (this.timerInterval) clearInterval(this.timerInterval);
+
             this.timerInterval = setInterval(() => {
                 this.callDuration++;
+     
+                this._dummy = !this._dummy;
             }, 1000);
         },
         markAsRead(messageId) {

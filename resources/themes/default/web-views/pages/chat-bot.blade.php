@@ -170,8 +170,7 @@
         <div class="modal-dialog modal-dialog-centered modal-fullscreen">
           <div class="modal-content bg-dark text-white border-0">
 
-            <!-- Header -->
-            <div class="modal-header border-0 text-center">
+            <div class="modal-header border-0  ">
               <div class="d-flex align-items-center gap-10px">
                 <div>
                   <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
@@ -183,10 +182,11 @@
                 </div>
               </div>
               <div x-show="callState === 'connected'">
-                <span class="badge badge-pill badge-soft-light py-2 px-3"
-                  x-text="formattedDuration"
-                  style="font-size: 1.1rem; letter-spacing: 1px;">
-                </span>
+             <span class="badge badge-pill badge-soft-light py-2 px-3"
+      x-text="formattedDuration"
+      :data-update="_dummy" 
+      style="font-size: 1.1rem; letter-spacing: 1px;">
+</span>
               </div>
             </div>
 
@@ -202,7 +202,7 @@
 
             <div class="modal-footer justify-content-center border-0 bg-dark">
 
-              <div x-show="callState === 'incoming'" class="row gap-4 align-items-center" x-cloak>
+              <div x-show="callState === 'incoming'" class="row gap-10px align-items-center" x-cloak>
 
                 <button @click="rejectCall()" class="btn btn-danger rounded-circle p-4 shadow-lg">
                   <i class="fa-solid fa-phone-slash fa-2x"></i>
