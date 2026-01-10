@@ -16,8 +16,6 @@ class CheckWaitlistAndTables extends Command
     public function handle()
     {
         $now = Carbon::now();
-
-        // Step 1: Cancel expired booked users (no-show after 15 min)
         $expiredBookings = RestaurantWaitlist::where('status', 'booked')
             ->where('expires_at', '<', $now)
             ->get();
@@ -25,8 +23,7 @@ class CheckWaitlistAndTables extends Command
         foreach ($expiredBookings as $booking) {
             $booking->status = 'cancelled';
             $booking->save();
-            $restaurant = Restaurant::find($booking->restaurant_id); // ✅ fetch restaurant for this booking
-
+            $restaurant = Restaurant::find($booking->restaurant_id); 
             if ($booking->user->cm_firebase_token) {
                 $this->sendPushNotification(
                     $booking->user->cm_firebase_token,
@@ -36,9 +33,7 @@ class CheckWaitlistAndTables extends Command
             }
         }
 
-        // Step 2: Free tables for seated users after avg_turnover_time
         $seatedUsers = RestaurantWaitlist::where('status', 'seated')->get();
-
         foreach ($seatedUsers as $seated) {
             $restaurant = Restaurant::with('tables')->find($seated->restaurant_id);
             $table = $restaurant->tables->where('table_size', '>=', $seated->party_size)->first();

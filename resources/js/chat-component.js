@@ -1015,43 +1015,51 @@ Steps:
         cleanupMedia() {
             console.log('Cleaning up all media resources...');
 
-            if (this.localAudioTrack) {
-                this.localAudioTrack.stop();
-                this.localAudioTrack.close();
-                this.localAudioTrack = null;
-            }
-            if (this.localVideoTrack) {
-                this.localVideoTrack.stop();
-                this.localVideoTrack.close();
-                this.localVideoTrack = null;
-            }
+            // 1. All known tracks stop + close
+            [this.localAudioTrack, this.localVideoTrack, this.micTrack, this.cameraTrack]
+                .filter(t => t)
+                .forEach(track => {
+                    try {
+                        track.stop();
+                        track.close();
+                        console.log(`Track stopped & closed: ${track.trackMediaType || 'unknown'}`);
+                    } catch (e) {
+                        console.warn('Track stop/close failed:', e);
+                    }
+                });
 
-            if (this.micTrack) {
-                this.micTrack.stop();
-                this.micTrack.close();
-                this.micTrack = null;
-            }
-            if (this.cameraTrack) {
-                this.cameraTrack.stop();
-                this.cameraTrack.close();
-                this.cameraTrack = null;
+            // 2. Clear all references
+            this.localAudioTrack = this.localVideoTrack = this.micTrack = this.cameraTrack = null;
+
+            // 3. Force release ALL devices at browser level (most important fix)
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+                    .then(stream => {
+                        stream.getTracks().forEach(track => {
+                            track.stop();
+                            track.enabled = false;
+                        });
+                        console.log('All browser media devices forcefully released');
+                    })
+                    .catch(err => {
+                        console.log('Force release getUserMedia failed (normal if no permission):', err);
+                    });
             }
 
             if (this.agoraClient) {
                 try {
                     this.agoraClient.leave();
-                    this.agoraClient.removeAllListeners(); // All events hata do
+                    this.agoraClient.removeAllListeners();
+                    this.agoraClient = null;
+                    console.log('Agora client fully left & cleared');
                 } catch (e) {
-                    console.warn('Client leave failed, ignoring:', e);
+                    console.warn('Agora leave failed:', e);
                 }
-                this.agoraClient = null;
             }
-
-            const localDiv = document.getElementById('local-media');
-            if (localDiv) localDiv.innerHTML = '';
-            const remoteDiv = document.getElementById('remote-media');
-            if (remoteDiv) remoteDiv.innerHTML = '';
-
+            ['local-media', 'remote-media'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
             this.callState = 'idle';
             this.inCall = false;
             this.callInitiator = null;
@@ -1060,7 +1068,7 @@ Steps:
             this.videoEnabled = false;
             this.isMuted = false;
 
-            console.log('Media cleanup complete!');
+            console.log('Media cleanup complete – browser devices should be free now!');
         },
         toggleVideo() {
             if (!this.cameraTrack) return;
