@@ -123,7 +123,7 @@
                 <div class="modal-content bg-dark text-white border-0">
 
                     <!-- Header -->
-                    <div class="modal-header border-0 text-center">
+                    <div class="modal-header border-0">
                         <div class="d-flex align-items-center gap-2">
                             <div>
                                 <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
