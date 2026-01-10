@@ -221,6 +221,8 @@ export function chatComponent(chatId) {
                         this.playRingtone();
                     }
                 })
+
+                
                 .listenForWhisper('call-rejected', () => {
                     this.callStatusText = 'Call Rejected';
                     this.stopRingtone();
@@ -330,7 +332,7 @@ export function chatComponent(chatId) {
             this.stopRingtone();
             window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
             this.endCall();
-            
+
         },
         cleanupMedia() {
             console.log('Cleaning up all media resources...');
@@ -557,6 +559,8 @@ export function expertChatComponent(chatId) {
             this.isVideo = withVideo;
             this.callState = 'ringing';
             this.callStatusText = 'Calling User...';
+            this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'You' };
+            this.callInitiator = 'user';
 
             $('#callModal').modal('show');
             this.playRingtone?.();
@@ -648,11 +652,11 @@ export function expertChatComponent(chatId) {
                 })
                 .listenForWhisper('incoming-call', async (data) => {
                     console.log('📞 Incoming call:', data);
-
+                    this.callInitiator = 'user';
                     this.isVideo = data.type === 'video';
                     this.callState = 'incoming';
-                    this.callStatusText = 'Incoming call…';
-
+                    this.callStatusText = 'Incoming Call from User';
+                    this.callerInfo = { avatar: '/assets/front-end/img/placeholder/user.png', name: 'Expert' };
                     $('#callModal').modal('show');
 
                 })
@@ -870,7 +874,7 @@ Steps:
 
         async resetCallUI() {
 
-            if (this.timerInterval) clearInterval(this.timerInterval); 
+            if (this.timerInterval) clearInterval(this.timerInterval);
             this.callDuration = 0;
             if (this.agoraClient) {
                 await this.agoraClient.leave();

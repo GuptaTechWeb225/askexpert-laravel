@@ -125,7 +125,7 @@
 
                     <!-- Header -->
                     <div class="modal-header border-0 text-center">
-                        <div class="d-flex align-items-center gap-10px">
+                        <div class="d-flex align-items-center gap-2">
                             <div>
                                 <img :src="callerInfo?.avatar" class="rounded-circle border border-success mb-3"
                                     style="width:50px;height:50px;object-fit:cover">
@@ -192,6 +192,8 @@
 <script>
     window.EXPERT_ID = "{{ auth('expert')->id() }}";
     window.AGORA_APP_ID = "{{ config('services.agora.app_id') }}";
+        window.AUTH_USER_AVATAR = "{{ getStorageImages(path: auth('expert')->user()->image_full_url, type: 'avatar') }}";
+
 </script>
 @endsection
 
