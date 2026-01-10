@@ -22,42 +22,11 @@
     </audio>
     @vite(['resources/js/app.js'])
     <style>
-      #video-container {
-        background: #000;
-        border-radius: 12px;
-        overflow: hidden;
-        margin: 15px 0;
-        position: relative;
-        height: 400px;
-      }
-
-      #remote-media {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      #local-media {
-        width: 150px;
-        height: 150px;
-        border: 3px solid white;
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      }
-
-      #remote-media video,
-      #local-media video {
-        position: relative !important;
-        object-fit: cover !important;
-      }
-
-      #remote-media {
-        background-color: #000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
+       :root {
+        --base: {{ $web_config['primary_color'] ?? '#000000' }};
+    }
     </style>
+
   </head>
 
   <body>
