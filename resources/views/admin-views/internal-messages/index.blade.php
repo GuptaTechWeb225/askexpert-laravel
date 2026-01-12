@@ -174,7 +174,7 @@ return [
 
                     <template x-if="selectedExpertId">
                         <div class="chat-wrapper d-flex flex-column">
-                            <div class="chat-header rounded-top d-flex align-items-center px-3">
+                            <div class="chat-header rounded-top d-flex align-items-center px-3 justify-content-between">
                                     <div class="d-flex align-items-center">
                                         <button class="btn btn-light me-3 d-lg-none" @click="selectedExpertId = null">←</button>
                                         <img :src="expertAvatar" class="rounded-circle me-3" width="40">
