@@ -1506,61 +1506,20 @@ export function adminExpertChatComponent() {
         timerInterval: null,
         _dummy: false,
 
+        setupAllCallListeners() {
+            console.log('[Admin] Setting up call listeners for ALL active experts');
 
-        initiateCall(withVideo) {
-            if (this.inCall || !this.selectedExpertId) return;
-
-            this.isVideo = withVideo;
-            this.inCall = true;
-            this.callInitiator = 'admin';
-            this.callState = 'ringing';
-            this.callStatusText = 'Calling Expert...';
-            this.callerInfo = { avatar: window.ADMIN_AVATAR, name: 'You (Admin)' };
-
-            const modalEl = document.getElementById('callModal');
-            this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-            this.callBootstrapModal.show();
-
-            this.playRingtone();
-
-            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('incoming-call', {
-                from: 'admin',
-                type: withVideo ? 'video' : 'voice',
-                chatId: this.selectedExpertId
-            });
-        },
-
-        init() {
-            console.log('[AdminChat] Component initialized');
-
-            this.activeExperts = window.INITIAL_EXPERTS || [];
-            this.searchResults = window.ALL_EXPERTS;
-
-            this.loadInitialMessages();
-            this.scrollToBottom();
-            this.markAllAsRead();
-
-
-        },
-
-        setupCallListeners() {
-            if (this.currentChannel) {
-                console.log('Leaving old channel:', this.currentChannel);
-                window.Echo.leave(this.currentChannel);
-            }
-
-            if (!this.selectedExpertId) {
-                console.warn('No expert selected - cannot setup call listeners');
-                return;
-            }
-
+            // Sidebar ke sab experts ke channel pe listener lagao
             this.activeExperts.forEach(expert => {
                 const channel = `admin-chat.${expert.id}`;
-                console.log('Adding listener on:', channel);
+                console.log('[Admin] Adding incoming-call listener on:', channel);
 
                 window.Echo.private(channel)
                     .listenForWhisper('incoming-call', (data) => {
-                        console.log('ADMIN RECEIVED INCOMING CALL FROM EXPERT!', data);
+                        console.log(`[ADMIN] INCOMING CALL RECEIVED from expert ${expert.id}!`, data);
+
+                        // 🔥 Auto select this expert (incoming call ke liye)
+                        this.openChat(expert.id, expert.name, expert.avatar);
 
                         if (data.from === 'expert') {
                             this.callInitiator = 'expert';
@@ -1570,6 +1529,11 @@ export function adminExpertChatComponent() {
                             this.callerInfo = { avatar: data.avatar || '/assets/expert-avatar.png', name: 'Expert' };
 
                             const modalEl = document.getElementById('callModal');
+                            if (!modalEl) {
+                                console.error('[Admin] Call modal not found in DOM!');
+                                return;
+                            }
+
                             this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
                             this.callBootstrapModal.show();
 
@@ -1647,6 +1611,43 @@ export function adminExpertChatComponent() {
                     });
             });
         },
+        initiateCall(withVideo) {
+            if (this.inCall || !this.selectedExpertId) return;
+
+            this.isVideo = withVideo;
+            this.inCall = true;
+            this.callInitiator = 'admin';
+            this.callState = 'ringing';
+            this.callStatusText = 'Calling Expert...';
+            this.callerInfo = { avatar: window.ADMIN_AVATAR, name: 'You (Admin)' };
+
+            const modalEl = document.getElementById('callModal');
+            this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            this.callBootstrapModal.show();
+
+            this.playRingtone();
+
+            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('incoming-call', {
+                from: 'admin',
+                type: withVideo ? 'video' : 'voice',
+                chatId: this.selectedExpertId
+            });
+        },
+
+        init() {
+            console.log('[AdminChat] Component initialized');
+
+            this.activeExperts = window.INITIAL_EXPERTS || [];
+            this.searchResults = window.ALL_EXPERTS;
+
+            this.loadInitialMessages();
+            this.scrollToBottom();
+            this.markAllAsRead();
+            this.setupAllCallListeners();
+
+        },
+
+
 
         async acceptCall() {
             if (this._joining || !this.selectedExpertId) return;
@@ -1817,14 +1818,11 @@ export function adminExpertChatComponent() {
 
             const messagesDiv = document.getElementById('messages');
             if (messagesDiv) messagesDiv.innerHTML = '';
-
-
-            this.setupCallListeners();
             if (this.currentChannel) {
                 window.Echo.leave(this.currentChannel);
             }
-
             this.currentChannel = `admin-chat.${expertId}`;
+
 
             window.Echo.private(this.currentChannel)
                 .listen('AdminExpertMessageSent', (e) => {
