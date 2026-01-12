@@ -174,21 +174,24 @@ return [
 
                     <template x-if="selectedExpertId">
                         <div class="chat-wrapper d-flex flex-column">
-
                             <div class="chat-header rounded-top d-flex align-items-center px-3">
-                                <button class="btn btn-light me-3 d-lg-none" @click="selectedExpertId = null">←</button>
-                                <img :src="expertAvatar" class="rounded-circle me-3" width="40">
-                                <div>
-                                    <strong x-text="expertName"></strong><br>
-                                    <small x-show="typing" class="text-muted">typing...</small>
-                                </div>
-                                <div class="ms-auto pe-3 d-flex align-items-center gap-3">
-                                    <button class="btn btn-primary btn-sm" @click="initiateCall(false)">
-                                        <i class="fa-solid fa-phone"></i>
-                                    </button>
-                                    <button class="btn btn-success btn-sm" @click="initiateCall(true)">
-                                        <i class="fa-solid fa-video"></i>
-                                    </button>
+                                <div class=" d-flex justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <button class="btn btn-light me-3 d-lg-none" @click="selectedExpertId = null">←</button>
+                                        <img :src="expertAvatar" class="rounded-circle me-3" width="40">
+                                        <div>
+                                            <strong x-text="expertName"></strong><br>
+                                            <small x-show="typing" class="text-muted">typing...</small>
+                                        </div>
+                                    </div>
+                                    <div class="ms-auto pe-3 d-flex align-items-center gap-3">
+                                        <button class="btn btn-primary btn-sm" @click="initiateCall(false)">
+                                            <i class="fa-solid fa-phone"></i>
+                                        </button>
+                                        <button class="btn btn-success btn-sm" @click="initiateCall(true)">
+                                            <i class="fa-solid fa-video"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
