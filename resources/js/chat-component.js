@@ -1544,7 +1544,6 @@ export function adminExpertChatComponent() {
         },
 
         setupCallListeners() {
-            // Agar pehle channel tha to leave kar do
             if (this.currentChannel) {
                 console.log('Leaving old channel:', this.currentChannel);
                 window.Echo.leave(this.currentChannel);
@@ -1752,7 +1751,6 @@ export function adminExpertChatComponent() {
         openChat(expertId, name, avatar) {
             this.showSearchModal = false;
 
-            // --- NAYA LOGIC: Sidebar mein check karo ya add karo ---
             const exists = this.activeExperts.find(e => e.id === expertId);
             if (!exists) {
                 this.activeExperts.unshift({
@@ -1941,7 +1939,6 @@ export function adminExpertChatComponent() {
             axios.post('/admin/expert-chat/mark-specific-read', { message_id: messageId });
         },
 
-        // Search functionality
         async searchExperts() {
             if (!this.searchQuery.trim()) {
                 this.searchResults = window.ALL_EXPERTS;
@@ -2040,16 +2037,14 @@ export function expertAdminChatComponent() {
                         this.typingTimer = setTimeout(() => this.typing = false, 2000);
                     }
                 }).listenForWhisper('incoming-call', (data) => {
-                    if (data.from === 'expert') {
-                        this.callInitiator = 'expert';
+                    if (data.from === 'admin') {
+                        this.callInitiator = 'admin';
                         this.callState = 'incoming';
                         this.isVideo = data.type === 'video';
-                        this.callStatusText = 'Incoming Call from Expert';
-                        this.callerInfo = { avatar: '/assets/expert-avatar.png', name: 'Expert' };
+                        this.callStatusText = 'Incoming Call from admin';
+                        this.callerInfo = { avatar: '/assets/expert-avatar.png', name: 'admin' };
 
-                        const modalEl = document.getElementById('callModal');
-                        this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                        this.callBootstrapModal.show();
+                                 $('#callAdminModal').modal('show');
 
                         this.playRingtone();
                     }
