@@ -23,7 +23,7 @@ export function chatComponent(chatId) {
         callDuration: 0,
         timerInterval: null,
         _dummy: false,
-        formattedDuration : 0,
+        formattedDuration: 0,
 
 
         initiateCall(withVideo) {
@@ -1506,6 +1506,7 @@ export function adminExpertChatComponent() {
         callDuration: 0,
         timerInterval: null,
         _dummy: false,
+        formattedDuration: 0,
 
         setupCallListenerForExpert(expertId) {
             const channel = `admin-chat.${expertId}`;
@@ -1546,7 +1547,7 @@ export function adminExpertChatComponent() {
                 chatId: this.selectedExpertId
             });
         },
-  handleIncomingCall(data) {
+        handleIncomingCall(data) {
             if (data.from === 'expert') {
                 this.callInitiator = 'expert';
             } else if (data.from === 'admin') {
@@ -1564,11 +1565,10 @@ export function adminExpertChatComponent() {
             const modalEl = document.getElementById('callModal');
             if (!modalEl) return console.error('Call modal not found in DOM!');
 
-            // Bootstrap 4 show modal
             $('#callModal').modal({ backdrop: 'static', keyboard: false }).modal('show');
             this.playRingtone();
         },
-          handleCallAccepted() {
+        handleCallAccepted() {
             this.stopRingtone();
             this.callState = 'connecting';
             this.callStatusText = 'Connecting...';
@@ -1767,6 +1767,29 @@ export function adminExpertChatComponent() {
             messagesDiv.appendChild(div);
             console.log('[AdminChat] ✅ Message appended to DOM:', msg.id);
             this.scrollToBottom();
+        },
+         get formattedDuration() {
+            const mins = Math.floor(this.callDuration / 60);
+            const secs = this.callDuration % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        },
+         startTimer() {
+            this.callDuration = 0;
+            this.formattedDuration = '00:00';
+
+            if (this.timerInterval) clearInterval(this.timerInterval);
+
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;
+
+                const mins = Math.floor(this.callDuration / 60);
+                const secs = this.callDuration % 60;
+
+                this.formattedDuration =
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                console.log('Timer tick:', this.callDuration, this.formattedDuration);
+            }, 1000);
         },
 
         loadInitialMessages(expertId) {
@@ -2007,12 +2030,9 @@ export function expertAdminChatComponent() {
             this.scrollToBottom();
             this.markAllAsRead();
 
-
             window.Echo.private(`admin-chat.${expertId}`)
                 .listen('AdminExpertMessageSent', (e) => {
-
                     this.appendMessage(e.message);
-
                     if (e.message.sender_type === 'admin') {
                         this.markAsRead(e.message.id);
                     }
@@ -2137,6 +2157,7 @@ export function expertAdminChatComponent() {
             this._joining = true;
 
             try {
+                this.stopRingtone();
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting...';
 

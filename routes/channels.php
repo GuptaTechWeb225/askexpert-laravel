@@ -17,7 +17,6 @@ Broadcast::channel('admin-chat.{expertId}', function ($user, $expertId) {
         return ['id' => auth('expert')->id(), 'name' => auth('expert')->user()->f_name];
     }
 
-    // Agar admin login hai to sab channels allowed
     if (auth('admin')->check()) {
         return ['id' => auth('admin')->id(), 'name' => 'Admin'];
     }
