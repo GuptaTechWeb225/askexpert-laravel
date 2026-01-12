@@ -1823,7 +1823,7 @@ export function adminExpertChatComponent() {
             }
             this.currentChannel = `admin-chat.${expertId}`;
 
-            this.setupCallListeners();
+            this.setupAllCallListeners();
 
             window.Echo.private(this.currentChannel)
                 .listen('AdminExpertMessageSent', (e) => {
