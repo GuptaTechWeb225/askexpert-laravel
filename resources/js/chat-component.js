@@ -1554,97 +1554,98 @@ export function adminExpertChatComponent() {
                 return;
             }
 
-            this.currentChannel = `admin-chat.${this.selectedExpertId}`;
+            this.activeExperts.forEach(expert => {
+                const channel = `admin-chat.${expert.id}`;
+                console.log('Adding listener on:', channel);
 
-            console.log('Setting up call listeners on channel:', this.currentChannel);
+                window.Echo.private(channel)
+                    .listenForWhisper('incoming-call', (data) => {
+                        console.log('ADMIN RECEIVED INCOMING CALL FROM EXPERT!', data);
 
-            window.Echo.private(this.currentChannel)
-                .listenForWhisper('incoming-call', (data) => {
-                    console.log('ADMIN RECEIVED INCOMING CALL FROM EXPERT!', data);
+                        if (data.from === 'expert') {
+                            this.callInitiator = 'expert';
+                            this.callState = 'incoming';
+                            this.isVideo = data.type === 'video';
+                            this.callStatusText = 'Incoming Call from Expert';
+                            this.callerInfo = { avatar: data.avatar || '/assets/expert-avatar.png', name: 'Expert' };
 
-                    if (data.from === 'expert') {
-                        this.callInitiator = 'expert';
-                        this.callState = 'incoming';
-                        this.isVideo = data.type === 'video';
-                        this.callStatusText = 'Incoming Call from Expert';
-                        this.callerInfo = { avatar: data.avatar || '/assets/expert-avatar.png', name: 'Expert' };
+                            const modalEl = document.getElementById('callModal');
+                            this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                            this.callBootstrapModal.show();
 
-                        const modalEl = document.getElementById('callModal');
-                        this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                        this.callBootstrapModal.show();
-
-                        this.playRingtone();
-                    }
-                })
-              .listenForWhisper('call-accepted', async () => {
-                    if (this._joining) return;
-                    this._joining = true;
-                    try {
-                        console.log('Expert accepted the call – connecting...');
-                        this.stopRingtone();
-                        this.callStatusText = 'Connecting...';
-                        this.callState = 'connecting';
-
-                        if (!this.agoraClient) {
-                            this.agoraClient = this.createAgoraClient();
+                            this.playRingtone();
                         }
-
-                        const res = await axios.post(`/admin/expert-chat/${this.selectedExpertId}/generate-token`);
-                        const { token, channel, uid, app_id } = res.data;
-
-                        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
-
-                        let tracks = [];
+                    })
+                    .listenForWhisper('call-accepted', async () => {
+                        if (this._joining) return;
+                        this._joining = true;
                         try {
-                            if (this.isVideo) {
-                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-                            } else {
-                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
-                                tracks = [audio];
+                            console.log('Expert accepted the call – connecting...');
+                            this.stopRingtone();
+                            this.callStatusText = 'Connecting...';
+                            this.callState = 'connecting';
+
+                            if (!this.agoraClient) {
+                                this.agoraClient = this.createAgoraClient();
                             }
-                        } catch (e) {
-                            throw new Error("Could not access microphone/camera");
-                        }
 
-                        this.localAudioTrack = tracks[0];
-                        this.localVideoTrack = tracks[1] || null;
+                            const res = await axios.post(`/admin/expert-chat/${this.selectedExpertId}/generate-token`);
+                            const { token, channel, uid, app_id } = res.data;
 
-                        if (this.localVideoTrack) {
-                            const localDiv = document.getElementById('local-media');
-                            if (localDiv) {
-                                localDiv.innerHTML = '';
-                                this.localVideoTrack.play(localDiv);
+                            await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+
+                            let tracks = [];
+                            try {
+                                if (this.isVideo) {
+                                    tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                                } else {
+                                    const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                    tracks = [audio];
+                                }
+                            } catch (e) {
+                                throw new Error("Could not access microphone/camera");
                             }
+
+                            this.localAudioTrack = tracks[0];
+                            this.localVideoTrack = tracks[1] || null;
+
+                            if (this.localVideoTrack) {
+                                const localDiv = document.getElementById('local-media');
+                                if (localDiv) {
+                                    localDiv.innerHTML = '';
+                                    this.localVideoTrack.play(localDiv);
+                                }
+                            }
+
+                            await this.agoraClient.publish(tracks.filter(Boolean));
+
+                            this.callState = 'connected';
+                            this.inCall = true;
+                            this.callStatusText = 'Connected';
+                            this.startTimer();
+                        } catch (err) {
+                            console.error('❌ Admin side Agora join failed:', err);
+                            toastr.error('Connection failed: ' + err.message);
+                            this.endCall();
+                        } finally {
+                            this._joining = false;
                         }
-
-                        await this.agoraClient.publish(tracks.filter(Boolean));
-
-                        this.callState = 'connected';
-                        this.inCall = true;
-                        this.callStatusText = 'Connected';
-                        this.startTimer();
-                    } catch (err) {
-                        console.error('❌ Admin side Agora join failed:', err);
-                        toastr.error('Connection failed: ' + err.message);
+                    })
+                    .listenForWhisper('call-rejected', () => {
+                        this.callStatusText = 'Call Rejected';
+                        this.stopRingtone();
                         this.endCall();
-                    } finally {
-                        this._joining = false;
-                    }
-                })
-                .listenForWhisper('call-rejected', () => {
-                    this.callStatusText = 'Call Rejected';
-                    this.stopRingtone();
-                    this.endCall();
-                })
-                .listenForWhisper('call-ended', () => {
-                    this.callStatusText = 'Call Ended';
-                    this.endCall();
-                })
-                .listenForWhisper('call-cancelled', () => {
-                    this.stopRingtone();
-                    this.endCall();
-                    toastr.info('Call cancelled');
-                });
+                    })
+                    .listenForWhisper('call-ended', () => {
+                        this.callStatusText = 'Call Ended';
+                        this.endCall();
+                    })
+                    .listenForWhisper('call-cancelled', () => {
+                        this.stopRingtone();
+                        this.endCall();
+                        toastr.info('Call cancelled');
+                    });
+            });
         },
 
         async acceptCall() {
@@ -2054,7 +2055,7 @@ export function expertAdminChatComponent() {
             this.playRingtone();
 
             window.Echo.private(`admin-chat.${expertId}`).whisper('incoming-call', {
-                from: 'expert',  // ← Yeh change karo! (expert se aa raha hai)
+                from: 'expert',
                 type: withVideo ? 'video' : 'voice',
                 chatId: expertId
             });
