@@ -1586,7 +1586,6 @@ export function adminExpertChatComponent() {
             this.activeExperts = window.INITIAL_EXPERTS || [];
             this.searchResults = window.ALL_EXPERTS;
 
-            this.loadInitialMessages();
             this.scrollToBottom();
             this.markAllAsRead();
             if (this.selectedExpertId) {
