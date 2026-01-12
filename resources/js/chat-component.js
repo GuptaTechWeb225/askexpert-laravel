@@ -135,7 +135,7 @@ export function chatComponent(chatId) {
                             this.agoraClient = this.createAgoraClient(); // Iske andar remote-media play karne ka logic pehle se hai
                         }
 
-                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        const res = await axios.post(`/expert/massages/admin-chat/${chatId}/generate-token`);
                         const { token, channel, uid, app_id } = res.data;
 
                         await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
@@ -258,7 +258,7 @@ export function chatComponent(chatId) {
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting...';
 
-                const res = await axios.post(`/chat/${chatId}/generate-token`);
+                const res = await axios.post(`/expert/massages/admin-chat/${chatId}/generate-token`);
                 const { token, channel, uid } = res.data;
 
                 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -2201,7 +2201,7 @@ export function expertAdminChatComponent() {
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting...';
 
-                const res = await axios.post(`/admin/expert-chat/${expertId}/generate-token`);
+                const res = await axios.post(`/expert/massages/admin-chat/${expertId}/generate-token`);
                 const { token, channel, uid } = res.data;
 
                 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
