@@ -1997,7 +1997,7 @@ export function expertAdminChatComponent() {
 
             this.isVideo = withVideo;
             this.inCall = true;
-            this.callInitiator = 'Expert';
+            this.callInitiator = 'expert';
             this.callState = 'ringing';
             this.callStatusText = 'Calling...';
             this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'Expert' };
@@ -2008,10 +2008,12 @@ export function expertAdminChatComponent() {
             this.playRingtone();
 
             window.Echo.private(`admin-chat.${expertId}`).whisper('incoming-call', {
-                from: 'admin',
+                from: 'expert',  // ← Yeh change karo! (expert se aa raha hai)
                 type: withVideo ? 'video' : 'voice',
                 chatId: expertId
             });
+
+            console.log('Whisper sent to channel admin-chat.' + expertId + ' with from: expert');
         },
 
 
@@ -2044,7 +2046,7 @@ export function expertAdminChatComponent() {
                         this.callStatusText = 'Incoming Call from admin';
                         this.callerInfo = { avatar: '/assets/expert-avatar.png', name: 'admin' };
 
-                                 $('#callAdminModal').modal('show');
+                        $('#callAdminModal').modal('show');
 
                         this.playRingtone();
                     }
