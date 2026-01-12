@@ -1506,110 +1506,22 @@ export function adminExpertChatComponent() {
         timerInterval: null,
         _dummy: false,
 
-        setupAllCallListeners() {
-            console.log('[Admin] Setting up call listeners for ALL active experts');
+        setupCallListenerForExpert(expertId) {
+            const channel = `admin-chat.${expertId}`;
+            console.log('[Admin] Setting up call listener for channel:', channel);
 
-            // Sidebar ke sab experts ke channel pe listener lagao
-            this.activeExperts.forEach(expert => {
-                const channel = `admin-chat.${expert.id}`;
-                console.log('[Admin] Adding incoming-call listener on:', channel);
-
-                window.Echo.private(channel)
-                    .listenForWhisper('incoming-call', (data) => {
-                        console.log(`[ADMIN] INCOMING CALL RECEIVED from expert ${expert.id}!`, data);
-
-                        // 🔥 Auto select this expert (incoming call ke liye)
-                        this.openChat(expert.id, expert.name, expert.avatar);
-
-                        if (data.from === 'expert') {
-                            this.callInitiator = 'expert';
-                            this.callState = 'incoming';
-                            this.isVideo = data.type === 'video';
-                            this.callStatusText = 'Incoming Call from Expert';
-                            this.callerInfo = { avatar: data.avatar || '/assets/expert-avatar.png', name: 'Expert' };
-
-                            const modalEl = document.getElementById('callModal');
-                            if (!modalEl) {
-                                console.error('[Admin] Call modal not found in DOM!');
-                                return;
-                            }
-
-                            this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                            this.callBootstrapModal.show();
-
-                            this.playRingtone();
-                        }
-                    })
-                    .listenForWhisper('call-accepted', async () => {
-                        if (this._joining) return;
-                        this._joining = true;
-                        try {
-                            console.log('Expert accepted the call – connecting...');
-                            this.stopRingtone();
-                            this.callStatusText = 'Connecting...';
-                            this.callState = 'connecting';
-
-                            if (!this.agoraClient) {
-                                this.agoraClient = this.createAgoraClient();
-                            }
-
-                            const res = await axios.post(`/admin/expert-chat/${this.selectedExpertId}/generate-token`);
-                            const { token, channel, uid, app_id } = res.data;
-
-                            await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
-
-                            let tracks = [];
-                            try {
-                                if (this.isVideo) {
-                                    tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-                                } else {
-                                    const audio = await AgoraRTC.createMicrophoneAudioTrack();
-                                    tracks = [audio];
-                                }
-                            } catch (e) {
-                                throw new Error("Could not access microphone/camera");
-                            }
-
-                            this.localAudioTrack = tracks[0];
-                            this.localVideoTrack = tracks[1] || null;
-
-                            if (this.localVideoTrack) {
-                                const localDiv = document.getElementById('local-media');
-                                if (localDiv) {
-                                    localDiv.innerHTML = '';
-                                    this.localVideoTrack.play(localDiv);
-                                }
-                            }
-
-                            await this.agoraClient.publish(tracks.filter(Boolean));
-
-                            this.callState = 'connected';
-                            this.inCall = true;
-                            this.callStatusText = 'Connected';
-                            this.startTimer();
-                        } catch (err) {
-                            console.error('❌ Admin side Agora join failed:', err);
-                            toastr.error('Connection failed: ' + err.message);
-                            this.endCall();
-                        } finally {
-                            this._joining = false;
-                        }
-                    })
-                    .listenForWhisper('call-rejected', () => {
-                        this.callStatusText = 'Call Rejected';
-                        this.stopRingtone();
-                        this.endCall();
-                    })
-                    .listenForWhisper('call-ended', () => {
-                        this.callStatusText = 'Call Ended';
-                        this.endCall();
-                    })
-                    .listenForWhisper('call-cancelled', () => {
-                        this.stopRingtone();
-                        this.endCall();
-                        toastr.info('Call cancelled');
-                    });
-            });
+            window.Echo.private(channel)
+                .listenForWhisper('incoming-call', (data) => {
+                    console.log('[ADMIN] Incoming call from expert', data);
+                    this.handleIncomingCall(data);
+                })
+                .listenForWhisper('call-accepted', () => this.handleCallAccepted())
+                .listenForWhisper('call-rejected', () => this.handleCallRejected())
+                .listenForWhisper('call-ended', () => this.endCall())
+                .listenForWhisper('call-cancelled', () => {
+                    toastr.info('Call cancelled');
+                    this.endCall();
+                });
         },
         initiateCall(withVideo) {
             if (this.inCall || !this.selectedExpertId) return;
@@ -1633,7 +1545,41 @@ export function adminExpertChatComponent() {
                 chatId: this.selectedExpertId
             });
         },
+  handleIncomingCall(data) {
+            if (data.from === 'expert') {
+                this.callInitiator = 'expert';
+            } else if (data.from === 'admin') {
+                this.callInitiator = 'admin';
+            }
 
+            this.callState = 'incoming';
+            this.isVideo = data.type === 'video';
+            this.callStatusText = `Incoming call from ${this.callInitiator}`;
+            this.callerInfo = {
+                avatar: data.avatar || '/assets/expert-avatar.png',
+                name: data.name || this.callInitiator
+            };
+
+            const modalEl = document.getElementById('callModal');
+            if (!modalEl) return console.error('Call modal not found in DOM!');
+
+            // Bootstrap 4 show modal
+            $('#callModal').modal({ backdrop: 'static', keyboard: false }).modal('show');
+            this.playRingtone();
+        },
+          handleCallAccepted() {
+            this.stopRingtone();
+            this.callState = 'connecting';
+            this.callStatusText = 'Connecting...';
+            this.inCall = true;
+            console.log('Call accepted by Expert, connecting Agora...');
+        },
+
+        handleCallRejected() {
+            this.callStatusText = 'Call Rejected';
+            this.stopRingtone();
+            this.endCall();
+        },
         init() {
             console.log('[AdminChat] Component initialized');
 
@@ -1643,12 +1589,10 @@ export function adminExpertChatComponent() {
             this.loadInitialMessages();
             this.scrollToBottom();
             this.markAllAsRead();
-            this.setupAllCallListeners();
-
+            if (this.selectedExpertId) {
+                this.setupCallListenerForExpert(this.selectedExpertId);
+            }
         },
-
-
-
         async acceptCall() {
             if (this._joining || !this.selectedExpertId) return;
             this._joining = true;
@@ -1715,89 +1659,9 @@ export function adminExpertChatComponent() {
             window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('call-cancelled', { chatId: this.selectedExpertId });
             this.endCall();
         },
-
-        rejectCall() {
-            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('call-rejected', { chatId: this.selectedExpertId });
-            this.endCall();
-        },
-
-        hangUp() {
-            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('call-ended', { chatId: this.selectedExpertId });
-            this.endCall();
-        },
-
-        toggleMute() {
-            this.isMuted = !this.isMuted;
-            if (this.localAudioTrack) {
-                this.localAudioTrack.setEnabled(!this.isMuted);
-            }
-        },
-
-        toggleVideo() {
-            if (this.localVideoTrack) {
-                this.videoEnabled = !this.videoEnabled;
-                this.localVideoTrack.setEnabled(this.videoEnabled);
-            }
-        },
-
-        startTimer() {
-            this.callDuration = 0;
-            if (this.timerInterval) clearInterval(this.timerInterval);
-            this.timerInterval = setInterval(() => {
-                this.callDuration++;
-                console.log('Admin timer tick:', this.callDuration);
-            }, 1000);
-        },
-
-        playRingtone() {
-            const ringtone = document.getElementById('ringtone');
-            if (ringtone) {
-                ringtone.currentTime = 0;
-                ringtone.play().catch(e => console.log('Autoplay blocked'));
-            }
-        },
-
-        stopRingtone() {
-            const ringtone = document.getElementById('ringtone');
-            if (ringtone) {
-                ringtone.pause();
-                ringtone.currentTime = 0;
-            }
-        },
-
-        endCall() {
-            this.stopRingtone();
-            if (this.timerInterval) clearInterval(this.timerInterval);
-            this.callDuration = 0;
-
-            if (this.localAudioTrack) {
-                this.localAudioTrack.close();
-                this.localAudioTrack = null;
-            }
-            if (this.localVideoTrack) {
-                this.localVideoTrack.close();
-                this.localVideoTrack = null;
-            }
-            if (this.agoraClient) {
-                this.agoraClient.leave();
-                this.agoraClient = null;
-            }
-
-            this.callState = 'idle';
-            this.inCall = false;
-            this.callInitiator = null;
-            this.callerInfo = null;
-
-            document.getElementById('local-media').innerHTML = '';
-            document.getElementById('remote-media').innerHTML = '';
-
-            const modal = bootstrap.Modal.getInstance(document.getElementById('callModal'));
-            if (modal) modal.hide();
-        },
-
-
         openChat(expertId, name, avatar) {
             this.showSearchModal = false;
+            this.setupCallListenerForExpert(expertId);
 
             const exists = this.activeExperts.find(e => e.id === expertId);
             if (!exists) {
@@ -1818,12 +1682,10 @@ export function adminExpertChatComponent() {
 
             const messagesDiv = document.getElementById('messages');
             if (messagesDiv) messagesDiv.innerHTML = '';
-            if (this.currentChannel) {
-                window.Echo.leave(this.currentChannel);
-            }
+
             this.currentChannel = `admin-chat.${expertId}`;
 
-            this.setupAllCallListeners();
+
 
             window.Echo.private(this.currentChannel)
                 .listen('AdminExpertMessageSent', (e) => {
@@ -1966,6 +1828,83 @@ export function adminExpertChatComponent() {
             console.log('[AdminChat] Typing whisper sent to:', `admin-chat.${this.selectedExpertId}`);
             window.Echo.private(`admin-chat.${this.selectedExpertId}`)
                 .whisper('typing', { role: 'admin' });
+        },
+        rejectCall() {
+            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('call-rejected', { chatId: this.selectedExpertId });
+            this.endCall();
+        },
+        endCall() {
+            this.stopRingtone();
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.callDuration = 0;
+
+            if (this.localAudioTrack) {
+                this.localAudioTrack.close();
+                this.localAudioTrack = null;
+            }
+            if (this.localVideoTrack) {
+                this.localVideoTrack.close();
+                this.localVideoTrack = null;
+            }
+            if (this.agoraClient) {
+                this.agoraClient.leave();
+                this.agoraClient = null;
+            }
+
+            this.callState = 'idle';
+            this.inCall = false;
+            this.callInitiator = null;
+            this.callerInfo = null;
+
+            document.getElementById('local-media').innerHTML = '';
+            document.getElementById('remote-media').innerHTML = '';
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('callModal'));
+            if (modal) modal.hide();
+        },
+
+        hangUp() {
+            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('call-ended', { chatId: this.selectedExpertId });
+            this.endCall();
+        },
+
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+            if (this.localAudioTrack) {
+                this.localAudioTrack.setEnabled(!this.isMuted);
+            }
+        },
+
+        toggleVideo() {
+            if (this.localVideoTrack) {
+                this.videoEnabled = !this.videoEnabled;
+                this.localVideoTrack.setEnabled(this.videoEnabled);
+            }
+        },
+
+        startTimer() {
+            this.callDuration = 0;
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;
+                console.log('Admin timer tick:', this.callDuration);
+            }, 1000);
+        },
+
+        playRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.currentTime = 0;
+                ringtone.play().catch(e => console.log('Autoplay blocked'));
+            }
+        },
+
+        stopRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.pause();
+                ringtone.currentTime = 0;
+            }
         },
 
         handleFileUpload(event) {
