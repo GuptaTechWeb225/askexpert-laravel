@@ -23,6 +23,7 @@ export function chatComponent(chatId) {
         callDuration: 0,
         timerInterval: null,
         _dummy: false,
+        formattedDuration : 0,
 
 
         initiateCall(withVideo) {
