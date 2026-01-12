@@ -803,6 +803,248 @@ export function expertChatComponent(chatId) {
                 this.showEndedMessage();
             }
         },
+        handleChatAction(action) {
+
+            if (action === 'resolved') {
+                // Window se safe data le rahe hain
+                const info = window.chatInfo || {};
+                const chatIdDisplay = info.chatId || chatId || 'N/A'; // fallback
+                const customerName = info.customerName || 'Customer';
+                const categoryName = info.categoryName || 'General';
+
+                let sessionDuration = 'N/A';
+                if (info.startTime) {
+                    try {
+                        const startTime = new Date(info.startTime);
+                        if (!isNaN(startTime.getTime())) {
+                            const endTime = new Date();
+                            const durationMs = endTime - startTime;
+                            const minutes = Math.floor(durationMs / 60000);
+                            const seconds = Math.floor((durationMs % 60000) / 1000);
+                            sessionDuration = `${minutes} min ${seconds} sec`;
+                        }
+                    } catch (e) {
+                        console.warn('Duration calculation failed:', e);
+                    }
+                }
+
+                Swal.fire({
+                    title: 'Mark Question as Completed',
+                    html: `
+    <div style="text-align: left; font-size: 15px; margin: 20px 0; line-height: 1.6;">
+        <!-- Row 1: Question ID + Customer Name -->
+        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+            <div style="flex: 1;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Question ID</label>
+                <input type="text" value="${chatIdDisplay}" readonly 
+                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa; font-size: 14px;">
+            </div>
+            <div style="flex: 1;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Customer Name</label>
+                <input type="text" value="${customerName}" readonly 
+                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa; font-size: 14px;">
+            </div>
+        </div>
+
+        <!-- Row 2: Category + Session Type -->
+        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+            <div style="flex: 1;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Category</label>
+                <input type="text" value="${categoryName}" readonly 
+                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa; font-size: 14px;">
+            </div>
+            <div style="flex: 1;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Session Type</label>
+                <input type="text" value="Chat" readonly 
+                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa; font-size: 14px;">
+            </div>
+        </div>
+
+        <!-- Row 3: Session Duration (sirf ek field, lekin flex ke saath align) -->
+        <div style="display: flex; gap: 15px;">
+            <div style="flex: 1;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Session Duration</label>
+                <input type="text" value="${sessionDuration}" readonly 
+                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa; font-size: 14px;">
+            </div>
+            <!-- Empty div for alignment (2 fields wale row ke saath balance) -->
+            <div style="flex: 1;"></div>
+        </div>
+
+        <p style="margin-top: 25px; color: #555; font-size: 14px; text-align: center;">
+            Are you sure you want to mark this chat as resolved?
+        </p>
+    </div>
+`,
+                    icon: 'success',
+                    showCancelButton: true,
+                    confirmButtonText: 'Confirm & Send for Admin',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#198754',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true,
+                    allowOutsideClick: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.performChatAction('resolved', null);
+                    }
+                });
+
+                return;
+            }
+            if (action !== 'optout') {
+                // Baaki actions same rahe (block, miscategorized, resolved)
+                let title, text, confirmBtnText, confirmBtnColor;
+
+                switch (action) {
+                    case 'block':
+                        title = 'Block User?';
+                        text = "User will be blocked and won't be able to chat with you again.";
+                        confirmBtnText = 'Yes, Block';
+                        confirmBtnColor = '#dc3545';
+                        break;
+                    case 'miscategorized':
+                        title = 'Report Miscategorized?';
+                        text = "This will report the chat as miscategorized to admin and end the session.";
+                        confirmBtnText = 'Yes, Report';
+                        confirmBtnColor = '#fd7e14';
+                        break;
+                    case 'resolved':
+                        title = 'Mark as Resolved?';
+                        text = "Chat will be marked as successfully resolved.";
+                        confirmBtnText = 'Yes, Resolved';
+                        confirmBtnColor = '#198754';
+                        break;
+                }
+
+                Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: action === 'resolved' ? 'success' : 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: confirmBtnText,
+                    confirmButtonColor: confirmBtnColor,
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.performChatAction(action, null);
+                    }
+                });
+
+                return;
+            }
+
+            Swal.fire({
+                title: 'Opt Out of Chat',
+                html: `
+            <div style="text-align: left; margin: 20px 0;">
+                <p>Please select a reason for opting out (required):</p>
+                <div class="optout-reasons p-2">
+                    <label style="display: flex; margin: 12px 0; font-size: 15px;" class="border p-3 radius-10">
+                        
+                        Miscategorized: Sent for manual review and reassigned.
+                          <div>
+                        <input type="radio" name="optoutReason" value="Miscategorized: Sent for manual review and reassigned." style="">
+                          </div>
+                    </label>
+                    <label style="display: flex; margin: 12px 0; font-size: 15px;" class="border p-3 radius-10">
+                        Not my expertise: Reassigned as per usual matching rules.
+                                                  <div>
+
+                                                <input type="radio" name="optoutReason" value="Not my expertise: Reassigned as per usual matching rules." style="">
+                                                                          </div>
+
+
+                    </label>
+                    <label style="display: flex; margin: 12px 0; font-size: 15px;" class="border p-3 radius-10">
+                        Time consuming: Reassigned as per usual matching rules.
+                                                  <div>
+
+                                                <input type="radio" name="optoutReason" value="Time consuming: Reassigned as per usual matching rules." style="">
+                                                                          </div>
+
+
+                    </label>
+                    <label style="display: flex; margin: 12px 0; font-size: 15px;" class="border p-3 radius-10">
+                        Other: Reassigned as per usual matching rules.
+                                                  <div>
+
+                                                <input type="radio" name="optoutReason" value="Other: Reassigned as per usual matching rules." style="">
+                                                                          </div>
+
+
+                    </label>
+                </div>
+            </div>
+        `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Opt Out',
+                confirmButtonColor: '#0d6efd',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    const selected = document.querySelector('input[name="optoutReason"]:checked');
+                    if (!selected) {
+                        Swal.showValidationMessage('Please select a reason');
+                        return false;
+                    }
+                    return selected.value;
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const reason = result.value;
+                    this.performChatAction('optout', reason);
+                }
+            });
+        },
+
+        async performChatAction(action, reason = null) {
+            try {
+                const payload = {
+                    action: action,
+                    chat_id: chatId
+                };
+                if (action === 'optout' && reason) {
+                    payload.reason = reason;  // ← yeh extra field bhej rahe hain
+                }
+
+                const res = await fetch(`/expert/chat/${chatId}/action`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    toastr.success(data.message || 'Action completed successfully');
+
+                    // Sabhi cases me chat end karna hai
+                    this.chatEnded = true;
+                    this.hideFooterAndButton();
+                    this.showEndedMessage();
+
+                    // Optional: extra UI feedback
+                    if (action === 'block') {
+                        toastr.info('User has been blocked');
+                    } else if (action === 'miscategorized') {
+                        toastr.warning('Miscategorization reported to admin');
+                    } else if (action === 'optout') {
+                        toastr.info('You have opted out of this chat');
+                    }
+                } else {
+                    toastr.error(data.message || 'Action failed');
+                }
+            } catch (err) {
+                console.error(err);
+                toastr.error('Network error. Please try again.');
+            }
+        },
         playRingtone() {
             const ringtone = document.getElementById('ringtone');
             if (ringtone) {
@@ -1247,9 +1489,46 @@ export function adminExpertChatComponent() {
 
         searchQuery: '',
         searchResults: [],
-
-        // Active experts in sidebar
         activeExperts: [],
+        isVideo: false,
+        inCall: false,
+        callState: 'idle',
+        callInitiator: null,
+        callStatusText: '',
+        videoEnabled: true,
+        isMuted: false,
+        agoraClient: null,
+        localAudioTrack: null,
+        localVideoTrack: null,
+        _joining: false,
+        callerInfo: null,
+        callDuration: 0,
+        timerInterval: null,
+        _dummy: false,
+
+
+        initiateCall(withVideo) {
+            if (this.inCall || !this.selectedExpertId) return;
+
+            this.isVideo = withVideo;
+            this.inCall = true;
+            this.callInitiator = 'admin';
+            this.callState = 'ringing';
+            this.callStatusText = 'Calling Expert...';
+            this.callerInfo = { avatar: window.ADMIN_AVATAR, name: 'You (Admin)' };
+
+            const modalEl = document.getElementById('callModal');
+            this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            this.callBootstrapModal.show();
+
+            this.playRingtone();
+
+            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('incoming-call', {
+                from: 'admin',
+                type: withVideo ? 'video' : 'voice',
+                chatId: this.selectedExpertId
+            });
+        },
 
         init() {
             console.log('[AdminChat] Component initialized');
@@ -1257,12 +1536,252 @@ export function adminExpertChatComponent() {
             this.activeExperts = window.INITIAL_EXPERTS || [];
             this.searchResults = window.ALL_EXPERTS;
 
+
+
             this.loadInitialMessages();
             this.scrollToBottom();
             this.markAllAsRead();
 
+            window.Echo.private(`admin-chat.${this.selectedExpertId}`)
+                .listenForWhisper('incoming-call', (data) => {
+                    console.log('Admin received incoming-call whisper from expert!', data);
 
+                    if (data.from === 'expert') {
+                        this.callInitiator = 'expert';
+                        this.callState = 'incoming';
+                        this.isVideo = data.type === 'video';
+                        this.callStatusText = 'Incoming Call from Expert';
+                        this.callerInfo = { avatar: data.avatar || '/assets/expert-avatar.png', name: 'Expert' };
+
+                        const modalEl = document.getElementById('callModal');
+                        if (!modalEl) {
+                            console.error('Admin call modal not found!');
+                            return;
+                        }
+
+                        this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        this.callBootstrapModal.show();
+
+                        this.playRingtone();
+                    }
+                })
+                .listenForWhisper('call-accepted', async () => {
+                    if (this._joining) return;
+                    this._joining = true;
+                    try {
+                        console.log('Expert accepted the call – connecting...');
+                        this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
+                        this.callState = 'connecting';
+
+                        if (!this.agoraClient) {
+                            this.agoraClient = this.createAgoraClient();
+                        }
+
+                        const res = await axios.post(`/admin/expert-chat/${this.selectedExpertId}/generate-token`);
+                        const { token, channel, uid, app_id } = res.data;
+
+                        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                            } else {
+                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                tracks = [audio];
+                            }
+                        } catch (e) {
+                            throw new Error("Could not access microphone/camera");
+                        }
+
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
+
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
+
+                        await this.agoraClient.publish(tracks.filter(Boolean));
+
+                        this.callState = 'connected';
+                        this.inCall = true;
+                        this.callStatusText = 'Connected';
+                        this.startTimer();
+                    } catch (err) {
+                        console.error('❌ Admin side Agora join failed:', err);
+                        toastr.error('Connection failed: ' + err.message);
+                        this.endCall();
+                    } finally {
+                        this._joining = false;
+                    }
+                })
+                .listenForWhisper('call-rejected', () => {
+                    this.callStatusText = 'Call Rejected';
+                    this.stopRingtone();
+                    this.endCall();
+                })
+                .listenForWhisper('call-ended', () => {
+                    this.callStatusText = 'Call Ended';
+                    this.endCall();
+                })
+                .listenForWhisper('call-cancelled', () => {
+                    this.stopRingtone();
+                    this.endCall();
+                    toastr.info('Call cancelled');
+                });
         },
+
+        async acceptCall() {
+            if (this._joining || !this.selectedExpertId) return;
+            this._joining = true;
+
+            try {
+                this.callState = 'connecting';
+                this.callStatusText = 'Connecting...';
+
+                const res = await axios.post(`/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`);
+                const { token, channel, uid, app_id } = res.data;
+
+                const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+
+                client.on('user-published', async (user, mediaType) => {
+                    await client.subscribe(user, mediaType);
+                    if (mediaType === 'video') {
+                        setTimeout(() => {
+                            const remoteDiv = document.getElementById('remote-media');
+                            if (remoteDiv) {
+                                remoteDiv.innerHTML = '';
+                                user.videoTrack.play(remoteDiv);
+                            }
+                        }, 500);
+                    }
+                    if (mediaType === 'audio') {
+                        user.audioTrack.play();
+                    }
+                });
+
+                await client.join(window.AGORA_APP_ID || app_id, channel, token, uid);
+
+                const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                const micTrack = tracks[0];
+                const camTrack = this.isVideo ? tracks[1] : null;
+
+                if (camTrack) camTrack.play(document.getElementById('local-media'));
+
+                const publishTracks = [micTrack];
+                if (camTrack) publishTracks.push(camTrack);
+
+                await client.publish(publishTracks);
+
+                this.agoraClient = client;
+                this.localAudioTrack = micTrack;
+                this.localVideoTrack = camTrack;
+                this.videoEnabled = !!camTrack;
+                this.callState = 'connected';
+                this.callStatusText = 'Connected';
+                this.startTimer();
+
+                window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('call-accepted', { chatId: this.selectedExpertId });
+
+            } catch (err) {
+                console.error('❌ Admin accept call failed:', err);
+                alert('Call failed: ' + (err.message || 'Unknown error'));
+                this.endCall();
+            } finally {
+                this._joining = false;
+            }
+        },
+
+        cancelCall() {
+            this.stopRingtone();
+            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('call-cancelled', { chatId: this.selectedExpertId });
+            this.endCall();
+        },
+
+        rejectCall() {
+            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('call-rejected', { chatId: this.selectedExpertId });
+            this.endCall();
+        },
+
+        hangUp() {
+            window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('call-ended', { chatId: this.selectedExpertId });
+            this.endCall();
+        },
+
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+            if (this.localAudioTrack) {
+                this.localAudioTrack.setEnabled(!this.isMuted);
+            }
+        },
+
+        toggleVideo() {
+            if (this.localVideoTrack) {
+                this.videoEnabled = !this.videoEnabled;
+                this.localVideoTrack.setEnabled(this.videoEnabled);
+            }
+        },
+
+        startTimer() {
+            this.callDuration = 0;
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;
+                console.log('Admin timer tick:', this.callDuration);
+            }, 1000);
+        },
+
+        playRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.currentTime = 0;
+                ringtone.play().catch(e => console.log('Autoplay blocked'));
+            }
+        },
+
+        stopRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.pause();
+                ringtone.currentTime = 0;
+            }
+        },
+
+        endCall() {
+            this.stopRingtone();
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.callDuration = 0;
+
+            if (this.localAudioTrack) {
+                this.localAudioTrack.close();
+                this.localAudioTrack = null;
+            }
+            if (this.localVideoTrack) {
+                this.localVideoTrack.close();
+                this.localVideoTrack = null;
+            }
+            if (this.agoraClient) {
+                this.agoraClient.leave();
+                this.agoraClient = null;
+            }
+
+            this.callState = 'idle';
+            this.inCall = false;
+            this.callInitiator = null;
+            this.callerInfo = null;
+
+            document.getElementById('local-media').innerHTML = '';
+            document.getElementById('remote-media').innerHTML = '';
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('callModal'));
+            if (modal) modal.hide();
+        },
+
 
         openChat(expertId, name, avatar) {
             this.showSearchModal = false;
@@ -1490,6 +2009,46 @@ export function expertAdminChatComponent() {
         selectedFile: null,
         typing: false,
         typingTimer: null,
+        isVideo: false,
+        inCall: false,
+        callState: 'idle',
+        callInitiator: null,
+        callStatusText: '',
+        videoEnabled: true,
+        isMuted: false,
+        agoraClient: null,
+        localAudioTrack: null,
+        localVideoTrack: null,
+        _joining: false,
+        callerInfo: null,
+        callDuration: 0,
+        timerInterval: null,
+        _dummy: false,
+
+
+        initiateCall(withVideo) {
+            console.log('Expert initiating call → showing modal immediately');
+            if (this.inCall) return;
+
+            this.isVideo = withVideo;
+            this.inCall = true;
+            this.callInitiator = 'Expert';
+            this.callState = 'ringing';
+            this.callStatusText = 'Calling...';
+            this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'Expert' };
+
+            $('#callAdminModal').modal('show');
+
+
+            this.playRingtone();
+
+            window.Echo.private(`admin-chat.${expertId}`).whisper('incoming-call', {
+                from: 'admin',
+                type: withVideo ? 'video' : 'voice',
+                chatId: expertId
+            });
+        },
+
 
         init() {
             this.loadInitialMessages();
@@ -1512,14 +2071,259 @@ export function expertAdminChatComponent() {
                         clearTimeout(this.typingTimer);
                         this.typingTimer = setTimeout(() => this.typing = false, 2000);
                     }
+                }).listenForWhisper('incoming-call', (data) => {
+                    if (data.from === 'expert') {
+                        this.callInitiator = 'expert';
+                        this.callState = 'incoming';
+                        this.isVideo = data.type === 'video';
+                        this.callStatusText = 'Incoming Call from Expert';
+                        this.callerInfo = { avatar: '/assets/expert-avatar.png', name: 'Expert' };
+
+                        const modalEl = document.getElementById('callModal');
+                        this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        this.callBootstrapModal.show();
+
+                        this.playRingtone();
+                    }
+                })
+                .listenForWhisper('call-accepted', async () => {
+                    if (this._joining) return;
+                    this._joining = true;
+                    try {
+                        this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
+                        this.callState = 'connecting';
+
+                        if (!this.agoraClient) {
+                            this.agoraClient = this.createAgoraClient();
+                        }
+
+                        const res = await axios.post(`/expert/massages/admin-chat/${expertId}/generate-token`);
+                        const { token, channel, uid, app_id } = res.data;
+
+                        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                            } else {
+                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                tracks = [audio];
+                            }
+                        } catch (e) {
+                            throw new Error("Could not access microphone/camera");
+                        }
+
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
+
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
+
+                        await this.agoraClient.publish(tracks.filter(Boolean));
+
+                        this.callState = 'connected';
+                        this.inCall = true;
+                        this.callStatusText = 'Connected';
+                        this.startTimer();
+                    } catch (err) {
+                        console.error('❌ Admin side Agora join failed:', err);
+                        toastr.error('Connection failed: ' + err.message);
+                        this.endCall();
+                    } finally {
+                        this._joining = false;
+                    }
+                })
+                .listenForWhisper('call-rejected', () => {
+                    this.callStatusText = 'Call Rejected';
+                    this.stopRingtone();
+                    this.endCall();
+                })
+                .listenForWhisper('call-ended', () => {
+                    this.callStatusText = 'Call Ended';
+                    this.endCall();
+                })
+                .listenForWhisper('call-cancelled', () => {
+                    this.stopRingtone();
+                    this.endCall();
+                    toastr.info('Call cancelled');
                 });
+
         },
         loadInitialMessages() {
-            axios.get('/expert/admin-chat/messages')
+            axios.get('expert/massages/admin-chat/messages')
                 .then(res => {
                     res.data.messages.forEach(msg => this.appendMessage(msg));
                     this.scrollToBottom();
                 });
+        },
+        createAgoraClient() {
+            const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+            client.on("user-published", async (user, mediaType) => {
+                await client.subscribe(user, mediaType);
+                if (mediaType === "video") {
+                    // Force wait for Alpine.js to show the div
+                    this.$nextTick(() => {
+                        const remoteDiv = document.getElementById('remote-media');
+                        if (remoteDiv) {
+                            user.videoTrack.play(remoteDiv);
+                        }
+                    });
+                }
+                if (mediaType === "audio") {
+                    user.audioTrack.play();
+                }
+            });
+            return client;
+        },
+        async acceptCall() {
+            if (this._joining) return;
+            this._joining = true;
+
+            try {
+                this.callState = 'connecting';
+                this.callStatusText = 'Connecting...';
+
+                const res = await axios.post(`/admin/expert-chat/${expertId}/generate-token`);
+                const { token, channel, uid } = res.data;
+
+                const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+
+                client.on('user-published', async (user, mediaType) => {
+                    await client.subscribe(user, mediaType);
+                    if (mediaType === 'video') {
+                        setTimeout(() => {
+                            const remoteDiv = document.getElementById('remote-media');
+                            if (remoteDiv) {
+                                remoteDiv.innerHTML = '';
+                                user.videoTrack.play(remoteDiv);
+                            }
+                        }, 500);
+                    }
+                    if (mediaType === 'audio') {
+                        user.audioTrack.play();
+                    }
+                });
+
+                await client.join(window.AGORA_APP_ID, channel, token, uid);
+
+                const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                const micTrack = tracks[0];
+                const camTrack = this.isVideo ? tracks[1] : null;
+
+                if (camTrack) camTrack.play(document.getElementById('local-media'));
+
+                const publishTracks = [micTrack];
+                if (camTrack) publishTracks.push(camTrack);
+
+                await client.publish(publishTracks);
+
+                this.agoraClient = client;
+                this.localAudioTrack = micTrack;
+                this.localVideoTrack = camTrack;
+                this.videoEnabled = !!camTrack;
+                this.callState = 'connected';
+                this.callStatusText = 'Connected';
+                this.startTimer();
+
+                window.Echo.private(`admin-chat.${expertId}`).whisper('call-accepted', { chatId: expertId });
+
+            } catch (err) {
+                console.error('❌ Call failed:', err);
+                alert('Call failed: ' + (err.message || 'Unknown error'));
+                this.endCall();
+            } finally {
+                this._joining = false;
+            }
+        },
+
+        cancelCall() {
+            window.Echo.private(`admin-chat.${expertId}`).whisper('call-cancelled', { chatId: expertId });
+            this.endCall();
+        },
+
+        rejectCall() {
+            window.Echo.private(`admin-chat.${expertId}`).whisper('call-rejected', { chatId: expertId });
+            this.endCall();
+        },
+        endCall() {
+            this.stopRingtone();
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.callDuration = 0;
+
+            if (this.localAudioTrack) {
+                this.localAudioTrack.close();
+                this.localAudioTrack = null;
+            }
+            if (this.localVideoTrack) {
+                this.localVideoTrack.close();
+                this.localVideoTrack = null;
+            }
+            if (this.agoraClient) {
+                this.agoraClient.leave();
+                this.agoraClient = null;
+            }
+
+            this.callState = 'idle';
+            this.inCall = false;
+            this.callInitiator = null;
+            this.callerInfo = null;
+
+            document.getElementById('local-media').innerHTML = '';
+            document.getElementById('remote-media').innerHTML = '';
+
+            $('#callAdminModal').modal('hide');
+
+        },
+
+        hangUp() {
+            window.Echo.private(`admin-chat.${expertId}`).whisper('call-ended', { chatId: expertId });
+            this.endCall();
+        },
+
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+            if (this.localAudioTrack) {
+                this.localAudioTrack.setEnabled(!this.isMuted);
+            }
+        },
+
+        toggleVideo() {
+            if (this.localVideoTrack) {
+                this.videoEnabled = !this.videoEnabled;
+                this.localVideoTrack.setEnabled(this.videoEnabled);
+            }
+        },
+
+        // Timer, cleanupMedia, etc. same as before
+        startTimer() {
+            this.callDuration = 0;
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;
+                console.log('Admin timer tick:', this.callDuration);
+            }, 1000);
+        },
+        playRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.currentTime = 0;
+                ringtone.play().catch(e => console.log('Autoplay blocked'));
+            }
+        },
+
+        stopRingtone() {
+            const ringtone = document.getElementById('ringtone');
+            if (ringtone) {
+                ringtone.pause();
+                ringtone.currentTime = 0;
+            }
         },
 
         appendMessage(msg) {
@@ -1589,12 +2393,9 @@ export function expertAdminChatComponent() {
         },
 
         markAllAsRead() {
-            axios.post('/expert/admin-chat/mark-read');
+            axios.post('/expert/massages/admin-chat/mark-read');
         },
 
-        markAsRead(messageId) {
-            axios.post('/expert/admin-chat/mark-specific-read', { message_id: messageId });
-        }
     }
 }
 

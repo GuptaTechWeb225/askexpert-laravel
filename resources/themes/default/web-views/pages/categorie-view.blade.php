@@ -244,6 +244,7 @@
             originalQuestion: '',
             messageCount: 0,
             escalate: false,
+            isWaitingForConnectionChoice: false,
             hasInitMessage: false, // ← Naya flag: init message dikha ya nahi
             categoryName: '{{ $categorie->name }}',
 
@@ -353,10 +354,31 @@
 
                     let botResponse = data.bot_message;
 
-                    // Jab escalate ho → special clickable message
-                    if (data.escalate || this.messageCount >= 6) {
+                    if ((data.escalate || this.messageCount >= 6) && !this.isWaitingForConnectionChoice) {
+
+                        botResponse = `OK. Thanks for the info. And, how would you like to connect with the expert — phone call or online chat?`;
+
+                        this.isWaitingForConnectionChoice = true; 
+                        this.appendBotMessage(botResponse);
+                        this.hideTyping();
+
+                        return;
+                    }
+
+                    if (this.isWaitingForConnectionChoice) {
+
                         botResponse = `OK. Got it. I'm sending you to a secure page to join askExpert. While you're filling out that form, I'll tell the <strong>${this.categoryName} Technician</strong> about your situation and then connect you two. <a href="javascript:void(0)" @click="proceedToPayment()" style="color:#0066cc; font-weight:bold; text-decoration:none;">Continue >></a>`;
-                        this.escalate = true; // Input disable ho jaayega
+
+                        this.escalate = true;
+                        this.isWaitingForConnectionChoice = false;
+
+                        // Optional: 1–1.5 second delay for natural feel
+                        setTimeout(() => {
+                            this.appendBotMessage(botResponse);
+                            this.hideTyping();
+                        }, 1200);
+
+                        return;
                     }
 
                     this.hideTyping();

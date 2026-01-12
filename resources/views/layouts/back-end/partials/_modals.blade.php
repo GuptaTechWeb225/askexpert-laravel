@@ -54,27 +54,3 @@
         </div>
     </div>
 </div>
-
-<div class="modal" id="popup-modal">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="d-flex flex-wrap justify-content-center gap-2">
-                            <div class="text-center w-100">
-                                <h4 class="__color-8a8a8a">
-                                    <i class="tio-shopping-cart-outlined"></i> {{ translate('you_have_new_order') .', '.translate('check_please').'.' }}
-                                </h4>
-                            </div>
-                            <div class="d-flex justify-content-center gap-2">
-                                <button class="btn btn-warning ignore-check-order">{{ translate('Ignore_this_now') }}</button>
-                                <button class="btn btn--primary check-order">{{ translate('ok') .', '. translate('let_me_check') }}</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>

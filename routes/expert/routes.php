@@ -39,7 +39,7 @@ Route::group(['prefix' => 'expert', 'as' => 'expert.'], function () {
         });
     });
     Route::group(['middleware' => ['expert.auth']], function () {
-            Route::get('earnings', [ExpertSettingsController::class, 'expertEarnings'])->name('earnings');
+        Route::get('earnings', [ExpertSettingsController::class, 'expertEarnings'])->name('earnings');
 
         Route::group(['prefix' => 'dashboard', 'as' => 'dashboard.'], function () {
             Route::controller(DashboardController::class)->group(function () {
@@ -54,9 +54,10 @@ Route::group(['prefix' => 'expert', 'as' => 'expert.'], function () {
                 Route::post(Chat::MARK_READ[URI], 'markRead')->name('mark-read');
                 Route::get(Chat::MASSAGES[URI], 'massagesChat')->name('allmassages');
                 Route::post(Chat::END_CHAT[URI], 'endChatByExpert')->name('end-chat');
+                Route::post('/{chat}/action',  'performAction')->name('action');
             });
         });
-      
+
         Route::group(['prefix' => 'massages', 'as' => 'massages.'], function () {
             Route::controller(ExpertChatController::class)->group(function () {
                 Route::get(Chat::MASSAGES[URI], 'massagesChat')->name('allmassages');
@@ -90,4 +91,5 @@ Route::prefix('expert/massages/admin-chat')->group(function () {
     Route::post('/mark-specific-read', [ExpertChatController::class, 'markAdminSpecificRead']);
     Route::get('/messages', [ExpertChatController::class, 'getAdminMessages']); // Initial load
     Route::post('{chat}/end', [ExpertChatController::class, 'endChatByExpert']);
+    Route::post('{chat}/generate-token', [ExpertChatController::class, 'generateAgoraToken']);
 });

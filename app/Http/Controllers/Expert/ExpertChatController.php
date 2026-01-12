@@ -18,9 +18,10 @@ use App\Enums\ViewPaths\Expert\Chat;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\View\View;
-use App\Services\ExpertService;
 use App\Contracts\Repositories\AdminNotificationRepositoryInterface;
-
+use App\Services\ExpertService;
+use App\Services\Agora\RtcTokenBuilder;
+use Illuminate\Support\Facades\Auth;
 
 class ExpertChatController extends Controller
 {
@@ -30,6 +31,90 @@ class ExpertChatController extends Controller
         private readonly AdminNotificationRepositoryInterface   $notificationRepo,
 
     ) {}
+
+
+   public function generateAgoraToken($expertId)  
+{
+    Log::info('Agora Token Request Started for Admin-Expert Chat', [
+        'expert_id' => $expertId,
+        'expert_auth' => auth('expert')->check(),
+        'admin_auth'  => auth('admin')->check()
+    ]);
+
+    $user = null;
+    $role = null;
+    $guard = null;
+
+    // Sirf expert ya admin allowed
+    if (auth('expert')->check()) {
+        $user = auth('expert')->user();
+        $role = 'expert';
+        $guard = 'expert';
+    } elseif (auth('admin')->check()) {
+        $user = auth('admin')->user();
+        $role = 'admin';
+        $guard = 'admin';
+    }
+
+    if (!$user) {
+        Log::warning('Unauthorized Agora token request - only admin/expert allowed');
+        return response()->json(['error' => 'Unauthorized - Only Admin/Expert allowed'], 401);
+    }
+
+    $userId = $user->id;
+    $appId  = config('services.agora.app_id');
+    $appCert = config('services.agora.app_certificate');
+
+    if (!$appId || !$appCert) {
+        Log::error('Agora config missing');
+        return response()->json(['error' => 'Agora configuration missing'], 500);
+    }
+
+    // Channel name: expert ID pe based (dono taraf same rahega)
+    $channelName = 'admin_chat_' . $expertId;
+
+    // Agora UID (integer)
+    $uid = intval($userId);
+
+    $expireTimeInSeconds = 3600; // 1 hour
+    $currentTimestamp    = now()->timestamp;
+    $privilegeExpiredTs  = $currentTimestamp + $expireTimeInSeconds;
+
+    try {
+        $token = RtcTokenBuilder::buildTokenWithUid(
+            $appId,
+            $appCert,
+            $channelName,
+            $uid,
+            RtcTokenBuilder::RolePublisher,  // Dono taraf publisher
+            $privilegeExpiredTs
+        );
+
+        Log::info('Agora Token Generated Successfully', [
+            'channel' => $channelName,
+            'uid'     => $uid,
+            'role'    => $role,
+            'guard'   => $guard
+        ]);
+
+        return response()->json([
+            'token'    => $token,
+            'app_id'   => $appId,
+            'channel'  => $channelName,
+            'uid'      => $uid
+        ]);
+    } catch (\Throwable $e) {
+        Log::error('Agora Token Generation Failed', [
+            'error' => $e->getMessage(),
+            'role'  => $role
+        ]);
+
+        return response()->json([
+            'error' => 'Failed to generate Agora token'
+        ], 500);
+    }
+}
+
 
     public function view(ChatSession $chat)
     {
@@ -45,7 +130,7 @@ class ExpertChatController extends Controller
     }
     public function massagesChat()
     {
-                Log::info('this 2 is called');
+        Log::info('this 2 is called');
 
         $expertId = auth('expert')->id();
         if (!$expertId) {
@@ -67,7 +152,7 @@ class ExpertChatController extends Controller
     public function sendMessage(Request $request)
     {
 
-                Log::info('this 3 is called');
+        Log::info('this 3 is called');
 
         $request->validate([
             'chat_id' => 'required|exists:chat_sessions,id',
@@ -101,7 +186,7 @@ class ExpertChatController extends Controller
     public function markRead(Request $request)
     {
 
-                Log::info('this 4 is called');
+        Log::info('this 4 is called');
 
         $chatId = $request->chat_id;
         $messageId = $request->message_id;
@@ -126,6 +211,160 @@ class ExpertChatController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    public function endChatByExpert(Request $request, $chatId)
+    {
+
+        Log::info('this 10 is called');
+
+        $chat = ChatSession::where('id', $chatId)
+            ->where('expert_id', auth('expert')->id())
+            ->whereIn('status', ['active', 'pending'])
+            ->firstOrFail();
+
+        DB::transaction(function () use ($chat) {
+            $chat->update([
+                'status' => 'ended',
+                'ended_at' => now()
+            ]);
+
+            // Expert free karo
+            auth('expert')->user()->update([
+                'is_busy' => false,
+                'current_chat_id' => null
+            ]);
+
+            // System message add karo
+            ChatMessage::create([
+                'chat_session_id' => $chat->id,
+                'sender_type' => 'system',
+                'sender_id' => auth('expert')->id(),
+                'message' => 'This chat has been ended by the expert.',
+                'sent_at' => now(),
+                'is_read' => true
+            ]);
+
+
+
+            $existingEarning = ExpertEarning::where('chat_session_id', $chat->id)->first();
+
+            if (!$existingEarning) {
+                $this->expertService->createExpertEarning($chat, 'expert');
+            }
+        });
+        return response()->json([
+            'success' => true,
+            'message' => 'Chat ended successfully!'
+        ]);
+    }
+
+    public function performAction(Request $request, $chatId)
+    {
+        $request->validate([
+            'action' => 'required|in:block,miscategorized,optout,resolved',
+            'reason' => 'nullable|string|max:255'
+        ]);
+
+        $chat = ChatSession::where('id', $chatId)
+            ->where('expert_id', auth('expert')->id())
+            ->whereIn('status', ['active'])
+            ->firstOrFail();
+
+        $action = $request->action;
+        $expert = auth('expert')->user();
+        $reason = $request->reason ?? null;
+
+        DB::transaction(function () use ($chat, $action, $expert, $reason) {
+            $expert->update([
+                'is_busy' => false,
+                'current_chat_id' => null
+            ]);
+
+            switch ($action) {
+                case 'block':
+                case 'resolved':
+                    $chat->update([
+                        'status' => 'ended',
+                        'ended_at' => now(),
+                    ]);
+                    ChatMessage::create([
+                        'chat_session_id' => $chat->id,
+                        'sender_type' => 'system',
+                        'sender_id' => $expert->id,
+                        'message' => "Chat " . ($action === 'block' ? 'blocked' : 'resolved') . " by expert.",
+                        'sent_at' => now(),
+                        'is_read' => true
+                    ]);
+
+                    $existing = ExpertEarning::where('chat_session_id', $chat->id)->first();
+                    if (!$existing) {
+                        $this->expertService->createExpertEarning($chat, 'expert');
+                    }
+
+                    if ($action === 'block') {
+                        logActivity('Expert blocked the user', $expert, []);
+                    }
+                    break;
+
+                case 'miscategorized':
+                case 'optout':
+                    $chat->update([
+                        'status' => 'waiting',
+                        'expert_id' => null,
+                    ]);
+
+                    ChatMessage::create([
+                        'chat_session_id' => $chat->id,
+                        'sender_type' => 'system',
+                        'sender_id' => $expert->id,
+                        'message' => "Current expert has " . ($action === 'miscategorized' ? 'reported miscategorization' : 'opted out') . ". Your chat is now in the queue for a new expert assignment. Please stay online, we'll connect you soon! Thank you for your patience.",
+                        'sent_at' => now(),
+                        'is_read' => true
+                    ]);
+
+                    $title = $action === 'miscategorized'
+                        ? 'Chat Reported as Miscategorized'
+                        : 'Expert Opted Out from Chat';
+
+                    $message = "Expert {$expert->f_name} {$expert->l_name} has "
+                        . ($action === 'miscategorized' ? 'reported chat as miscategorized' : 'opted out')
+                        . " from chat #{$chat->id}.";
+
+                    if ($reason) {
+                        $message .= " Reason: {$reason}";
+                    }
+
+                    $recipients = [
+                        ['type' => 'admin', 'id' => 1],
+                    ];
+
+                    $this->notificationRepo->notifyRecipients(
+                        1,
+                        Admin::class,
+                        $title,
+                        $message,
+                        $recipients
+                    );
+
+                    // Activity log
+                    $logMessage = $action === 'miscategorized'
+                        ? 'Reported chat as miscategorized'
+                        : 'Opted out from chat';
+
+                    logActivity($logMessage, $expert, ['reason' => $reason ?? 'Not specified']);
+                    break;
+            }
+        });
+
+        $responseMessage = $action === 'miscategorized' || $action === 'optout'
+            ? ucfirst($action) . ' reported. Chat sent back to waiting queue.'
+            : ucfirst($action) . ' action completed';
+
+        return response()->json([
+            'success' => true,
+            'message' => $responseMessage
+        ]);
     }
 
     public function sendToAdmin(Request $request)
@@ -185,7 +424,7 @@ class ExpertChatController extends Controller
     public function getAdminMessages()
     {
 
-                Log::info(message: 'this 6 is called');
+        Log::info(message: 'this 6 is called');
 
         $expertId = auth('expert')->id();
 
@@ -205,7 +444,7 @@ class ExpertChatController extends Controller
     public function markAdminRead(Request $request)
     {
 
-                Log::info('this 7 is called');
+        Log::info('this 7 is called');
 
         $expertId = auth('expert')->id();
 
@@ -223,7 +462,7 @@ class ExpertChatController extends Controller
     public function markAdminSpecificRead(Request $request)
     {
 
-                Log::info('this 8 is called');
+        Log::info('this 8 is called');
 
         $request->validate(['message_id' => 'required']);
 
@@ -238,7 +477,7 @@ class ExpertChatController extends Controller
     public function myQuestions()
     {
 
-                Log::info('this 9 is called');
+        Log::info('this 9 is called');
 
         $expert = auth('expert')->user(); // authenticated expert
 
@@ -276,51 +515,5 @@ class ExpertChatController extends Controller
             'averageRating',
             'totalEarning',
         ));
-    }
-
-    public function endChatByExpert(Request $request, $chatId)
-    {
-
-                Log::info('this 10 is called');
-
-        $chat = ChatSession::where('id', $chatId)
-            ->where('expert_id', auth('expert')->id())
-            ->whereIn('status', ['active', 'pending'])
-            ->firstOrFail();
-
-        DB::transaction(function () use ($chat) {
-            $chat->update([
-                'status' => 'ended',
-                'ended_at' => now()
-            ]);
-
-            // Expert free karo
-            auth('expert')->user()->update([
-                'is_busy' => false,
-                'current_chat_id' => null
-            ]);
-
-            // System message add karo
-            ChatMessage::create([
-                'chat_session_id' => $chat->id,
-                'sender_type' => 'system',
-                'sender_id' => auth('expert')->id(),
-                'message' => 'This chat has been ended by the expert.',
-                'sent_at' => now(),
-                'is_read' => true
-            ]);
-
-
-
-            $existingEarning = ExpertEarning::where('chat_session_id', $chat->id)->first();
-
-            if (!$existingEarning) {
-                $this->expertService->createExpertEarning($chat, 'expert');
-            }
-        });
-        return response()->json([
-            'success' => true,
-            'message' => 'Chat ended successfully!'
-        ]);
     }
 }
