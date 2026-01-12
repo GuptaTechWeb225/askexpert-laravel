@@ -11,15 +11,6 @@ Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
     return $isCustomer || $isExpert;
 });
 
-Broadcast::channel('admin-chat.{expertId}', function ($user, $expertId) {
-    // Agar expert login hai aur uska hi channel hai
-    if (auth('expert')->check() && auth('expert')->id() == (int) $expertId) {
-        return ['id' => auth('expert')->id(), 'name' => auth('expert')->user()->f_name];
-    }
-
-    if (auth('admin')->check()) {
-        return ['id' => auth('admin')->id(), 'name' => 'Admin'];
-    }
-
-    return false;
+Broadcast::channel('admin-chat.*', function ($user) {
+    return $user instanceof \App\Models\Admin || $user instanceof \App\Models\Expert;
 });

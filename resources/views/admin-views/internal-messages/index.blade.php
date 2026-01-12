@@ -214,7 +214,7 @@ return [
                                         style="border-radius: 25px; padding-left: 20px; height: 45px;">
                                 </div>
 
-                                <button class="btn btn-success rounded-circle shadow-sm ms-2"
+                                <button class="btn btn--primary rounded-circle shadow-sm ms-2"
                                     type="button"
                                     style="width: 45px; height: 45px; flex-shrink: 0;"
                                     @click="sendMessage">
