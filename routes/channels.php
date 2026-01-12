@@ -1,6 +1,9 @@
 <?php
 // routes/channels.php
 use App\Models\ChatSession;
+use App\Models\Admin;
+use App\Models\Expert;
+use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
     $chat = ChatSession::find($chatId);
@@ -10,7 +13,15 @@ Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
 
     return $isCustomer || $isExpert;
 });
+Broadcast::channel('admin-chat.{expertId}', function ($user, $expertId) {
+    if ($user instanceof Admin) {
+        return true;
+    }
 
-Broadcast::channel('admin-chat.*', function ($user) {
-    return $user instanceof \App\Models\Admin || $user instanceof \App\Models\Expert;
+    // Expert ko sirf apne channel pe permission
+    if ($user instanceof Expert) {
+        return (int) $user->id === (int) $expertId;
+    }
+
+    return false;
 });
