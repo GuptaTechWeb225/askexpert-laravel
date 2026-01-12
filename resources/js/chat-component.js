@@ -1570,20 +1570,66 @@ export function adminExpertChatComponent() {
                         this.callerInfo = { avatar: data.avatar || '/assets/expert-avatar.png', name: 'Expert' };
 
                         const modalEl = document.getElementById('callModal');
-                        if (!modalEl) {
-                            console.error('Admin call modal not found!');
-                            return;
-                        }
-
                         this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
                         this.callBootstrapModal.show();
 
                         this.playRingtone();
                     }
                 })
-                .listenForWhisper('call-accepted', async () => {
-                    console.log('Expert accepted admin call – connecting...');
-                    // ... accept logic same as before
+              .listenForWhisper('call-accepted', async () => {
+                    if (this._joining) return;
+                    this._joining = true;
+                    try {
+                        console.log('Expert accepted the call – connecting...');
+                        this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
+                        this.callState = 'connecting';
+
+                        if (!this.agoraClient) {
+                            this.agoraClient = this.createAgoraClient();
+                        }
+
+                        const res = await axios.post(`/admin/expert-chat/${this.selectedExpertId}/generate-token`);
+                        const { token, channel, uid, app_id } = res.data;
+
+                        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                            } else {
+                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                tracks = [audio];
+                            }
+                        } catch (e) {
+                            throw new Error("Could not access microphone/camera");
+                        }
+
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
+
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
+
+                        await this.agoraClient.publish(tracks.filter(Boolean));
+
+                        this.callState = 'connected';
+                        this.inCall = true;
+                        this.callStatusText = 'Connected';
+                        this.startTimer();
+                    } catch (err) {
+                        console.error('❌ Admin side Agora join failed:', err);
+                        toastr.error('Connection failed: ' + err.message);
+                        this.endCall();
+                    } finally {
+                        this._joining = false;
+                    }
                 })
                 .listenForWhisper('call-rejected', () => {
                     this.callStatusText = 'Call Rejected';
