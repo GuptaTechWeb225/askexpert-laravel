@@ -124,75 +124,78 @@ class ChatController extends Controller
 
         return response()->json(['success' => true]);
     }
-    public function generateAgoraToken($chatId)
-    {
-        Log::info('Agora Token Request Started', [
-            'chat_id' => $chatId,
-            'customer_auth' => auth('customer')->check(),
-            'expert_auth' => auth('expert')->check()
+  public function generateAgoraToken($chatId)
+{
+    Log::info('Agora Token Request Started', [
+        'chat_id' => $chatId,
+        'customer_auth' => auth('customer')->check(),
+        'expert_auth' => auth('expert')->check()
+    ]);
+
+    $customer = auth('customer')->user();
+    $expert   = auth('expert')->user();
+
+    if (!$customer && !$expert) {
+        Log::warning('Unauthorized Agora token request');
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $role = $customer ? 'customer' : 'expert';
+
+    // 🔥 FIX: UNIQUE UID PER ROLE
+    if ($customer) {
+        $uid = 100000 + intval($customer->id);
+    } else {
+        $uid = 200000 + intval($expert->id);
+    }
+
+    $appId   = config('services.agora.app_id');
+    $appCert = config('services.agora.app_certificate');
+
+    if (!$appId || !$appCert) {
+        Log::error('Agora config missing');
+        return response()->json(['error' => 'Agora configuration missing'], 500);
+    }
+
+    $channelName = 'chat_' . $chatId;
+
+    $expireTimeInSeconds = 3600;
+    $privilegeExpiredTs = now()->timestamp + $expireTimeInSeconds;
+
+    try {
+        $token = RtcTokenBuilder::buildTokenWithUid(
+            $appId,
+            $appCert,
+            $channelName,
+            $uid,
+            RtcTokenBuilder::RolePublisher,
+            $privilegeExpiredTs
+        );
+
+        Log::info('Agora Token Generated Successfully', [
+            'channel' => $channelName,
+            'uid' => $uid,
+            'role' => $role
         ]);
 
-        $customer = auth('customer')->user();
-        $expert   = auth('expert')->user();
+        return response()->json([
+            'token'   => $token,
+            'app_id'  => $appId,
+            'channel' => $channelName,
+            'uid'     => $uid,
+            'role'    => $role
+        ]);
+    } catch (\Throwable $e) {
+        Log::error('Agora Token Generation Failed', [
+            'error' => $e->getMessage()
+        ]);
 
-        if (!$customer && !$expert) {
-            Log::warning('Unauthorized Agora token request');
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
-        $role   = $customer ? 'customer' : 'expert';
-        $userId = $customer ? $customer->id : $expert->id;
-
-        $appId  = config('services.agora.app_id');
-        $appCert = config('services.agora.app_certificate');
-
-        if (!$appId || !$appCert) {
-            Log::error('Agora config missing');
-            return response()->json(['error' => 'Agora configuration missing'], 500);
-        }
-
-        // Channel name (IMPORTANT: same for both users)
-        $channelName = 'chat_' . $chatId;
-
-        // Agora UID (number hona chahiye)
-        $uid = intval($userId);
-
-        $expireTimeInSeconds = 3600;
-        $currentTimestamp   = now()->timestamp;
-        $privilegeExpiredTs = $currentTimestamp + $expireTimeInSeconds;
-
-        try {
-            $token = RtcTokenBuilder::buildTokenWithUid(
-                $appId,
-                $appCert,
-                $channelName,
-                $uid,
-                RtcTokenBuilder::RolePublisher,
-                $privilegeExpiredTs
-            );
-
-            Log::info('Agora Token Generated Successfully', [
-                'channel' => $channelName,
-                'uid' => $uid,
-                'role' => $role
-            ]);
-
-            return response()->json([
-                'token' => $token,
-                'appId' => $appId,
-                'channel' => $channelName,
-                'uid' => $uid
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Agora Token Generation Failed', [
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'error' => 'Failed to generate Agora token'
-            ], 500);
-        }
+        return response()->json([
+            'error' => 'Failed to generate Agora token'
+        ], 500);
     }
+}
+
 
 
     public function endChat(Request $request, $chatId)
