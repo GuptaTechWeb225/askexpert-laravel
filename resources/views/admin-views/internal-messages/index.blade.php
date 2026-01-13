@@ -3,7 +3,18 @@
 @section('title', 'Expert Chat')
 
 @section('content')
-
+<script>
+    window.Laravel = {
+        csrfToken: '{{ csrf_token() }}',
+        user: @json(auth('admin')->user() ?? null),  // ← Yeh line important
+        echo: {
+            broadcaster: 'pusher',
+            key: '{{ env('PUSHER_APP_KEY') }}',
+            cluster: '{{ env('PUSHER_APP_CLUSTER') }}',
+            encrypted: true
+        }
+    };
+</script>
 <style>
     .chat-wrapper {
         display: flex;
