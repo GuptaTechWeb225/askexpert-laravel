@@ -1509,42 +1509,62 @@ export function adminExpertChatComponent() {
         _dummy: false,
         formattedDuration: 0,
 
-        setupCallListenerForExpert(expertId) {
-            const channel = `admin-chat.${expertId}`;
-            console.log('[Admin] Setting up call listener for channel:', channel);
+       setupCallListenerForExpert(expertId) {
+    const channel = `admin-chat.${expertId}`;
+    console.log('[Admin] Setting up call & message listener for channel:', channel);
 
-            window.Echo.private(channel)
-                .listenForWhisper('incoming-call', (data) => {
-                    console.log('[ADMIN] Incoming call from expert', data);
-                    this.handleIncomingCall(data);
-                })
-                .listenForWhisper('call-accepted', () => this.handleCallAccepted())
-                .listenForWhisper('call-rejected', () => this.handleCallRejected())
-                .listenForWhisper('call-ended', () => this.endCall())
-                 .listen('AdminExpertMessageSent', (e) => {
-                    this.appendMessage(e.message);
-                    if (e.message.sender_type === 'expert') {
-                        this.markAsRead(e.message.id);
-                    }
-                })
+    // Purana channel leave kar do (duplicate avoid)
+    if (this.currentChannel && this.currentChannel !== channel) {
+        window.Echo.leave(this.currentChannel);
+        console.log('[Admin] Left old channel:', this.currentChannel);
+    }
 
-                .listenForWhisper('new-message-from-expert', (data) => {
-            console.log('[Admin] Real-time message from expert via whisper!', data);
-            this.appendMessage(data.message);
-            this.scrollToBottom();
+    this.currentChannel = channel;
+
+    const privateChannel = window.Echo.private(channel);
+
+    // Subscription success/fail debug
+    privateChannel.subscribed(() => {
+        console.log('[Admin DEBUG] ✅ FULLY SUBSCRIBED to:', channel);
+    }).error((error) => {
+        console.error('[Admin DEBUG] ❌ SUBSCRIPTION ERROR on channel', channel, error);
+    });
+
+    privateChannel
+        .listenForWhisper('incoming-call', (data) => {
+            console.log('[ADMIN] Incoming call from expert', data);
+            this.handleIncomingCall(data);
         })
-                .listenForWhisper('typing', (e) => {
-                    if (e.role === 'expert') {
-                        this.typing = true;
-                        clearTimeout(this.typingTimer);
-                        this.typingTimer = setTimeout(() => this.typing = false, 1500);
-                    }
-                })
-                .listenForWhisper('call-cancelled', () => {
-                    toastr.info('Call cancelled');
-                    this.endCall();
-                });
-        },
+        .listenForWhisper('new-message-from-expert', (data) => {
+            console.log('[ADMIN] Real-time message from expert via whisper!', data);
+            if (data.message) {
+                this.appendMessage(data.message);
+                this.scrollToBottom();
+            } else {
+                console.warn('[Admin] Whisper data missing message object', data);
+            }
+        })
+        .listenForWhisper('call-accepted', () => this.handleCallAccepted())
+        .listenForWhisper('call-rejected', () => this.handleCallRejected())
+        .listenForWhisper('call-ended', () => this.endCall())
+        .listen('AdminExpertMessageSent', (e) => {
+            this.appendMessage(e.message);
+            if (e.message.sender_type === 'expert') {
+                this.markAsRead(e.message.id);
+            }
+        })
+        .listenForWhisper('typing', (e) => {
+            if (e.role === 'expert') {
+                this.typing = true;
+                clearTimeout(this.typingTimer);
+                this.typingTimer = setTimeout(() => this.typing = false, 1500);
+            }
+        })
+        .listenForWhisper('call-cancelled', () => {
+            toastr.info('Call cancelled');
+            this.endCall();
+        });
+},
         initiateCall(withVideo) {
             if (this.inCall || !this.selectedExpertId) return;
 
