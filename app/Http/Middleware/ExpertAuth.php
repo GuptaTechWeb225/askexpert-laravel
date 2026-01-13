@@ -18,7 +18,7 @@ class ExpertAuth
     public function handle($request, Closure $next)
     {
         if (!Auth::guard('expert')->check()) {
-            return redirect()->route('home')->with('error', 'Unauthorized access!');
+            return redirect()->route('expert.auth.login')->with('error', 'Unauthorized access!');
         }
 
         return $next($request);

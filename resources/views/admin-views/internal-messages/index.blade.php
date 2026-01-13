@@ -6,7 +6,7 @@
 <script>
     window.Laravel = {
         csrfToken: '{{ csrf_token() }}',
-        user: @json(auth('admin')->user() ?? null),  // ← Yeh line important
+        user: @json(auth('admin')->user() ?? null),  
         echo: {
             broadcaster: 'pusher',
             key: '{{ env('PUSHER_APP_KEY') }}',
@@ -122,6 +122,7 @@ return [
 'specialty' => $expert->primary_specialty ?? 'Expert',
 ];
 });
+
 @endphp
 <div class="content container-fluid">
     <div class="card">
