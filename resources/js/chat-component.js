@@ -737,8 +737,110 @@ export function expertChatComponent(chatId) {
 
                 })
 
-              
 
+                .listenForWhisper('call-accepted', async () => {
+                    if (this._joining) {
+                        console.warn('[Expert] Already joining in progress - ignoring duplicate call-accepted');
+                        return;
+                    }
+                    this._joining = true;
+
+                    const startTime = Date.now();
+                    console.log(`[Expert ${new Date().toISOString()}] call-accepted whisper RECEIVED`);
+
+                    await new Promise(r => setTimeout(r, 800)); // safety delay - adjust 500–1200ms if needed
+
+                    try {
+                        console.log(`[Expert] Step 1: Generating token... (time: ${Date.now() - startTime}ms)`);
+                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        const { token, channel, uid, app_id, role } = res.data;  // ← role bhi log karo!
+
+                        console.log(`[Expert] Step 2: Token received`, {
+                            timestamp: new Date().toISOString(),
+                            uid: uid,
+                            uidType: typeof uid,
+                            channel: channel,
+                            roleFromBackend: role,          // ← yeh check karna zaroori
+                            timeTaken: Date.now() - startTime
+                        });
+
+                        if (!this.agoraClient) {
+                            console.log('[Expert] Creating new Agora client');
+                            this.agoraClient = this.createAgoraClient();
+                        }
+
+                        const clientState = this.agoraClient.connectionState;
+                        console.log(`[Expert] Current client state before join: ${clientState}`);
+
+                        if (clientState === 'CONNECTED') {
+                            console.log('[Expert] Already connected → skipping join, only publishing tracks');
+                        } else if (clientState === 'CONNECTING') {
+                            console.warn('[Expert] Still connecting → waiting extra 1s');
+                            await new Promise(r => setTimeout(r, 1000));
+                        } else {
+                            console.log(`[Expert] Step 3: Joining channel with UID ${uid}...`);
+                            try {
+                                await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+                                console.log(`[Expert] Join SUCCESS - UID: ${uid}`);
+                            } catch (joinErr) {
+                                console.error('[Expert] JOIN FAILED - Detailed error:', {
+                                    code: joinErr.code,
+                                    message: joinErr.message,
+                                    reason: joinErr.reason || 'N/A',
+                                    fullError: joinErr
+                                });
+                                throw joinErr;
+                            }
+                        }
+
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks().catch(async (e) => {
+                                    console.warn("Camera failed, falling back to audio only", e);
+                                    this.isVideo = false;
+                                    const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                    return [audio];
+                                });
+                            } else {
+                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                tracks = [audio];
+                            }
+                        } catch (deviceErr) {
+                            throw new Error("Could not access microphone/camera");
+                        }
+
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
+
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
+
+                        await this.agoraClient.publish(tracks.filter(Boolean));
+
+                        this.callState = 'connected';
+                        this.inCall = true;
+                        this.callStatusText = 'Connected';
+                        this.startTimer();
+                    } catch (err) {
+                        console.error('[Expert] Full accept flow FAILED:', {
+                            error: err,
+                            code: err.code,
+                            message: err.message,
+                            stack: err.stack?.substring(0, 300)
+                        });
+                        toastr.error('Connection failed: ' + (err.message || 'Unknown'));
+                        this.endCall?.();
+                    } finally {
+                        this._joining = false;
+                        console.log(`[Expert] Accept flow completed in ${Date.now() - startTime}ms`);
+                    }
+                })
                 .listenForWhisper('call-cancelled', () => {
                     this.stopRingtone();
                     this.resetCallUI();
