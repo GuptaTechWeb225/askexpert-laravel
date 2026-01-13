@@ -10,9 +10,22 @@ Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
     $chat = ChatSession::find($chatId);
     if (!$chat) return false;
 
-    // Customer ke liye check
+  Log::info('Chat channel auth attempt', [
+        'chat_id' => $chatId,
+        'current_guard' => auth()->guard()->name ?? 'none',
+        'customer_logged_in' => auth('customer')->check() ? 'YES' : 'NO',
+        'customer_id' => auth('customer')->id ?? 'none',
+        'chat_user_id' => $chat->user_id,
+        'expert_logged_in' => auth('expert')->check() ? 'YES' : 'NO',
+        'expert_id' => auth('expert')->id ?? 'none',
+        'chat_expert_id' => $chat->expert_id,
+    ]);
+
+    // Customer guard check
     if (auth('customer')->check()) {
-        return (int) auth('customer')->id === (int) $chat->user_id;
+        $match = (int) auth('customer')->id === (int) $chat->user_id;
+        Log::info('Customer guard check', ['match' => $match]);
+        return $match;
     }
 
     // Expert ke liye check
