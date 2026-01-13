@@ -1560,30 +1560,16 @@ export function adminExpertChatComponent() {
 
                         await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-                        let tracks = [];
-                        try {
-                            if (this.isVideo) {
-                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-                            } else {
-                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
-                                tracks = [audio];
-                            }
-                        } catch (e) {
-                            throw new Error("Could not access microphone/camera");
-                        }
+                     const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                const micTrack = tracks[0];
+                const camTrack = this.isVideo ? tracks[1] : null;
 
-                        this.localAudioTrack = tracks[0];
-                        this.localVideoTrack = tracks[1] || null;
+                if (camTrack) camTrack.play(document.getElementById('local-media'));
 
-                        if (this.localVideoTrack) {
-                            const localDiv = document.getElementById('local-media');
-                            if (localDiv) {
-                                localDiv.innerHTML = '';
-                                this.localVideoTrack.play(localDiv);
-                            }
-                        }
+                const publishTracks = [micTrack];
+                if (camTrack) publishTracks.push(camTrack);
 
-                        await this.agoraClient.publish(tracks.filter(Boolean));
+                await client.publish(publishTracks);
 
                         this.callState = 'connected';
                         this.inCall = true;
