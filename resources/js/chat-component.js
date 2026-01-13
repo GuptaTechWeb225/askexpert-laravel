@@ -24,6 +24,7 @@ export function chatComponent(chatId) {
         timerInterval: null,
         _dummy: false,
         formattedDuration: 0,
+        callAcceptedWhisperSent: false,
 
 
         initiateCall(withVideo) {
@@ -117,6 +118,7 @@ export function chatComponent(chatId) {
         init() {
             this.scrollToBottom();
             this.markAllAsRead();
+            this.callAcceptedWhisperSent = false;
             window.Echo.private(`chat.${chatId}`)
 
 
@@ -260,28 +262,52 @@ export function chatComponent(chatId) {
             setInterval(() => this.checkExpertOnline(), 10000);
         },
         async acceptCall() {
-            if (this._joining) return;
+            // Double execution guard – agar already chal raha hai to bilkul skip
+            if (this._joining) {
+                console.warn('[USER] Already in joining process – ignoring duplicate accept call');
+                return;
+            }
+
+            // Extra strong guard: Whisper sirf ek baar bhejna (even page reload pe bhi careful)
+            if (this.callAcceptedWhisperSent) {
+                console.warn('[USER] call-accepted whisper already sent earlier – preventing duplicate');
+                return;
+            }
+
             this._joining = true;
+            this.callAcceptedWhisperSent = true;  // Flag set – ab dubara whisper nahi jayega
 
             try {
+                console.log('[USER] acceptCall started at', new Date().toISOString());
+
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting...';
 
+                // Token generate karo
                 const res = await axios.post(`/chat/${chatId}/generate-token`);
                 const { token, channel, uid, app_id } = res.data;
 
-                console.log('User accept: Token response', { uid, channel });
+                console.log('User accept: Token response', {
+                    uid,
+                    channel,
+                    uidType: typeof uid,
+                    timestamp: new Date().toISOString()
+                });
 
-                // 🔥 Yeh check sabse important – UID conflict avoid karega
-                if (this.agoraClient && this.agoraClient.connectionState === 'CONNECTED') {
-                    console.log('User already joined channel – skipping join, only publish tracks');
-                } else {
-                    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                // Agora client handle karo (agar pehle se connected to skip join)
+                let client = this.agoraClient;
 
+                if (!client || client.connectionState !== 'CONNECTED') {
+                    console.log('[USER] Creating new client and joining channel...');
+
+                    client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+                    // Remote user ke publish hone pe subscribe
                     client.on("user-published", async (user, mediaType) => {
                         try {
                             await client.subscribe(user, mediaType);
                             if (mediaType === "video") {
+                                // Thoda delay taaki DOM ready ho
                                 setTimeout(() => {
                                     const remoteDiv = document.getElementById('remote-media');
                                     if (remoteDiv) {
@@ -294,27 +320,31 @@ export function chatComponent(chatId) {
                                 user.audioTrack.play();
                             }
                         } catch (subErr) {
-                            console.warn('Subscribe failed, retrying in 1s...', subErr);
+                            console.warn('[USER] Subscribe failed, retrying in 1s...', subErr);
                             setTimeout(async () => {
                                 try {
                                     await client.subscribe(user, mediaType);
                                 } catch (retryErr) {
-                                    console.error('Retry failed:', retryErr);
+                                    console.error('[USER] Retry subscribe failed:', retryErr);
                                 }
                             }, 1000);
                         }
                     });
 
+                    // Join channel
                     await client.join(app_id || window.AGORA_APP_ID, channel, token, uid);
                     this.agoraClient = client;
+                    console.log('[USER] Join success – UID:', uid);
+                } else {
+                    console.log('[USER] Already connected to channel – skipping join');
                 }
 
-                // Tracks publish (har baar fresh banao aur publish karo)
+                // Fresh media tracks banao aur publish karo
                 let tracks = [];
                 try {
                     if (this.isVideo) {
                         tracks = await AgoraRTC.createMicrophoneAndCameraTracks().catch(async (e) => {
-                            console.warn("Camera failed, falling back to audio only", e);
+                            console.warn("[USER] Camera failed, falling back to audio only", e);
                             this.isVideo = false;
                             const audio = await AgoraRTC.createMicrophoneAudioTrack();
                             return [audio];
@@ -324,12 +354,14 @@ export function chatComponent(chatId) {
                         tracks = [audio];
                     }
                 } catch (deviceErr) {
+                    console.error('[USER] Media device error:', deviceErr);
                     throw new Error("Could not access microphone/camera");
                 }
 
-                this.localAudioTrack = tracks[0];
-                this.localVideoTrack = tracks[1] || null;
+                this.localAudioTrack = tracks.find(t => t.trackMediaType === 'audio') || tracks[0];
+                this.localVideoTrack = tracks.find(t => t.trackMediaType === 'video') || null;
 
+                // Local video play karo
                 if (this.localVideoTrack) {
                     const localDiv = document.getElementById('local-media');
                     if (localDiv) {
@@ -338,22 +370,35 @@ export function chatComponent(chatId) {
                     }
                 }
 
+                // Publish tracks
                 await this.agoraClient.publish(tracks.filter(Boolean));
+                console.log('[USER] Tracks published successfully');
 
+                // Call connected
                 this.callState = 'connected';
                 this.inCall = true;
                 this.callStatusText = 'Connected';
-                this.stopRingtone();
-                this.startTimer();
+                this.stopRingtone?.();
+                this.startTimer?.();
 
-                // Whisper bhejo
+                // WHISPER – sab kuch successful hone ke baad hi bhejo (sirf ek baar)
+                console.log('[USER] Sending call-accepted whisper NOW');
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
+
             } catch (err) {
-                console.error('❌ Call failed:', err);
+                console.error('❌ User acceptCall failed:', {
+                    error: err.message,
+                    code: err.code,
+                    stack: err.stack?.substring(0, 200)
+                });
                 alert('Call failed: ' + (err.message || 'Unknown error'));
-                this.endCall();
+                this.endCall?.();
+
+                // Error pe flag reset kar do (taaki agli baar try kar sake)
+                this.callAcceptedWhisperSent = false;
             } finally {
                 this._joining = false;
+                console.log('[USER] acceptCall completed');
             }
         },
         cancelCall() {
