@@ -1551,16 +1551,36 @@ export function adminExpertChatComponent() {
                         this.stopRingtone();
                         this.callStatusText = 'Connecting...';
                         this.callState = 'connecting';
+
+                        // Create or reuse client
                         if (!this.agoraClient) {
-                            this.agoraClient = this.createAgoraClient();
+                            this.agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+                            // 🔥 Yeh block add karo – remote tracks ke liye
+                            this.agoraClient.on("user-published", async (user, mediaType) => {
+                                console.log('Remote user published (in call-accepted):', user.uid, mediaType);
+                                await this.agoraClient.subscribe(user, mediaType);
+
+                                if (mediaType === "video") {
+                                    this.$nextTick(() => {
+                                        const remoteDiv = document.getElementById('remote-media');
+                                        if (remoteDiv) {
+                                            remoteDiv.innerHTML = '';
+                                            user.videoTrack.play(remoteDiv);
+                                        }
+                                    });
+                                }
+                                if (mediaType === "audio") {
+                                    user.audioTrack.play();
+                                }
+                            });
                         }
 
-                        const res = await axios.post(`/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`); // ya expert wala route
+                        const res = await axios.post(`/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`);
                         const { token, channel, uid, app_id } = res.data;
 
                         await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-                        // Apne tracks create + publish
                         let tracks = [];
                         try {
                             if (this.isVideo) {
@@ -1679,22 +1699,38 @@ export function adminExpertChatComponent() {
             }
         },
         createAgoraClient() {
+            if (this.agoraClient) {
+                console.log('Agora client already exists, reusing');
+                return this.agoraClient;
+            }
+
             const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
             client.on("user-published", async (user, mediaType) => {
+                console.log('Remote user published:', user.uid, mediaType);
                 await client.subscribe(user, mediaType);
+
                 if (mediaType === "video") {
-                    // Force wait for Alpine.js to show the div
                     this.$nextTick(() => {
                         const remoteDiv = document.getElementById('remote-media');
                         if (remoteDiv) {
+                            remoteDiv.innerHTML = '';
                             user.videoTrack.play(remoteDiv);
+                            console.log('Remote video playing');
+                        } else {
+                            console.warn('remote-media div not found');
                         }
                     });
                 }
+
                 if (mediaType === "audio") {
                     user.audioTrack.play();
+                    console.log('Remote audio playing');
                 }
             });
+
+            this.agoraClient = client;
+            console.log('Agora client created with remote listener');
             return client;
         },
         async acceptCall() {
@@ -2228,22 +2264,38 @@ export function expertAdminChatComponent() {
                 });
         },
         createAgoraClient() {
+            if (this.agoraClient) {
+                console.log('Agora client already exists, reusing');
+                return this.agoraClient;
+            }
+
             const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
             client.on("user-published", async (user, mediaType) => {
+                console.log('Remote user published:', user.uid, mediaType);
                 await client.subscribe(user, mediaType);
+
                 if (mediaType === "video") {
-                    // Force wait for Alpine.js to show the div
                     this.$nextTick(() => {
                         const remoteDiv = document.getElementById('remote-media');
                         if (remoteDiv) {
+                            remoteDiv.innerHTML = '';
                             user.videoTrack.play(remoteDiv);
+                            console.log('Remote video playing');
+                        } else {
+                            console.warn('remote-media div not found');
                         }
                     });
                 }
+
                 if (mediaType === "audio") {
                     user.audioTrack.play();
+                    console.log('Remote audio playing');
                 }
             });
+
+            this.agoraClient = client;
+            console.log('Agora client created with remote listener');
             return client;
         },
         async acceptCall() {
