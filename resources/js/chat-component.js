@@ -766,9 +766,8 @@ export function expertChatComponent(chatId) {
                         this.callStatusText = 'Connected';
                         this.startTimer();
                     } catch (err) {
-                        console.error('❌ User side Agora join failed:', err);
+                        console.error('expert side Agora join failed:', err);
                         toastr.error('Connection failed: ' + err.message);
-                        this.resetCallUI();
                     } finally {
                         this._joining = false;
                     }

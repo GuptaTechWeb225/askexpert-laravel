@@ -708,7 +708,72 @@ export function expertChatComponent(chatId) {
 
                 })
 
-               
+                .listenForWhisper('call-accepted', async () => {
+                    if (this._joining) return;
+                    this._joining = true;
+
+                    try {
+                        console.log('Call accepted by remote side – connecting...');
+                        this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
+                        this.callState = 'connecting';
+
+                        if (!this.agoraClient) {
+                            this.agoraClient = this.createAgoraClient();
+                        }
+
+                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        const { token, channel, uid, app_id } = res.data;
+
+                        if (this.agoraClient && this.agoraClient.connectionState === 'CONNECTED') {
+                            console.log('Already joined channel – skipping join, only publish tracks');
+                        } else {
+                            console.log('Joining Agora channel:', channel, 'with UID:', uid);
+                            await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+                        }
+
+                        // Apne tracks publish karo (agar pehle publish nahi hue)
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks().catch(async (e) => {
+                                    console.warn("Camera failed, falling back to audio only", e);
+                                    this.isVideo = false;
+                                    const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                    return [audio];
+                                });
+                            } else {
+                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                tracks = [audio];
+                            }
+                        } catch (deviceErr) {
+                            throw new Error("Could not access microphone/camera");
+                        }
+
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
+
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
+
+                        await this.agoraClient.publish(tracks.filter(Boolean));
+
+                        this.callState = 'connected';
+                        this.inCall = true;
+                        this.callStatusText = 'Connected';
+                        this.startTimer();
+                    } catch (err) {
+                        console.error('❌ expert side Agora join failed:', err);
+                        toastr.error('Connection failed: ' + (err.message || 'Unknown error'));
+                    } finally {
+                        this._joining = false;
+                    }
+                })
                 .listenForWhisper('call-cancelled', () => {
                     this.stopRingtone();
                     this.resetCallUI();
