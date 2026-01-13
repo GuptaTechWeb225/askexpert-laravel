@@ -721,10 +721,11 @@ export function expertChatComponent(chatId) {
                 .listenForWhisper('call-accepted', async () => {
                     console.log('🔔 Whisper received: call-accepted');
 
-                    if (this._joining) {
-                        console.warn('⛔ Already joining, skipping');
-                        return;
-                    }
+                     if (this.inCall || this._joining || this.agoraClient) {
+        console.warn('⛔ Duplicate call-accepted ignored');
+        return;
+    }
+
 
                     this._joining = true;
                     console.log('🚀 Join process started');
