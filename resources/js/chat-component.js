@@ -1768,12 +1768,12 @@ export function adminExpertChatComponent() {
             console.log('[AdminChat] ✅ Message appended to DOM:', msg.id);
             this.scrollToBottom();
         },
-         get formattedDuration() {
+        get formattedDuration() {
             const mins = Math.floor(this.callDuration / 60);
             const secs = this.callDuration % 60;
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         },
-         startTimer() {
+        startTimer() {
             this.callDuration = 0;
             this.formattedDuration = '00:00';
 
@@ -1997,6 +1997,8 @@ export function expertAdminChatComponent() {
         callDuration: 0,
         timerInterval: null,
         _dummy: false,
+        formattedDuration: 0,
+
 
 
         initiateCall(withVideo) {
