@@ -320,7 +320,6 @@ export function chatComponent(chatId) {
             } catch (err) {
                 console.error('❌ Call failed:', err);
                 alert('Call failed: ' + err.message);
-                this.endCall();
             } finally {
                 this._joining = false;
             }
