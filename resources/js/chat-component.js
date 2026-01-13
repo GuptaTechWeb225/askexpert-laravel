@@ -1545,38 +1545,52 @@ export function adminExpertChatComponent() {
                 .listenForWhisper('call-accepted', async () => {
                     if (this._joining) return;
                     this._joining = true;
+
                     try {
-                        console.log('Expert accepted the call – connecting...');
+                        console.log('Call accepted by remote side – connecting...');
                         this.stopRingtone();
                         this.callStatusText = 'Connecting...';
                         this.callState = 'connecting';
-
                         if (!this.agoraClient) {
                             this.agoraClient = this.createAgoraClient();
                         }
 
-                        const res = await axios.post(`/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`);
+                        const res = await axios.post(`/admin/expert-chat/${this.selectedExpertId}/generate-token`); // ya expert wala route
                         const { token, channel, uid, app_id } = res.data;
 
                         await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
-                     const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-                const micTrack = tracks[0];
-                const camTrack = this.isVideo ? tracks[1] : null;
+                        // Apne tracks create + publish
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                            } else {
+                                tracks = [await AgoraRTC.createMicrophoneAudioTrack()];
+                            }
+                        } catch (e) {
+                            throw new Error("Could not access mic/camera");
+                        }
 
-                if (camTrack) camTrack.play(document.getElementById('local-media'));
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
 
-                const publishTracks = [micTrack];
-                if (camTrack) publishTracks.push(camTrack);
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
 
-                await client.publish(publishTracks);
+                        await this.agoraClient.publish(tracks.filter(Boolean));
 
                         this.callState = 'connected';
                         this.inCall = true;
                         this.callStatusText = 'Connected';
                         this.startTimer();
                     } catch (err) {
-                        console.error('❌ Admin side Agora join failed:', err);
+                        console.error('❌ Agora join failed in call-accepted:', err);
                         toastr.error('Connection failed: ' + err.message);
                         this.endCall();
                     } finally {
@@ -1664,7 +1678,7 @@ export function adminExpertChatComponent() {
                 this.setupCallListenerForExpert(this.selectedExpertId);
             }
         },
-          createAgoraClient() {
+        createAgoraClient() {
             const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
             client.on("user-published", async (user, mediaType) => {
                 await client.subscribe(user, mediaType);
@@ -2337,23 +2351,23 @@ export function expertAdminChatComponent() {
             window.Echo.private(`admin-chat.${expertId}`).whisper('call-ended', { chatId: expertId });
             this.endCall();
         },
-get formattedDuration() {
-    const mins = Math.floor(this.callDuration / 60);
-    const secs = this.callDuration % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-},
-startTimer() {
-    this.callDuration = 0;
+        get formattedDuration() {
+            const mins = Math.floor(this.callDuration / 60);
+            const secs = this.callDuration % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        },
+        startTimer() {
+            this.callDuration = 0;
 
-    if (this.timerInterval) {
-        clearInterval(this.timerInterval);
-    }
+            if (this.timerInterval) {
+                clearInterval(this.timerInterval);
+            }
 
-    this.timerInterval = setInterval(() => {
-        this.callDuration++;
-        console.log('Timer tick:', this.callDuration, this.formattedDuration);
-    }, 1000);
-},
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;
+                console.log('Timer tick:', this.callDuration, this.formattedDuration);
+            }, 1000);
+        },
 
         toggleMute() {
             this.isMuted = !this.isMuted;
@@ -2454,7 +2468,7 @@ startTimer() {
                 console.error('[Expert] Send failed:', err);
             });
         },
-       
+
 
         typingEvent() {
             window.Echo.private(`admin-chat.${expertId}`).whisper('typing', { role: 'expert' });
