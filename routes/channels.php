@@ -14,24 +14,27 @@ Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
 
     return $isCustomer || $isExpert;
 });
+
 Broadcast::channel('admin-chat.{expertId}', function ($user, $expertId) {
-    // TEMP: Admin ko hamesha allow (testing ke liye)
+    Log::info('Authorization check for admin-chat.' . $expertId, [
+        'user' => $user ? get_class($user) . ' (ID: ' . $user->id . ')' : 'NULL',
+        'auth_guard' => auth()->guard()->name ?? 'none',
+        'is_admin' => auth('admin')->check() ? 'YES' : 'NO'
+    ]);
+
+    if (auth('admin')->check()) {
+        Log::info('Admin authorized via auth guard');
+        return true;
+    }
+
     if ($user instanceof Admin) {
         return true;
     }
 
-    // Expert ko apne channel pe
-    if ($user instanceof Expert) {
-        return (int) $user->id === (int) $expertId;
+    if ($user instanceof Expert && (int)$user->id === (int)$expertId) {
+        return true;
     }
 
-    // Debug ke liye log daal do
-    Log::info('Channel authorization check for admin-chat.' . $expertId, [
-        'user_type' => get_class($user ?? null),
-        'user_id' => $user->id ?? 'no user',
-        'expertId' => $expertId,
-        'allowed' => false
-    ]);
-
+    Log::warning('Unauthorized access to admin-chat.' . $expertId);
     return false;
 });

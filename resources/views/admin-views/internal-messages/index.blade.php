@@ -14,6 +14,8 @@
             encrypted: true
         }
     };
+
+    console.log('[DEBUG] Laravel.user from blade:', window.Laravel.user);
 </script>
 <style>
     .chat-wrapper {

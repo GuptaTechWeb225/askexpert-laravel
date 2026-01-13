@@ -12,10 +12,9 @@ class BroadcastServiceProvider extends ServiceProvider
      *
      * @return void
      */
-  public function boot()
+    public function boot()
     {
-        // 🔥 Yeh line change karo – admin guard bhi add kar do
-        Broadcast::routes(['middleware' => ['web', 'auth:customer,expert,admin']]);
+        Broadcast::routes(['middleware' => ['web', 'auth:admin,expert,customer']]);
 
         require base_path('routes/channels.php');
     }
