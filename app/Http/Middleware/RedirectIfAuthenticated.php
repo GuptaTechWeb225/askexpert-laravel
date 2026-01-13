@@ -30,9 +30,14 @@ class RedirectIfAuthenticated
                     return redirect()->route('home');
                 }
                 break;
+            case 'expert':
+                if (Auth::guard($guard)->check()) {
+                    return redirect()->route('expert.dashboard.index');
+                }
+                break;
             default:
                 if (Auth::guard($guard)->check()) {
-                    return redirect('expert.auth.login');
+                    return redirect('home');
                 }
                 break;
         }
