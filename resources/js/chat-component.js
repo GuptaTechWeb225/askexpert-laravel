@@ -1532,7 +1532,6 @@ export function adminExpertChatComponent() {
 
             privateChannel
                 .listenForWhisper('incoming-call', (data) => {
-                    console.log('[ADMIN] Incoming call from expert', data);
                     this.handleIncomingCall(data);
                 })
                 .listenForWhisper('new-message-from-expert', (data) => {
