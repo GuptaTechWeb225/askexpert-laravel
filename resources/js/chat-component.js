@@ -133,7 +133,7 @@ export function chatComponent(chatId) {
 
 
                         if (!this.agoraClient) {
-                            this.agoraClient = this.createAgoraClient(); 
+                            this.agoraClient = this.createAgoraClient();
                         }
 
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
@@ -678,6 +678,12 @@ export function expertChatComponent(chatId) {
             this.markAllAsRead();
 
             window.Echo.private(`chat.${chatId}`)
+                .subscribed(() => {
+                    console.log('✅ SUCCESSFULLY SUBSCRIBED to chat.' + chatId);
+                })
+                .error((error) => {
+                    console.error('❌ CHANNEL SUBSCRIPTION FAILED for chat.' + chatId, error);
+                })
                 .listen('ChatMessageSent', (e) => {
                     if (e.message.sender_type === 'user') {
                         this.appendMessage(e.message);
@@ -1549,7 +1555,7 @@ export function adminExpertChatComponent() {
 
 
                         if (!this.agoraClient) {
-                            this.agoraClient = this.createAgoraClient(); 
+                            this.agoraClient = this.createAgoraClient();
                         }
 
                         const res = await axios.post(`/expert/massages/admin-chat/${chatId}/generate-token`);

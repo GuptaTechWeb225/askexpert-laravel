@@ -9,10 +9,21 @@ use Illuminate\Support\Facades\Log;
 Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
     $chat = ChatSession::find($chatId);
     if (!$chat) return false;
-    $isCustomer = (int) $user->id === (int) $chat->user_id;
-    $isExpert = (int) $user->id === (int) $chat->expert_id;
 
-    return $isCustomer || $isExpert;
+    // Customer ke liye check
+    if (auth('customer')->check()) {
+        return (int) auth('customer')->id === (int) $chat->user_id;
+    }
+
+    // Expert ke liye check
+    if (auth('expert')->check()) {
+        return (int) auth('expert')->id === (int) $chat->expert_id;
+    }
+
+    // Admin ko optional allow kar sakte ho (agar chahiye)
+    // if (auth('admin')->check()) return true;
+
+    return false;
 });
 
 Broadcast::channel('admin-chat.{expertId}', function ($user, $expertId) {
