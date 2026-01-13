@@ -530,7 +530,7 @@ export function chatComponent(chatId) {
                     this.selectedFile = null;
                     document.getElementById('imageInput').value = ''; // Reset input
                     this.appendMessage(res.data.message_data);
-                    
+
                 })
                 .catch(err => console.error(err));
         },
@@ -1509,62 +1509,116 @@ export function adminExpertChatComponent() {
         _dummy: false,
         formattedDuration: 0,
 
-       setupCallListenerForExpert(expertId) {
-    const channel = `admin-chat.${expertId}`;
-    console.log('[Admin] Setting up call & message listener for channel:', channel);
+        setupCallListenerForExpert(expertId) {
+            const channel = `admin-chat.${expertId}`;
+            console.log('[Admin] Setting up call & message listener for channel:', channel);
 
-    // Purana channel leave kar do (duplicate avoid)
-    if (this.currentChannel && this.currentChannel !== channel) {
-        window.Echo.leave(this.currentChannel);
-        console.log('[Admin] Left old channel:', this.currentChannel);
-    }
-
-    this.currentChannel = channel;
-
-    const privateChannel = window.Echo.private(channel);
-
-    // Subscription success/fail debug
-    privateChannel.subscribed(() => {
-        console.log('[Admin DEBUG] ✅ FULLY SUBSCRIBED to:', channel);
-    }).error((error) => {
-        console.error('[Admin DEBUG] ❌ SUBSCRIPTION ERROR on channel', channel, error);
-    });
-
-    privateChannel
-        .listenForWhisper('incoming-call', (data) => {
-            console.log('[ADMIN] Incoming call from expert', data);
-            this.handleIncomingCall(data);
-        })
-        .listenForWhisper('new-message-from-expert', (data) => {
-            console.log('[ADMIN] Real-time message from expert via whisper!', data);
-            if (data.message) {
-                this.appendMessage(data.message);
-                this.scrollToBottom();
-            } else {
-                console.warn('[Admin] Whisper data missing message object', data);
+            // Purana channel leave kar do (duplicate avoid)
+            if (this.currentChannel && this.currentChannel !== channel) {
+                window.Echo.leave(this.currentChannel);
+                console.log('[Admin] Left old channel:', this.currentChannel);
             }
-        })
-        .listenForWhisper('call-accepted', () => this.handleCallAccepted())
-        .listenForWhisper('call-rejected', () => this.handleCallRejected())
-        .listenForWhisper('call-ended', () => this.endCall())
-        .listen('AdminExpertMessageSent', (e) => {
-            this.appendMessage(e.message);
-            if (e.message.sender_type === 'expert') {
-                this.markAsRead(e.message.id);
-            }
-        })
-        .listenForWhisper('typing', (e) => {
-            if (e.role === 'expert') {
-                this.typing = true;
-                clearTimeout(this.typingTimer);
-                this.typingTimer = setTimeout(() => this.typing = false, 1500);
-            }
-        })
-        .listenForWhisper('call-cancelled', () => {
-            toastr.info('Call cancelled');
-            this.endCall();
-        });
-},
+
+            this.currentChannel = channel;
+
+            const privateChannel = window.Echo.private(channel);
+
+            // Subscription success/fail debug
+            privateChannel.subscribed(() => {
+                console.log('[Admin DEBUG] ✅ FULLY SUBSCRIBED to:', channel);
+            }).error((error) => {
+                console.error('[Admin DEBUG] ❌ SUBSCRIPTION ERROR on channel', channel, error);
+            });
+
+            privateChannel
+                .listenForWhisper('incoming-call', (data) => {
+                    console.log('[ADMIN] Incoming call from expert', data);
+                    this.handleIncomingCall(data);
+                })
+                .listenForWhisper('new-message-from-expert', (data) => {
+                    console.log('[ADMIN] Real-time message from expert via whisper!', data);
+                    if (data.message) {
+                        this.appendMessage(data.message);
+                        this.scrollToBottom();
+                    } else {
+                        console.warn('[Admin] Whisper data missing message object', data);
+                    }
+                })
+                .listenForWhisper('call-accepted', async () => {
+                    if (this._joining) return;
+                    this._joining = true;
+                    try {
+                        console.log('Expert accepted the call – connecting...');
+                        this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
+                        this.callState = 'connecting';
+
+                        if (!this.agoraClient) {
+                            this.agoraClient = this.createAgoraClient();
+                        }
+
+                        const res = await axios.post(`/admin/expert-chat/${this.selectedExpertId}/generate-token`);
+                        const { token, channel, uid, app_id } = res.data;
+
+                        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                            } else {
+                                const audio = await AgoraRTC.createMicrophoneAudioTrack();
+                                tracks = [audio];
+                            }
+                        } catch (e) {
+                            throw new Error("Could not access microphone/camera");
+                        }
+
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
+
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
+
+                        await this.agoraClient.publish(tracks.filter(Boolean));
+
+                        this.callState = 'connected';
+                        this.inCall = true;
+                        this.callStatusText = 'Connected';
+                        this.startTimer();
+                    } catch (err) {
+                        console.error('❌ Admin side Agora join failed:', err);
+                        toastr.error('Connection failed: ' + err.message);
+                        this.endCall();
+                    } finally {
+                        this._joining = false;
+                    }
+                })
+                .listenForWhisper('call-rejected', () => this.handleCallRejected())
+                .listenForWhisper('call-ended', () => this.endCall())
+                .listen('AdminExpertMessageSent', (e) => {
+                    this.appendMessage(e.message);
+                    if (e.message.sender_type === 'expert') {
+                        this.markAsRead(e.message.id);
+                    }
+                })
+                .listenForWhisper('typing', (e) => {
+                    if (e.role === 'expert') {
+                        this.typing = true;
+                        clearTimeout(this.typingTimer);
+                        this.typingTimer = setTimeout(() => this.typing = false, 1500);
+                    }
+                })
+                .listenForWhisper('call-cancelled', () => {
+                    toastr.info('Call cancelled');
+                    this.endCall();
+                });
+        },
         initiateCall(withVideo) {
             if (this.inCall || !this.selectedExpertId) return;
 
@@ -1607,13 +1661,6 @@ export function adminExpertChatComponent() {
 
             $('#callModal').modal({ backdrop: 'static', keyboard: false }).modal('show');
             this.playRingtone();
-        },
-        handleCallAccepted() {
-            this.stopRingtone(); 
-            this.callState = 'connecting';
-            this.callStatusText = 'Connecting...';
-            this.inCall = true;
-            console.log('Call accepted by Expert, connecting Agora...');
         },
 
         handleCallRejected() {
@@ -1728,7 +1775,7 @@ export function adminExpertChatComponent() {
 
 
             window.Echo.private(this.currentChannel)
-               
+
 
             this.loadInitialMessages(expertId);
             this.markAllAsRead();
@@ -1868,7 +1915,7 @@ export function adminExpertChatComponent() {
                 this.selectedFile = null;
                 document.getElementById('imageInput').value = '';
                 this.appendMessage(res.data.message_data);
-            
+
             }).catch(err => {
                 console.error('[AdminChat] Send failed:', err.response || err);
             });
@@ -2068,7 +2115,7 @@ export function expertAdminChatComponent() {
                         this.markAsRead(e.message.id);
                     }
                 })
-                
+
                 .listenForWhisper('typing', (e) => {
                     if (e.role === 'admin') {
                         this.typing = true;
@@ -2371,33 +2418,33 @@ export function expertAdminChatComponent() {
             if (body) body.scrollTop = body.scrollHeight;
         },
 
-      sendMessage() {
-    if (!this.newMessage.trim() && !this.selectedFile) return;
+        sendMessage() {
+            if (!this.newMessage.trim() && !this.selectedFile) return;
 
-    let formData = new FormData();
-    if (this.newMessage) formData.append('message', this.newMessage);
-    if (this.selectedFile) formData.append('image', this.selectedFile);
+            let formData = new FormData();
+            if (this.newMessage) formData.append('message', this.newMessage);
+            if (this.selectedFile) formData.append('image', this.selectedFile);
 
-    axios.post('/expert/massages/admin-chat/send', formData).then(res => {
-        console.log('[Expert] Message sent successfully:', res.data);
+            axios.post('/expert/massages/admin-chat/send', formData).then(res => {
+                console.log('[Expert] Message sent successfully:', res.data);
 
-        this.newMessage = '';
-        this.selectedFile = null;
-        document.getElementById('imageInput').value = '';
+                this.newMessage = '';
+                this.selectedFile = null;
+                document.getElementById('imageInput').value = '';
 
-        // Expert ke apne chat mein append (yeh already hai)
-        this.appendMessage(res.data.message_data);
+                // Expert ke apne chat mein append (yeh already hai)
+                this.appendMessage(res.data.message_data);
 
-        // 🔥 Admin ko real-time whisper bhej do
-        window.Echo.private(`admin-chat.${expertId}`).whisper('new-message-from-expert', {
-            message: res.data.message_data  // pura message object bhej do
-        });
+                // 🔥 Admin ko real-time whisper bhej do
+                window.Echo.private(`admin-chat.${expertId}`).whisper('new-message-from-expert', {
+                    message: res.data.message_data  // pura message object bhej do
+                });
 
-        console.log('[Expert] Whisper sent to admin on channel: admin-chat.' + expertId);
-    }).catch(err => {
-        console.error('[Expert] Send failed:', err);
-    });
-},
+                console.log('[Expert] Whisper sent to admin on channel: admin-chat.' + expertId);
+            }).catch(err => {
+                console.error('[Expert] Send failed:', err);
+            });
+        },
 
         typingEvent() {
             window.Echo.private(`admin-chat.${expertId}`).whisper('typing', { role: 'expert' });
