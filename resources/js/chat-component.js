@@ -1542,7 +1542,7 @@ export function adminExpertChatComponent() {
                         console.warn('[Admin] Whisper data missing message object', data);
                     }
                 })
-               .listenForWhisper('call-accepted', async () => {
+             .listenForWhisper('call-accepted', async () => {
     if (this._joining) return;
     this._joining = true;
 
@@ -1552,32 +1552,13 @@ export function adminExpertChatComponent() {
         this.callStatusText = 'Connecting...';
         this.callState = 'connecting';
 
-        // Step 1: Client create ya reuse karo
+        // Client ready karo (remote listener ke saath)
         if (!this.agoraClient) {
             this.agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-            // 🔥 Remote tracks listener – yeh sabse important hai
             this.agoraClient.on("user-published", async (user, mediaType) => {
                 console.log('Remote user published → subscribing:', user.uid, mediaType);
-
-                // Retry logic – agar user abhi channel mein nahi, 500ms wait + retry
-                let retries = 3;
-                while (retries > 0) {
-                    try {
-                        await this.agoraClient.subscribe(user, mediaType);
-                        console.log('Subscribe success for', user.uid, mediaType);
-                        break; // Success → loop break
-                    } catch (subErr) {
-                        console.warn('Subscribe retry needed:', subErr.message);
-                        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms wait
-                        retries--;
-                    }
-                }
-
-                if (retries === 0) {
-                    console.error('Subscribe failed after retries for user:', user.uid);
-                    return;
-                }
+                await this.agoraClient.subscribe(user, mediaType);
 
                 if (mediaType === "video") {
                     await this.$nextTick();
@@ -1585,31 +1566,57 @@ export function adminExpertChatComponent() {
                     if (remoteDiv) {
                         remoteDiv.innerHTML = '';
                         user.videoTrack.play(remoteDiv);
-                        console.log('✅ Remote video successfully playing in remote-media');
-                    } else {
-                        console.error('remote-media div not found in DOM!');
+                        console.log('✅ Remote video playing');
                     }
                 }
-
                 if (mediaType === "audio") {
                     user.audioTrack.play();
-                    console.log('Remote audio started');
                 }
             });
         }
 
-        // Step 2: Token le lo (fixed route)
+        // Token le lo
         const endpoint = `/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`;
-
         const res = await axios.post(endpoint);
         const { token, channel, uid, app_id } = res.data;
 
-        console.log('Joining Agora channel:', channel, 'with UID:', uid, 'App ID:', app_id);
+        console.log('Joining Agora channel:', channel, 'UID:', uid, 'App ID:', app_id);
 
-        // Step 3: Join channel
+        // Join channel
         await this.agoraClient.join(app_id, channel, token, uid);
 
-        // Step 4: Apne tracks publish karo
+        // 🔥 Yeh critical part – join hone ke baad manually check aur subscribe
+        await new Promise(resolve => setTimeout(resolve, 800)); // 800ms wait (dusre side ke publish ka time)
+
+        // Manually remote users check karo
+        const remoteUsers = this.agoraClient.remoteUsers || [];
+        if (remoteUsers.length > 0) {
+            console.log('Found remote users after join:', remoteUsers.map(u => u.uid));
+
+            for (const user of remoteUsers) {
+                if (user.audioTrack) {
+                    console.log('Force subscribing audio for user:', user.uid);
+                    await this.agoraClient.subscribe(user, 'audio');
+                    user.audioTrack.play();
+                }
+                if (user.videoTrack) {
+                    console.log('Force subscribing video for user:', user.uid);
+                    await this.agoraClient.subscribe(user, 'video');
+
+                    await this.$nextTick();
+                    const remoteDiv = document.getElementById('remote-media');
+                    if (remoteDiv) {
+                        remoteDiv.innerHTML = '';
+                        user.videoTrack.play(remoteDiv);
+                        console.log('✅ Force remote video playing');
+                    }
+                }
+            }
+        } else {
+            console.log('No remote users found after join – normal event should handle');
+        }
+
+        // Apne tracks publish
         let tracks = [];
         try {
             if (this.isVideo) {
@@ -1618,8 +1625,7 @@ export function adminExpertChatComponent() {
                 tracks = [await AgoraRTC.createMicrophoneAudioTrack()];
             }
         } catch (e) {
-            console.error('Mic/Camera access failed:', e);
-            throw new Error("Could not access microphone/camera");
+            throw new Error("Could not access mic/camera");
         }
 
         this.localAudioTrack = tracks[0];
@@ -1630,12 +1636,10 @@ export function adminExpertChatComponent() {
             if (localDiv) {
                 localDiv.innerHTML = '';
                 this.localVideoTrack.play(localDiv);
-                console.log('Local video playing');
             }
         }
 
         await this.agoraClient.publish(tracks.filter(Boolean));
-        console.log('Local tracks published successfully');
 
         this.callState = 'connected';
         this.inCall = true;
