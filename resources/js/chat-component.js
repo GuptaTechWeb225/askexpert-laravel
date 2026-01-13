@@ -516,7 +516,6 @@ export function chatComponent(chatId) {
             const message = this.newMessage.trim();
             if (!message && !this.selectedFile) return;
 
-            // Use FormData for files
             let formData = new FormData();
             formData.append('chat_id', chatId);
             if (message) formData.append('message', message);
@@ -530,6 +529,7 @@ export function chatComponent(chatId) {
                     this.selectedFile = null;
                     document.getElementById('imageInput').value = ''; // Reset input
                     this.appendMessage(res.data.message_data);
+
                 })
                 .catch(err => console.error(err));
         },
@@ -1526,11 +1526,6 @@ export function adminExpertChatComponent() {
                         this.markAsRead(e.message.id);
                     }
                 })
-                .listenForWhisper('new-message', (data) => {
-            this.appendMessage(data.message);
-            this.markAsRead(data.message.id); // Optional
-            this.scrollToBottom();
-        })
                 .listenForWhisper('typing', (e) => {
                     if (e.role === 'expert') {
                         this.typing = true;
@@ -1833,25 +1828,32 @@ export function adminExpertChatComponent() {
 
             console.log('[AdminChat] Sending message to expert:', this.selectedExpertId);
 
-            let formData = new FormData();
-            formData.append('expert_id', this.selectedExpertId);
-            if (this.newMessage) formData.append('message', this.newMessage);
-            if (this.selectedFile) formData.append('image', this.selectedFile);
+           let formData = new FormData();
+    formData.append('expert_id', this.selectedExpertId);
+    if (this.newMessage) formData.append('message', this.newMessage);
+    if (this.selectedFile) formData.append('image', this.selectedFile);
 
-            axios.post('/admin/expert-chat/send', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            }).then(res => {
-                console.log('[AdminChat] Message sent successfully:', res.data);
-                this.newMessage = '';
-                this.selectedFile = null;
-                document.getElementById('imageInput').value = '';
-                this.appendMessage(res.data.message_data);
-                window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('new-message', {
-                    message: res.data.message_data
-                });
-            }).catch(err => {
-                console.error('[AdminChat] Send failed:', err.response || err);
-            });
+    axios.post('/admin/expert-chat/send', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(res => {
+        console.log('[AdminChat] Message sent successfully:', res.data);
+
+        this.newMessage = '';
+        this.selectedFile = null;
+        document.getElementById('imageInput').value = '';
+
+        // Admin ke apne chat mein append (yeh already hai)
+        this.appendMessage(res.data.message_data);
+
+        // 🔥 Expert ko real-time whisper bhej do
+        window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('new-message', {
+            message: res.data.message_data  // pura message object bhej do
+        });
+
+        console.log('[Admin] Whisper sent to expert on channel: admin-chat.' + this.selectedExpertId);
+    }).catch(err => {
+        console.error('[AdminChat] Send failed:', err.response || err);
+    });
         },
 
         typingEvent() {
@@ -2045,13 +2047,13 @@ export function expertAdminChatComponent() {
                 .listen('AdminExpertMessageSent', (e) => {
                     this.appendMessage(e.message);
                     if (e.message.sender_type === 'admin') {
-                        this.markAllAsRead(e.message.id);
+                        this.markAsRead(e.message.id);
                     }
                 })
                 .listenForWhisper('new-message', (data) => {
-                    console.log('[Expert] Real-time new message from admin via whisper!', data);
+                    console.log('[Expert] Real-time message from admin via whisper!', data);
                     this.appendMessage(data.message);
-                    this.markAllAsRead(data.message.id);
+                    this.markAsRead(data.message.id); 
                     this.scrollToBottom();
                 })
                 .listenForWhisper('typing', (e) => {
@@ -2368,10 +2370,6 @@ export function expertAdminChatComponent() {
                 this.selectedFile = null;
                 document.getElementById('imageInput').value = '';
                 this.appendMessage(res.data.message_data);
-
-                window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('new-message', {
-            message: res.data.message_data
-        });
             });
         },
 
