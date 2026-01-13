@@ -1651,7 +1651,7 @@ export function adminExpertChatComponent() {
             this.isVideo = data.type === 'video';
             this.callStatusText = `Incoming call from ${this.callInitiator}`;
             this.callerInfo = {
-                avatar: data.avatar || '/assets/expert-avatar.png',
+                avatar: data.avatar || '/assets/front-end/img/placeholder/user.png',
                 name: data.name || this.callInitiator
             };
 
