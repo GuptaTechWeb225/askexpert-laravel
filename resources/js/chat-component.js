@@ -118,6 +118,15 @@ export function chatComponent(chatId) {
             this.scrollToBottom();
             this.markAllAsRead();
             window.Echo.private(`chat.${chatId}`)
+
+
+
+                .subscribed(() => {
+                    console.log('✅ SUCCESSFULLY SUBSCRIBED to chat.' + chatId);
+                })
+                .error((error) => {
+                    console.error('❌ CHANNEL SUBSCRIPTION FAILED for chat.' + chatId, error);
+                })
                 .listen('ChatMessageSent', (e) => {
                     if (e.message.sender_type !== 'user') {
                         this.appendMessage(e.message);
@@ -678,12 +687,7 @@ export function expertChatComponent(chatId) {
             this.markAllAsRead();
 
             window.Echo.private(`chat.${chatId}`)
-                .subscribed(() => {
-                    console.log('✅ SUCCESSFULLY SUBSCRIBED to chat.' + chatId);
-                })
-                .error((error) => {
-                    console.error('❌ CHANNEL SUBSCRIPTION FAILED for chat.' + chatId, error);
-                })
+
                 .listen('ChatMessageSent', (e) => {
                     if (e.message.sender_type === 'user') {
                         this.appendMessage(e.message);
