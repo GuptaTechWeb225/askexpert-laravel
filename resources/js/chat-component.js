@@ -2361,6 +2361,47 @@ export function expertAdminChatComponent() {
             console.log('Agora client created with remote listener');
             return client;
         },
+
+        ensureAgoraClient() {
+            if (this.agoraClient) {
+                console.log('Agora client already exists, reusing');
+                return this.agoraClient;
+            }
+
+            const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+            // 🔥 Remote tracks listener – yeh sabse important hai
+            client.on("user-published", async (user, mediaType) => {
+                console.log('Remote user published → subscribing:', user.uid, mediaType);
+
+                try {
+                    await client.subscribe(user, mediaType);
+
+                    if (mediaType === "video") {
+                        await this.$nextTick();
+                        const remoteDiv = document.getElementById('remote-media');
+                        if (remoteDiv) {
+                            remoteDiv.innerHTML = '';
+                            user.videoTrack.play(remoteDiv);
+                            console.log('✅ Remote video playing in remote-media');
+                        } else {
+                            console.error('remote-media div not found!');
+                        }
+                    }
+
+                    if (mediaType === "audio") {
+                        user.audioTrack.play();
+                        console.log('Remote audio started');
+                    }
+                } catch (subErr) {
+                    console.error('Subscribe failed for remote user:', user.uid, subErr);
+                }
+            });
+
+            this.agoraClient = client;
+            console.log('Agora client created with remote tracks listener');
+            return client;
+        },
         async acceptCall() {
             if (this._joining) return;
             this._joining = true;
@@ -2369,7 +2410,7 @@ export function expertAdminChatComponent() {
                 this.stopRingtone();
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting...';
-
+                this.agoraClient = this.ensureAgoraClient();
                 const res = await axios.post(`/expert/massages/admin-chat/${expertId}/generate-token`);
                 const { token, channel, uid } = res.data;
 
