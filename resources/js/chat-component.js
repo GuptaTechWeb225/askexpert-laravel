@@ -2072,7 +2072,6 @@ export function expertAdminChatComponent() {
         callDuration: 0,
         timerInterval: null,
         _dummy: false,
-        formattedDuration: '0',
 
 
         initiateCall(withVideo) {
@@ -2334,29 +2333,24 @@ export function expertAdminChatComponent() {
             window.Echo.private(`admin-chat.${expertId}`).whisper('call-ended', { chatId: expertId });
             this.endCall();
         },
-  get formattedDuration() {
-            const mins = Math.floor(this.callDuration / 60);
-            const secs = this.callDuration % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        },
-        startTimer() {
-            this.callDuration = 0;
-            this.formattedDuration = '00:00';
+get formattedDuration() {
+    const mins = Math.floor(this.callDuration / 60);
+    const secs = this.callDuration % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+},
+startTimer() {
+    this.callDuration = 0;
 
-            if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.timerInterval) {
+        clearInterval(this.timerInterval);
+    }
 
-            this.timerInterval = setInterval(() => {
-                this.callDuration++;
+    this.timerInterval = setInterval(() => {
+        this.callDuration++;
+        console.log('Timer tick:', this.callDuration, this.formattedDuration);
+    }, 1000);
+},
 
-                const mins = Math.floor(this.callDuration / 60);
-                const secs = this.callDuration % 60;
-
-                this.formattedDuration =
-                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-
-                console.log('Timer tick:', this.callDuration, this.formattedDuration);
-            }, 1000);
-        },
         toggleMute() {
             this.isMuted = !this.isMuted;
             if (this.localAudioTrack) {
