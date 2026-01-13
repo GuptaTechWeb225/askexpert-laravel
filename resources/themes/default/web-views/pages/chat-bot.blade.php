@@ -12,20 +12,22 @@
     <link rel="stylesheet" href="{{ theme_asset('public/assets/front-end/css/theme.css') }}">
     <link rel="stylesheet" href="{{ theme_asset('public/assets/front-end/css/cat-chatboat.css') }}">
     <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <link rel="stylesheet" href="{{dynamicAsset(path: 'public/assets/back-end/css/bootstrap.min.css')}}">
     <meta name="user-id" content="{{ auth('customer')->id() }}">
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/style.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+
     <audio id="ringtone" loop>
       <source src="{{ dynamicAsset(path: 'public/assets/back-end/sound/notification.mp3') }}" type="audio/mpeg">
     </audio>
     @vite(['resources/js/app.js'])
 
     <style>
-       :root {
-        --base: {{ $web_config['primary_color'] ?? '#000000' }};
-    }
+      :root {
+        --base: {{$web_config['primary_color'] ?? '#000000'}};
+      }
     </style>
 
   </head>
@@ -233,8 +235,12 @@
               <textarea name="review" class="form-control" rows="4" placeholder="Write your review (optional)"></textarea>
             </div>
             <div class="modal-footer justify-content-center">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Skip</button>
-              <button type="submit" class="btn btn--primary" style="background-color: #800;">Submit Review</button>
+              <a href="javascript:void(0)"
+                class="btn btn-secondary"
+                onclick="window.location.href='{{ route('home') }}'">
+                Skip
+              </a>
+              <button type="submit" class="btn btn--primary text-white" style="background-color: #800;">Submit Review</button>
             </div>
           </form>
         </div>

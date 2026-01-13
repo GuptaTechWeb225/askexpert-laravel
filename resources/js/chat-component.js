@@ -1520,6 +1520,19 @@ export function adminExpertChatComponent() {
                 .listenForWhisper('call-accepted', () => this.handleCallAccepted())
                 .listenForWhisper('call-rejected', () => this.handleCallRejected())
                 .listenForWhisper('call-ended', () => this.endCall())
+                 .listen('AdminExpertMessageSent', (e) => {
+                    this.appendMessage(e.message);
+                    if (e.message.sender_type === 'expert') {
+                        this.markAsRead(e.message.id);
+                    }
+                })
+                .listenForWhisper('typing', (e) => {
+                    if (e.role === 'expert') {
+                        this.typing = true;
+                        clearTimeout(this.typingTimer);
+                        this.typingTimer = setTimeout(() => this.typing = false, 1500);
+                    }
+                })
                 .listenForWhisper('call-cancelled', () => {
                     toastr.info('Call cancelled');
                     this.endCall();
@@ -1688,19 +1701,7 @@ export function adminExpertChatComponent() {
 
 
             window.Echo.private(this.currentChannel)
-                .listen('AdminExpertMessageSent', (e) => {
-                    this.appendMessage(e.message);
-                    if (e.message.sender_type === 'expert') {
-                        this.markAsRead(e.message.id);
-                    }
-                })
-                .listenForWhisper('typing', (e) => {
-                    if (e.role === 'expert') {
-                        this.typing = true;
-                        clearTimeout(this.typingTimer);
-                        this.typingTimer = setTimeout(() => this.typing = false, 1500);
-                    }
-                });
+               
 
             this.loadInitialMessages(expertId);
             this.markAllAsRead();

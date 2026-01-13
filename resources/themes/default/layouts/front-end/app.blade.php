@@ -138,7 +138,6 @@
 </style>
     <link rel="stylesheet" href="{{theme_asset(path: 'public/assets/front-end/css/custom.css')}}">
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/style.css') }}">
-
     {!! getSystemDynamicPartials(type: 'analytics_script') !!}
 </head>
 
