@@ -2128,7 +2128,7 @@ export function expertAdminChatComponent() {
                         this.callState = 'incoming';
                         this.isVideo = data.type === 'video';
                         this.callStatusText = 'Incoming Call from admin';
-                        this.callerInfo = { avatar: '/assets/expert-avatar.png', name: 'admin' };
+                        this.callerInfo = { avatar: '/assets/front-end/img/placeholder/user.png', name: 'admin' };
 
                         $('#callAdminModal').modal('show');
 
