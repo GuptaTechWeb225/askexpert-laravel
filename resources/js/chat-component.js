@@ -326,8 +326,9 @@ export function chatComponent(chatId) {
                 this.callStatusText = 'Connected';
                 this.stopRingtone();
                 this.startTimer();
+                console.log('[USER] acceptCall finished – whisper sent? NO (removed)');
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
-
+console.log('[Expert] Sending call-accepted whisper from expert side');
             } catch (err) {
                 console.error('❌ Call failed:', err);
                 alert('Call failed: ' + err.message);
