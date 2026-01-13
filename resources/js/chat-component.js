@@ -1520,7 +1520,7 @@ export function adminExpertChatComponent() {
                 .listenForWhisper('call-accepted', () => this.handleCallAccepted())
                 .listenForWhisper('call-rejected', () => this.handleCallRejected())
                 .listenForWhisper('call-ended', () => this.endCall())
-                 .listen('AdminExpertMessageSent', (e) => {
+                .listen('AdminExpertMessageSent', (e) => {
                     this.appendMessage(e.message);
                     if (e.message.sender_type === 'expert') {
                         this.markAsRead(e.message.id);
@@ -1582,7 +1582,7 @@ export function adminExpertChatComponent() {
             this.playRingtone();
         },
         handleCallAccepted() {
-            this.stopRingtone(); 
+            this.stopRingtone();
             this.callState = 'connecting';
             this.callStatusText = 'Connecting...';
             this.inCall = true;
@@ -1701,7 +1701,7 @@ export function adminExpertChatComponent() {
 
 
             window.Echo.private(this.currentChannel)
-               
+
 
             this.loadInitialMessages(expertId);
             this.markAllAsRead();
@@ -1841,6 +1841,9 @@ export function adminExpertChatComponent() {
                 this.selectedFile = null;
                 document.getElementById('imageInput').value = '';
                 this.appendMessage(res.data.message_data);
+                window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('new-message', {
+                    message: res.data.message_data
+                });
             }).catch(err => {
                 console.error('[AdminChat] Send failed:', err.response || err);
             });
@@ -2037,8 +2040,14 @@ export function expertAdminChatComponent() {
                 .listen('AdminExpertMessageSent', (e) => {
                     this.appendMessage(e.message);
                     if (e.message.sender_type === 'admin') {
-                        this.markAsRead(e.message.id);
+                        this.markAllAsRead(e.message.id);
                     }
+                })
+                .listenForWhisper('new-message', (data) => {
+                    console.log('[Expert] Real-time new message from admin via whisper!', data);
+                    this.appendMessage(data.message);
+                    this.markAllAsRead(data.message.id);
+                    this.scrollToBottom();
                 })
                 .listenForWhisper('typing', (e) => {
                     if (e.role === 'admin') {
