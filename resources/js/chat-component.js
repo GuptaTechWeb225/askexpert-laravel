@@ -530,7 +530,7 @@ export function chatComponent(chatId) {
                     this.selectedFile = null;
                     document.getElementById('imageInput').value = ''; // Reset input
                     this.appendMessage(res.data.message_data);
-
+                    
                 })
                 .catch(err => console.error(err));
         },
@@ -1521,10 +1521,11 @@ export function adminExpertChatComponent() {
                 .listenForWhisper('call-accepted', () => this.handleCallAccepted())
                 .listenForWhisper('call-rejected', () => this.handleCallRejected())
                 .listenForWhisper('call-ended', () => this.endCall())
-                .listenForWhisper('new-message-from-expert', (data) => {
-                    console.log('[Admin] Real-time message from expert via whisper!', data);
-                    this.appendMessage(data.message);
-                    this.scrollToBottom();
+                 .listen('AdminExpertMessageSent', (e) => {
+                    this.appendMessage(e.message);
+                    if (e.message.sender_type === 'expert') {
+                        this.markAsRead(e.message.id);
+                    }
                 })
                 .listenForWhisper('typing', (e) => {
                     if (e.role === 'expert') {
@@ -1582,7 +1583,7 @@ export function adminExpertChatComponent() {
             this.playRingtone();
         },
         handleCallAccepted() {
-            this.stopRingtone();
+            this.stopRingtone(); 
             this.callState = 'connecting';
             this.callStatusText = 'Connecting...';
             this.inCall = true;
@@ -1701,7 +1702,7 @@ export function adminExpertChatComponent() {
 
 
             window.Echo.private(this.currentChannel)
-
+               
 
             this.loadInitialMessages(expertId);
             this.markAllAsRead();
@@ -1821,29 +1822,29 @@ export function adminExpertChatComponent() {
 
         sendMessage() {
             if (!this.newMessage.trim() && !this.selectedFile) return;
+            if (!this.selectedExpertId) {
+                console.warn('[AdminChat] Cannot send: no expert selected');
+                return;
+            }
+
+            console.log('[AdminChat] Sending message to expert:', this.selectedExpertId);
 
             let formData = new FormData();
+            formData.append('expert_id', this.selectedExpertId);
             if (this.newMessage) formData.append('message', this.newMessage);
             if (this.selectedFile) formData.append('image', this.selectedFile);
 
-            axios.post('/expert/massages/admin-chat/send', formData).then(res => {
-                console.log('[Expert] Message sent successfully:', res.data);
-
+            axios.post('/admin/expert-chat/send', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            }).then(res => {
+                console.log('[AdminChat] Message sent successfully:', res.data);
                 this.newMessage = '';
                 this.selectedFile = null;
                 document.getElementById('imageInput').value = '';
-
-                // Expert ke apne chat mein append (yeh already hai)
                 this.appendMessage(res.data.message_data);
-
-                // 🔥 Admin ko real-time whisper bhej do
-                window.Echo.private(`admin-chat.${expertId}`).whisper('new-message-from-expert', {
-                    message: res.data.message_data  // pura message object bhej do
-                });
-
-                console.log('[Expert] Whisper sent to admin on channel: admin-chat.' + expertId);
+            
             }).catch(err => {
-                console.error('[Expert] Send failed:', err);
+                console.error('[AdminChat] Send failed:', err.response || err);
             });
         },
 
@@ -2041,7 +2042,7 @@ export function expertAdminChatComponent() {
                         this.markAsRead(e.message.id);
                     }
                 })
-
+                
                 .listenForWhisper('typing', (e) => {
                     if (e.role === 'admin') {
                         this.typing = true;
@@ -2344,20 +2345,33 @@ export function expertAdminChatComponent() {
             if (body) body.scrollTop = body.scrollHeight;
         },
 
-        sendMessage() {
-            if (!this.newMessage.trim() && !this.selectedFile) return;
+      sendMessage() {
+    if (!this.newMessage.trim() && !this.selectedFile) return;
 
-            let formData = new FormData();
-            if (this.newMessage) formData.append('message', this.newMessage);
-            if (this.selectedFile) formData.append('image', this.selectedFile);
+    let formData = new FormData();
+    if (this.newMessage) formData.append('message', this.newMessage);
+    if (this.selectedFile) formData.append('image', this.selectedFile);
 
-            axios.post('/expert/massages/admin-chat/send', formData).then(res => {
-                this.newMessage = '';
-                this.selectedFile = null;
-                document.getElementById('imageInput').value = '';
-                this.appendMessage(res.data.message_data);
-            });
-        },
+    axios.post('/expert/massages/admin-chat/send', formData).then(res => {
+        console.log('[Expert] Message sent successfully:', res.data);
+
+        this.newMessage = '';
+        this.selectedFile = null;
+        document.getElementById('imageInput').value = '';
+
+        // Expert ke apne chat mein append (yeh already hai)
+        this.appendMessage(res.data.message_data);
+
+        // 🔥 Admin ko real-time whisper bhej do
+        window.Echo.private(`admin-chat.${expertId}`).whisper('new-message-from-expert', {
+            message: res.data.message_data  // pura message object bhej do
+        });
+
+        console.log('[Expert] Whisper sent to admin on channel: admin-chat.' + expertId);
+    }).catch(err => {
+        console.error('[Expert] Send failed:', err);
+    });
+},
 
         typingEvent() {
             window.Echo.private(`admin-chat.${expertId}`).whisper('typing', { role: 'expert' });
