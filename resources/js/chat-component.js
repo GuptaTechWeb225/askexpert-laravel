@@ -1801,15 +1801,9 @@ export function adminExpertChatComponent() {
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting...';
 
-                const res = await axios.post(`/expert/massages/admin-chat/${expertId}/generate-token`);
-                const data = res.data;
-                console.log('Token Response from backend:', data);
+                const res = await axios.post(`/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`);
+                const { token, channel, uid, app_id } = res.data;
 
-                if (!data.app_id) {
-                    throw new Error('App ID missing from backend response. Check server.');
-                }
-                const { token, channel, uid, app_id } = data;
-                console.log('Token Response:', { token, channel, uid, app_id });
                 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
                 client.on('user-published', async (user, mediaType) => {
@@ -2415,7 +2409,7 @@ export function expertAdminChatComponent() {
                 this.callStatusText = 'Connecting...';
                 this.agoraClient = this.ensureAgoraClient();
                 const res = await axios.post(`/expert/massages/admin-chat/${expertId}/generate-token`);
-                const { token, channel, uid } = res.data;
+                const { token, channel, uid, app_id} = res.data;
 
                 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
