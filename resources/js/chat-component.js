@@ -1512,21 +1512,18 @@ export function adminExpertChatComponent() {
             const channel = `admin-chat.${expertId}`;
             console.log('[Admin] Setting up call listener for channel:', channel);
 
-          const privateChannel = window.Echo.private(channel);
-
-    privateChannel.subscribed(() => {
-        console.log('[ADMIN DEBUG] ✅ FULLY SUBSCRIBED to:', channel);
-    }).error((error) => {
-        console.error('[ADMIN DEBUG] ❌ SUBSCRIPTION ERROR on channel', channel, error);
-        if (error.type === '403') {
-            console.error('403 Forbidden - Authorization failed. Check channels.php or admin auth.');
-        }
-    });
-
-    privateChannel.listenForWhisper('incoming-call', (data) => {
-        console.log('[ADMIN] Incoming call DETECTED!', data);
-        this.handleIncomingCall(data);
-    });
+            window.Echo.private(channel)
+                .listenForWhisper('incoming-call', (data) => {
+                    console.log('[ADMIN] Incoming call from expert', data);
+                    this.handleIncomingCall(data);
+                })
+                .listenForWhisper('call-accepted', () => this.handleCallAccepted())
+                .listenForWhisper('call-rejected', () => this.handleCallRejected())
+                .listenForWhisper('call-ended', () => this.endCall())
+                .listenForWhisper('call-cancelled', () => {
+                    toastr.info('Call cancelled');
+                    this.endCall();
+                });
         },
         initiateCall(withVideo) {
             if (this.inCall || !this.selectedExpertId) return;
