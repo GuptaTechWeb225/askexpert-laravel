@@ -1569,7 +1569,7 @@ export function adminExpertChatComponent() {
             this.playRingtone();
         },
         handleCallAccepted() {
-            this.stopRingtone();
+            this.stopRingtone(); 
             this.callState = 'connecting';
             this.callStatusText = 'Connecting...';
             this.inCall = true;

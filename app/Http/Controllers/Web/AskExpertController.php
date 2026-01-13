@@ -122,9 +122,24 @@ class AskExpertController extends Controller
         $matched = collect($result['recommendations'])->first();
         $category = ExpertCategory::findOrFail($matched['category_id']);
 
-        $expert = $availabilityService->findAvailableExpert(
-            collect($result['recommendations'])->pluck('expert_id')->toArray()
-        );
+        Log::info('[Expert Availability] Recommendations received', [
+            'recommendations' => $result['recommendations'] ?? null,
+        ]);
+
+        $expertIds = collect($result['recommendations'] ?? [])
+            ->pluck('expert_id')
+            ->toArray();
+
+        Log::info('[Expert Availability] Expert IDs extracted', [
+            'expert_ids' => $expertIds,
+        ]);
+
+        $expert = $availabilityService->findAvailableExpert($expertIds);
+Log::info('[Expert Availability] Available expert result', [
+    'expert_found' => $expert ? true : false,
+    'expert_id'    => $expert->id ?? null,
+    'expert_name'  => $expert->name ?? null,
+]);
         $expertId = $expert?->id;
 
         $needsJoining = !$user->hasPaidJoiningFee();
@@ -141,11 +156,10 @@ class AskExpertController extends Controller
             $subscriptionToExtend = $activeSubscription;
         }
 
-        // Determine expert fee based on joining/membership status
         if ($needsJoining || $needsMembership) {
-            $needsExpertFee = false; // First question: only joining/subscription
+            $needsExpertFee = false;
         } else {
-            $needsExpertFee = true; // Second or later question: expert fee applies
+            $needsExpertFee = true;
         }
         Stripe::setApiKey($this->config_values->api_key);
         $stripeCustomer = $user->stripe_customer_id

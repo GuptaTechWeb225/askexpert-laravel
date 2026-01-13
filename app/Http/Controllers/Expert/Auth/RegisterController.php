@@ -18,8 +18,9 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Brian2694\Toastr\Facades\Toastr;
 use App\Utils\ImageManager;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Contracts\Repositories\AdminNotificationRepositoryInterface;
-
+use App\Services\PythonExpertService;
 
 
 class RegisterController extends BaseController
@@ -137,6 +138,30 @@ class RegisterController extends BaseController
                 'status' => 'pending',
             ]
         );
+
+        try {
+            $pythonService = app(PythonExpertService::class);
+            $trained = $pythonService->trainModel();
+
+            if ($trained) {
+                Log::info('Expert model training triggered successfully after new registration', [
+                    'expert_id' => $expert->id,
+                    'email' => $expert->email
+                ]);
+                Toastr::success('Expert registered successfully! Model training started in background.');
+            } else {
+                Log::warning('Expert model training failed after registration', [
+                    'expert_id' => $expert->id
+                ]);
+                Toastr::warning('Expert registered, but model training failed. Contact support.');
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception while triggering model training after expert registration', [
+                'error' => $e->getMessage(),
+                'expert_id' => $expert->id ?? null
+            ]);
+            Toastr::error('Expert registered successfully, but training process failed.');
+        }
 
         return response()->json([
             'status' => 1,

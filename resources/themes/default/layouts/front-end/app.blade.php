@@ -110,6 +110,31 @@
 .toast-warning {
     background-color: #ffc107 !important;
 }
+/* Toastr Fix */
+#toast-container > .toast-success {
+    background-color: #51a351 !important;
+    color: #ffffff !important;
+}
+
+#toast-container > .toast-error {
+    background-color: #bd362f !important;
+    color: #ffffff !important;
+}
+
+#toast-container > .toast-info {
+    background-color: #2f96b4 !important;
+    color: #ffffff !important;
+}
+
+#toast-container > .toast-warning {
+    background-color: #f89406 !important;
+    color: #ffffff !important;
+}
+
+#toast-container .toast-message {
+    color: #ffffff !important;
+}
+
 </style>
     <link rel="stylesheet" href="{{theme_asset(path: 'public/assets/front-end/css/custom.css')}}">
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/style.css') }}">
