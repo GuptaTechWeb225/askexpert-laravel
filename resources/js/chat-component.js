@@ -1542,117 +1542,117 @@ export function adminExpertChatComponent() {
                         console.warn('[Admin] Whisper data missing message object', data);
                     }
                 })
-             .listenForWhisper('call-accepted', async () => {
-    if (this._joining) return;
-    this._joining = true;
+                .listenForWhisper('call-accepted', async () => {
+                    if (this._joining) return;
+                    this._joining = true;
 
-    try {
-        console.log('Call accepted by remote side – connecting...');
-        this.stopRingtone();
-        this.callStatusText = 'Connecting...';
-        this.callState = 'connecting';
+                    try {
+                        console.log('Call accepted by remote side – connecting...');
+                        this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
+                        this.callState = 'connecting';
 
-        // Client ready karo (remote listener ke saath)
-        if (!this.agoraClient) {
-            this.agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                        // Client ready karo (remote listener ke saath)
+                        if (!this.agoraClient) {
+                            this.agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-            this.agoraClient.on("user-published", async (user, mediaType) => {
-                console.log('Remote user published → subscribing:', user.uid, mediaType);
-                await this.agoraClient.subscribe(user, mediaType);
+                            this.agoraClient.on("user-published", async (user, mediaType) => {
+                                console.log('Remote user published → subscribing:', user.uid, mediaType);
+                                await this.agoraClient.subscribe(user, mediaType);
 
-                if (mediaType === "video") {
-                    await this.$nextTick();
-                    const remoteDiv = document.getElementById('remote-media');
-                    if (remoteDiv) {
-                        remoteDiv.innerHTML = '';
-                        user.videoTrack.play(remoteDiv);
-                        console.log('✅ Remote video playing');
+                                if (mediaType === "video") {
+                                    await this.$nextTick();
+                                    const remoteDiv = document.getElementById('remote-media');
+                                    if (remoteDiv) {
+                                        remoteDiv.innerHTML = '';
+                                        user.videoTrack.play(remoteDiv);
+                                        console.log('✅ Remote video playing');
+                                    }
+                                }
+                                if (mediaType === "audio") {
+                                    user.audioTrack.play();
+                                }
+                            });
+                        }
+
+                        // Token le lo
+                        const endpoint = `/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`;
+                        const res = await axios.post(endpoint);
+                        const { token, channel, uid, app_id } = res.data;
+
+                        console.log('Joining Agora channel:', channel, 'UID:', uid, 'App ID:', app_id);
+
+                        // Join channel
+                        await this.agoraClient.join(app_id, channel, token, uid);
+
+                        // 🔥 Yeh critical part – join hone ke baad manually check aur subscribe
+                        await new Promise(resolve => setTimeout(resolve, 800)); // 800ms wait (dusre side ke publish ka time)
+
+                        // Manually remote users check karo
+                        const remoteUsers = this.agoraClient.remoteUsers || [];
+                        if (remoteUsers.length > 0) {
+                            console.log('Found remote users after join:', remoteUsers.map(u => u.uid));
+
+                            for (const user of remoteUsers) {
+                                if (user.audioTrack) {
+                                    console.log('Force subscribing audio for user:', user.uid);
+                                    await this.agoraClient.subscribe(user, 'audio');
+                                    user.audioTrack.play();
+                                }
+                                if (user.videoTrack) {
+                                    console.log('Force subscribing video for user:', user.uid);
+                                    await this.agoraClient.subscribe(user, 'video');
+
+                                    await this.$nextTick();
+                                    const remoteDiv = document.getElementById('remote-media');
+                                    if (remoteDiv) {
+                                        remoteDiv.innerHTML = '';
+                                        user.videoTrack.play(remoteDiv);
+                                        console.log('✅ Force remote video playing');
+                                    }
+                                }
+                            }
+                        } else {
+                            console.log('No remote users found after join – normal event should handle');
+                        }
+
+                        // Apne tracks publish
+                        let tracks = [];
+                        try {
+                            if (this.isVideo) {
+                                tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                            } else {
+                                tracks = [await AgoraRTC.createMicrophoneAudioTrack()];
+                            }
+                        } catch (e) {
+                            throw new Error("Could not access mic/camera");
+                        }
+
+                        this.localAudioTrack = tracks[0];
+                        this.localVideoTrack = tracks[1] || null;
+
+                        if (this.localVideoTrack) {
+                            const localDiv = document.getElementById('local-media');
+                            if (localDiv) {
+                                localDiv.innerHTML = '';
+                                this.localVideoTrack.play(localDiv);
+                            }
+                        }
+
+                        await this.agoraClient.publish(tracks.filter(Boolean));
+
+                        this.callState = 'connected';
+                        this.inCall = true;
+                        this.callStatusText = 'Connected';
+                        this.startTimer();
+                    } catch (err) {
+                        console.error('❌ Agora join failed in call-accepted:', err);
+                        toastr.error('Connection failed: ' + (err.message || 'Unknown error'));
+                        this.endCall();
+                    } finally {
+                        this._joining = false;
                     }
-                }
-                if (mediaType === "audio") {
-                    user.audioTrack.play();
-                }
-            });
-        }
-
-        // Token le lo
-        const endpoint = `/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`;
-        const res = await axios.post(endpoint);
-        const { token, channel, uid, app_id } = res.data;
-
-        console.log('Joining Agora channel:', channel, 'UID:', uid, 'App ID:', app_id);
-
-        // Join channel
-        await this.agoraClient.join(app_id, channel, token, uid);
-
-        // 🔥 Yeh critical part – join hone ke baad manually check aur subscribe
-        await new Promise(resolve => setTimeout(resolve, 800)); // 800ms wait (dusre side ke publish ka time)
-
-        // Manually remote users check karo
-        const remoteUsers = this.agoraClient.remoteUsers || [];
-        if (remoteUsers.length > 0) {
-            console.log('Found remote users after join:', remoteUsers.map(u => u.uid));
-
-            for (const user of remoteUsers) {
-                if (user.audioTrack) {
-                    console.log('Force subscribing audio for user:', user.uid);
-                    await this.agoraClient.subscribe(user, 'audio');
-                    user.audioTrack.play();
-                }
-                if (user.videoTrack) {
-                    console.log('Force subscribing video for user:', user.uid);
-                    await this.agoraClient.subscribe(user, 'video');
-
-                    await this.$nextTick();
-                    const remoteDiv = document.getElementById('remote-media');
-                    if (remoteDiv) {
-                        remoteDiv.innerHTML = '';
-                        user.videoTrack.play(remoteDiv);
-                        console.log('✅ Force remote video playing');
-                    }
-                }
-            }
-        } else {
-            console.log('No remote users found after join – normal event should handle');
-        }
-
-        // Apne tracks publish
-        let tracks = [];
-        try {
-            if (this.isVideo) {
-                tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-            } else {
-                tracks = [await AgoraRTC.createMicrophoneAudioTrack()];
-            }
-        } catch (e) {
-            throw new Error("Could not access mic/camera");
-        }
-
-        this.localAudioTrack = tracks[0];
-        this.localVideoTrack = tracks[1] || null;
-
-        if (this.localVideoTrack) {
-            const localDiv = document.getElementById('local-media');
-            if (localDiv) {
-                localDiv.innerHTML = '';
-                this.localVideoTrack.play(localDiv);
-            }
-        }
-
-        await this.agoraClient.publish(tracks.filter(Boolean));
-
-        this.callState = 'connected';
-        this.inCall = true;
-        this.callStatusText = 'Connected';
-        this.startTimer();
-    } catch (err) {
-        console.error('❌ Agora join failed in call-accepted:', err);
-        toastr.error('Connection failed: ' + (err.message || 'Unknown error'));
-        this.endCall();
-    } finally {
-        this._joining = false;
-    }
-})
+                })
                 .listenForWhisper('call-rejected', () => this.handleCallRejected())
                 .listenForWhisper('call-ended', () => this.endCall())
                 .listen('AdminExpertMessageSent', (e) => {
@@ -2424,35 +2424,39 @@ export function expertAdminChatComponent() {
                 this.stopRingtone();
                 this.callState = 'connecting';
                 this.callStatusText = 'Connecting...';
-                this.agoraClient = this.ensureAgoraClient();
+
                 const res = await axios.post(`/expert/massages/admin-chat/${expertId}/generate-token`);
-                const { token, channel, uid, app_id} = res.data;
+                const { token, channel, uid, app_id } = res.data;
 
-                const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
-
-
-                await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
-
-                let tracks = [];
-                try {
-                    if (this.isVideo) {
-                        tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-                    } else {
-                        tracks = [await AgoraRTC.createMicrophoneAudioTrack()];
-                    }
-                } catch (e) {
-                    throw new Error("Could not access mic/camera");
+                // Create client if not exists
+                if (!this.agoraClient) {
+                    this.agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+                    this.agoraClient.on('user-published', async (user, mediaType) => {
+                        await this.agoraClient.subscribe(user, mediaType);
+                        if (mediaType === 'video') {
+                            const remoteDiv = document.getElementById('remote-media');
+                            remoteDiv && user.videoTrack.play(remoteDiv);
+                        }
+                        if (mediaType === 'audio') {
+                            user.audioTrack.play();
+                        }
+                    });
                 }
+
+                // Join channel first
+                await this.agoraClient.join(app_id, channel, token, uid);
+
+                // Publish local tracks
+                const tracks = this.isVideo
+                    ? await AgoraRTC.createMicrophoneAndCameraTracks()
+                    : [await AgoraRTC.createMicrophoneAudioTrack()];
 
                 this.localAudioTrack = tracks[0];
                 this.localVideoTrack = tracks[1] || null;
 
                 if (this.localVideoTrack) {
                     const localDiv = document.getElementById('local-media');
-                    if (localDiv) {
-                        localDiv.innerHTML = '';
-                        this.localVideoTrack.play(localDiv);
-                    }
+                    localDiv && this.localVideoTrack.play(localDiv);
                 }
 
                 await this.agoraClient.publish(tracks.filter(Boolean));
@@ -2462,17 +2466,16 @@ export function expertAdminChatComponent() {
                 this.callStatusText = 'Connected';
                 this.startTimer();
 
-                window.Echo.private(`admin-chat.${this.selectedExpertId || expertId}`).whisper('call-accepted', {});
+                window.Echo.private(`admin-chat.${expertId}`).whisper('call-accepted', {});
 
             } catch (err) {
-                console.error('❌ Call failed:', err);
-                alert('Call failed: ' + (err.message || 'Unknown error'));
+                console.error('Call failed:', err);
+                toastr.error('Call failed: ' + (err.message || 'Unknown error'));
                 this.endCall();
             } finally {
                 this._joining = false;
             }
         },
-
         cancelCall() {
             window.Echo.private(`admin-chat.${expertId}`).whisper('call-cancelled', { chatId: expertId });
             this.endCall();
