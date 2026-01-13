@@ -261,51 +261,52 @@ export function chatComponent(chatId) {
             this.checkExpertOnline();
             setInterval(() => this.checkExpertOnline(), 10000);
         },
-         async acceptCall() {
+           async acceptCall() {
             if (this._joining) return;
             this._joining = true;
 
             try {
-                this.stopRingtone();
                 this.callState = 'connecting';
-                this.callStatusText = 'Connecting…';
+                this.callStatusText = 'Connecting...';
 
                 const res = await axios.post(`/chat/${chatId}/generate-token`);
                 const { token, channel, uid } = res.data;
 
                 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
                 client.on("user-published", async (user, mediaType) => {
-                    await client.subscribe(user, mediaType);
-                    if (mediaType === "video") {
-                        setTimeout(() => {
-                            const remoteDiv = document.getElementById('remote-media');
-                            if (remoteDiv) {
-                                remoteDiv.innerHTML = '';
-                                user.videoTrack.play(remoteDiv);
+
+                    try {
+                        await client.subscribe(user, mediaType);
+
+                        if (mediaType === "video") {
+                            // Timeout thoda delay deta hai taaki DOM ready ho jaye
+                            setTimeout(() => {
+                                const remoteDiv = document.getElementById('remote-media');
+                                if (remoteDiv) {
+                                    remoteDiv.innerHTML = '';
+                                    user.videoTrack.play(remoteDiv);
+                                }
+                            }, 500);
+                        }
+                        if (mediaType === "audio") {
+                            user.audioTrack.play();
+                        }
+                    } catch (subErr) {
+                        console.warn('Subscribe failed, retrying in 1s...', subErr);
+                        setTimeout(async () => {
+                            try {
+                                await client.subscribe(user, mediaType);
+                                console.log('Retry subscribe success');
+                            } catch (retryErr) {
+                                console.error('Retry also failed:', retryErr);
                             }
-                        }, 500);
+                        }, 1000);
                     }
-                    if (mediaType === "audio") {
-                        user.audioTrack.play();
-                    }
-                });
-
-                client.on("user-unpublished", (user, mediaType) => {
-                    console.log('❌ Remote user unpublished:', user.uid, mediaType);
-                    if (mediaType === "video") {
-                        document.getElementById('remote-media').innerHTML = '';
-                    }
-                });
-
-                client.on("user-left", (user) => {
-                    console.log('👋 Remote user left:', user.uid);
-                    this.resetCallUI();
                 });
 
                 // Join
                 await client.join(window.AGORA_APP_ID, channel, token, uid);
-
-                // Tracks create & publish
                 const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
                 const micTrack = tracks[0];
                 const camTrack = this.isVideo ? tracks[1] : null;
@@ -323,20 +324,18 @@ export function chatComponent(chatId) {
                 this.videoEnabled = !!camTrack;
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
+                this.stopRingtone();
                 this.startTimer();
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
 
-                console.log('✅ Agora fully connected');
-
             } catch (err) {
-                console.error('❌ Agora error:', err);
-                this.resetCallUI();
-                alert('Call failed: ' + (err.message || 'Unknown error'));
+                console.error('❌ Call failed:', err);
+                alert('Call failed: ' + err.message);
+                this.endCall();
             } finally {
                 this._joining = false;
             }
         },
-
         cancelCall() {
             this.stopRingtone();
             window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
@@ -720,59 +719,20 @@ export function expertChatComponent(chatId) {
 
 
                 .listenForWhisper('call-accepted', async () => {
-                    if (this._joining) {
-                        console.warn('[Expert] Already joining in progress - ignoring duplicate call-accepted');
-                        return;
-                    }
+                    if (this._joining) return;
                     this._joining = true;
-
-                    const startTime = Date.now();
-                    console.log(`[Expert ${new Date().toISOString()}] call-accepted whisper RECEIVED`);
-
-                    await new Promise(r => setTimeout(r, 800)); // safety delay - adjust 500–1200ms if needed
-
                     try {
-                        console.log(`[Expert] Step 1: Generating token... (time: ${Date.now() - startTime}ms)`);
-                        const res = await axios.post(`/chat/${chatId}/generate-token`);
-                        const { token, channel, uid, app_id, role } = res.data;  // ← role bhi log karo!
-
-                        console.log(`[Expert] Step 2: Token received`, {
-                            timestamp: new Date().toISOString(),
-                            uid: uid,
-                            uidType: typeof uid,
-                            channel: channel,
-                            roleFromBackend: role,          // ← yeh check karna zaroori
-                            timeTaken: Date.now() - startTime
-                        });
+                        this.stopRingtone();
+                        this.callStatusText = 'Connecting...';
+                        this.callState = 'connecting';
 
                         if (!this.agoraClient) {
-                            console.log('[Expert] Creating new Agora client');
                             this.agoraClient = this.createAgoraClient();
                         }
+                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        const { token, channel, uid, app_id } = res.data;
 
-                        const clientState = this.agoraClient.connectionState;
-                        console.log(`[Expert] Current client state before join: ${clientState}`);
-
-                        if (clientState === 'CONNECTED') {
-                            console.log('[Expert] Already connected → skipping join, only publishing tracks');
-                        } else if (clientState === 'CONNECTING') {
-                            console.warn('[Expert] Still connecting → waiting extra 1s');
-                            await new Promise(r => setTimeout(r, 1000));
-                        } else {
-                            console.log(`[Expert] Step 3: Joining channel with UID ${uid}...`);
-                            try {
-                                await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
-                                console.log(`[Expert] Join SUCCESS - UID: ${uid}`);
-                            } catch (joinErr) {
-                                console.error('[Expert] JOIN FAILED - Detailed error:', {
-                                    code: joinErr.code,
-                                    message: joinErr.message,
-                                    reason: joinErr.reason || 'N/A',
-                                    fullError: joinErr
-                                });
-                                throw joinErr;
-                            }
-                        }
+                        await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
                         let tracks = [];
                         try {
@@ -809,19 +769,14 @@ export function expertChatComponent(chatId) {
                         this.callStatusText = 'Connected';
                         this.startTimer();
                     } catch (err) {
-                        console.error('[Expert] Full accept flow FAILED:', {
-                            error: err,
-                            code: err.code,
-                            message: err.message,
-                            stack: err.stack?.substring(0, 300)
-                        });
-                        toastr.error('Connection failed: ' + (err.message || 'Unknown'));
-                        this.endCall?.();
+                        console.error('❌ User side Agora join failed:', err);
+                        toastr.error('Connection failed: ' + err.message);
+                        this.resetCallUI();
                     } finally {
                         this._joining = false;
-                        console.log(`[Expert] Accept flow completed in ${Date.now() - startTime}ms`);
                     }
                 })
+
                 .listenForWhisper('call-cancelled', () => {
                     this.stopRingtone();
                     this.resetCallUI();
