@@ -133,7 +133,7 @@ export function chatComponent(chatId) {
 
 
                         if (!this.agoraClient) {
-                            this.agoraClient = this.createAgoraClient(); 
+                            this.agoraClient = this.createAgoraClient();
                         }
 
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
@@ -600,6 +600,8 @@ export function expertChatComponent(chatId) {
         timerInterval: null,
         localAudioTrack: null,
         localVideoTrack: null,
+        agoraClient: null,
+
 
         initiateCall(withVideo) {
             if (this.inCall) return;
@@ -1339,7 +1341,6 @@ Steps:
             client.on("user-published", async (user, mediaType) => {
                 await client.subscribe(user, mediaType);
                 if (mediaType === "video") {
-                    // Force wait for Alpine.js to show the div
                     this.$nextTick(() => {
                         const remoteDiv = document.getElementById('remote-media');
                         if (remoteDiv) {
@@ -1549,7 +1550,7 @@ export function adminExpertChatComponent() {
 
 
                         if (!this.agoraClient) {
-                            this.agoraClient = this.createAgoraClient(); 
+                            this.agoraClient = this.createAgoraClient();
                         }
 
                         const res = await axios.post(`/expert/massages/admin-chat/${chatId}/generate-token`);

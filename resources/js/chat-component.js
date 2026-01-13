@@ -577,7 +577,6 @@ export function chatComponent(chatId) {
 
 export function expertChatComponent(chatId) {
 
-    console.log('Expert Chat ID:', chatId, typeof chatId);
 
     if (typeof chatId === 'object') {
         console.error('❌ chatId object aa raha hai:', chatId);
