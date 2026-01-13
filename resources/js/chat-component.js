@@ -1526,6 +1526,11 @@ export function adminExpertChatComponent() {
                         this.markAsRead(e.message.id);
                     }
                 })
+                .listenForWhisper('new-message', (data) => {
+            this.appendMessage(data.message);
+            this.markAsRead(data.message.id); // Optional
+            this.scrollToBottom();
+        })
                 .listenForWhisper('typing', (e) => {
                     if (e.role === 'expert') {
                         this.typing = true;
@@ -2363,6 +2368,10 @@ export function expertAdminChatComponent() {
                 this.selectedFile = null;
                 document.getElementById('imageInput').value = '';
                 this.appendMessage(res.data.message_data);
+
+                window.Echo.private(`admin-chat.${this.selectedExpertId}`).whisper('new-message', {
+            message: res.data.message_data
+        });
             });
         },
 
