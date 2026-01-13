@@ -610,73 +610,7 @@ export function expertChatComponent(chatId) {
         localAudioTrack: null,
         localVideoTrack: null,
 
-        initiateCall(withVideo) {
-            if (this.inCall) return;
-
-            this.isVideo = withVideo;
-            this.callState = 'ringing';
-            this.callStatusText = 'Calling User...';
-            this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'User' };
-            this.callInitiator = 'user';
-
-            $('#callModal').modal('show');
-            this.playRingtone?.();
-
-            window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
-                from: 'expert',
-                type: withVideo ? 'video' : 'voice',
-                chatId: chatId
-            });
-        },
-
-
-        async testMediaAvailability() {
-            try {
-                console.log('🔍 Testing mic/camera availability…');
-
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                    video: this.isVideo
-                });
-
-                stream.getTracks().forEach(t => t.stop());
-                console.log('✅ Media available & Released');
-
-                this.mediaTestResult = 'ok';
-                this.callStatusText = 'Mic & Camera ready';
-
-            } catch (err) {
-                console.error('❌ Media test failed:', err);
-
-                if (err.name === 'NotAllowedError') {
-                    this.mediaTestResult = 'denied';
-                    this.callStatusText = 'Permission denied';
-                } else {
-                    this.mediaTestResult = 'busy';
-                    this.callStatusText = 'Mic/Camera busy';
-                }
-            }
-        },
-
-        get formattedDuration() {
-            const mins = Math.floor(this.callDuration / 60);
-            const secs = this.callDuration % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        },
-
-        startTimer() {
-            this.callDuration = 0;
-            if (this.timerInterval) clearInterval(this.timerInterval);
-            this.timerInterval = setInterval(() => {
-                this.callDuration++;
-            }, 1000);
-        },
-
-        hangUp() {
-            window.Echo.private(`chat.${chatId}`)
-                .whisper('call-ended', { chatId });
-            this.resetCallUI();
-        },
+      
         init() {
 
             if (this._initialized) return;
@@ -872,6 +806,73 @@ export function expertChatComponent(chatId) {
                 this.hideFooterAndButton();
                 this.showEndedMessage();
             }
+        },
+          initiateCall(withVideo) {
+            if (this.inCall) return;
+
+            this.isVideo = withVideo;
+            this.callState = 'ringing';
+            this.callStatusText = 'Calling User...';
+            this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'User' };
+            this.callInitiator = 'user';
+
+            $('#callModal').modal('show');
+            this.playRingtone?.();
+
+            window.Echo.private(`chat.${chatId}`).whisper('incoming-call', {
+                from: 'expert',
+                type: withVideo ? 'video' : 'voice',
+                chatId: chatId
+            });
+        },
+
+
+        async testMediaAvailability() {
+            try {
+                console.log('🔍 Testing mic/camera availability…');
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: this.isVideo
+                });
+
+                stream.getTracks().forEach(t => t.stop());
+                console.log('✅ Media available & Released');
+
+                this.mediaTestResult = 'ok';
+                this.callStatusText = 'Mic & Camera ready';
+
+            } catch (err) {
+                console.error('❌ Media test failed:', err);
+
+                if (err.name === 'NotAllowedError') {
+                    this.mediaTestResult = 'denied';
+                    this.callStatusText = 'Permission denied';
+                } else {
+                    this.mediaTestResult = 'busy';
+                    this.callStatusText = 'Mic/Camera busy';
+                }
+            }
+        },
+
+        get formattedDuration() {
+            const mins = Math.floor(this.callDuration / 60);
+            const secs = this.callDuration % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        },
+
+        startTimer() {
+            this.callDuration = 0;
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.timerInterval = setInterval(() => {
+                this.callDuration++;
+            }, 1000);
+        },
+
+        hangUp() {
+            window.Echo.private(`chat.${chatId}`)
+                .whisper('call-ended', { chatId });
+            this.resetCallUI();
         },
         handleChatAction(action) {
 
