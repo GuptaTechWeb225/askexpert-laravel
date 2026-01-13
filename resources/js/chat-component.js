@@ -326,9 +326,7 @@ export function chatComponent(chatId) {
                 this.callStatusText = 'Connected';
                 this.stopRingtone();
                 this.startTimer();
-                console.log('[USER] acceptCall finished – whisper sent? NO (removed)');
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
-console.log('[Expert] Sending call-accepted whisper from expert side');
             } catch (err) {
                 console.error('❌ Call failed:', err);
                 alert('Call failed: ' + err.message);
@@ -683,6 +681,10 @@ export function expertChatComponent(chatId) {
 
             if (this._initialized) return;
             this._initialized = true;
+  console.log('🧹 Leaving old Echo channel if exists');
+    window.Echo.leave(`private-chat.${chatId}`);
+
+    console.log('🟢 Binding Echo listeners');
 
             console.log('🟢 Expert chat initialized ONCE');
             this.scrollToBottom();
