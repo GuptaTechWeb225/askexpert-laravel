@@ -1564,7 +1564,6 @@ export function adminExpertChatComponent() {
                                     await this.agoraClient.subscribe(user, mediaType);
 
                                     if (mediaType === "video") {
-                                        // Thoda wait karo DOM ready hone ka
                                         await this.$nextTick();
                                         const remoteDiv = document.getElementById('remote-media');
                                         if (remoteDiv) {
@@ -1586,10 +1585,8 @@ export function adminExpertChatComponent() {
                             });
                         }
 
-                        // Step 2: Token le lo (sahi endpoint – admin ya expert ke hisab se adjust karo)
-                        const endpoint = window.isAdmin
-                            ? `/admin/expert-chat/${this.selectedExpertId}/generate-token`
-                            : `/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`;
+                        // Step 2: Token le lo – HAMESHA YEH FIXED ROUTE USE HOGA
+                        const endpoint = `/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`;
 
                         const res = await axios.post(endpoint);
                         const { token, channel, uid, app_id } = res.data;
@@ -2416,44 +2413,39 @@ export function expertAdminChatComponent() {
 
                 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
-                client.on('user-published', async (user, mediaType) => {
-                    await client.subscribe(user, mediaType);
-                    if (mediaType === 'video') {
-                        setTimeout(() => {
-                            const remoteDiv = document.getElementById('remote-media');
-                            if (remoteDiv) {
-                                remoteDiv.innerHTML = '';
-                                user.videoTrack.play(remoteDiv);
-                            }
-                        }, 500);
+
+                await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+
+                let tracks = [];
+                try {
+                    if (this.isVideo) {
+                        tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                    } else {
+                        tracks = [await AgoraRTC.createMicrophoneAudioTrack()];
                     }
-                    if (mediaType === 'audio') {
-                        user.audioTrack.play();
+                } catch (e) {
+                    throw new Error("Could not access mic/camera");
+                }
+
+                this.localAudioTrack = tracks[0];
+                this.localVideoTrack = tracks[1] || null;
+
+                if (this.localVideoTrack) {
+                    const localDiv = document.getElementById('local-media');
+                    if (localDiv) {
+                        localDiv.innerHTML = '';
+                        this.localVideoTrack.play(localDiv);
                     }
-                });
+                }
 
-                await client.join(window.AGORA_APP_ID, channel, token, uid);
+                await this.agoraClient.publish(tracks.filter(Boolean));
 
-                const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-                const micTrack = tracks[0];
-                const camTrack = this.isVideo ? tracks[1] : null;
-
-                if (camTrack) camTrack.play(document.getElementById('local-media'));
-
-                const publishTracks = [micTrack];
-                if (camTrack) publishTracks.push(camTrack);
-
-                await client.publish(publishTracks);
-
-                this.agoraClient = client;
-                this.localAudioTrack = micTrack;
-                this.localVideoTrack = camTrack;
-                this.videoEnabled = !!camTrack;
                 this.callState = 'connected';
+                this.inCall = true;
                 this.callStatusText = 'Connected';
                 this.startTimer();
 
-                window.Echo.private(`admin-chat.${expertId}`).whisper('call-accepted', { chatId: expertId });
+                window.Echo.private(`admin-chat.${this.selectedExpertId || expertId}`).whisper('call-accepted', {});
 
             } catch (err) {
                 console.error('❌ Call failed:', err);
