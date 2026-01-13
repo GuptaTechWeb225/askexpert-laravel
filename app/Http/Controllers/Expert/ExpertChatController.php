@@ -94,7 +94,8 @@ class ExpertChatController extends Controller
             'channel' => $channelName,
             'uid'     => $uid,
             'role'    => $role,
-            'guard'   => $guard
+            'guard'   => $guard,
+            'app_id'   => $appId
         ]);
 
         return response()->json([
