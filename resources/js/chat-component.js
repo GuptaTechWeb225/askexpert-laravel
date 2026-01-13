@@ -1803,7 +1803,7 @@ export function adminExpertChatComponent() {
 
                 const res = await axios.post(`/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`);
                 const { token, channel, uid, app_id } = res.data;
-
+console.log('Token Response:', { token, channel, uid, app_id });
                 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
                 client.on('user-published', async (user, mediaType) => {
