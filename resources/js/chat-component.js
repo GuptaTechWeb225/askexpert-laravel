@@ -2350,13 +2350,27 @@ export function expertAdminChatComponent() {
             }
         },
 
-        // Timer, cleanupMedia, etc. same as before
+         get formattedDuration() {
+            const mins = Math.floor(this.callDuration / 60);
+            const secs = this.callDuration % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        },
         startTimer() {
             this.callDuration = 0;
+            this.formattedDuration = '00:00';
+
             if (this.timerInterval) clearInterval(this.timerInterval);
+
             this.timerInterval = setInterval(() => {
                 this.callDuration++;
-                console.log('Admin timer tick:', this.callDuration);
+
+                const mins = Math.floor(this.callDuration / 60);
+                const secs = this.callDuration % 60;
+
+                this.formattedDuration =
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                console.log('Timer tick:', this.callDuration, this.formattedDuration);
             }, 1000);
         },
         playRingtone() {
