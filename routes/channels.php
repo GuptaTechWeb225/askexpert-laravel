@@ -14,23 +14,23 @@ Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
         'chat_id' => $chatId,
         'current_guard' => auth()->guard()->name ?? 'none',
         'customer_logged_in' => auth('customer')->check() ? 'YES' : 'NO',
-        'customer_id' => auth('customer')->id ?? 'none',
+        'customer_id' => auth('customer')->user()->id ?? 'none',
         'chat_user_id' => $chat->user_id,
         'expert_logged_in' => auth('expert')->check() ? 'YES' : 'NO',
-        'expert_id' => auth('expert')->id ?? 'none',
+        'expert_id' => auth('expert')->user()->id ?? 'none',
         'chat_expert_id' => $chat->expert_id,
     ]);
 
     // Customer guard check
     if (auth('customer')->check()) {
-        $match = (int) auth('customer')->id === (int) $chat->user_id;
+        $match = (int) auth('customer')->user()->id === (int) $chat->user_id;
         Log::info('Customer guard check', ['match' => $match]);
         return $match;
     }
 
     // Expert ke liye check
     if (auth('expert')->check()) {
-        return (int) auth('expert')->id === (int) $chat->expert_id;
+        return (int) auth('expert')->user()->id === (int) $chat->expert_id;
     }
 
     // Admin ko optional allow kar sakte ho (agar chahiye)
