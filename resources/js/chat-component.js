@@ -1527,6 +1527,12 @@ export function adminExpertChatComponent() {
                         this.markAsRead(e.message.id);
                     }
                 })
+
+                .listenForWhisper('new-message-from-expert', (data) => {
+            console.log('[Admin] Real-time message from expert via whisper!', data);
+            this.appendMessage(data.message);
+            this.scrollToBottom();
+        })
                 .listenForWhisper('typing', (e) => {
                     if (e.role === 'expert') {
                         this.typing = true;
