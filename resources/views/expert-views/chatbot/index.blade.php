@@ -9,7 +9,7 @@
 
 @section('content')
 <div class="content container-fluid">
-    <div class="whatsapp-container" x-data="expertChatComponent({{ $chat->id }})">
+    <div class="whatsapp-container" >
         <div class="chat-header d-flex justify-content-between px-3 py-3 text-white">
             <div class="bot-info d-flex align-items-center w-100">
                 <div class="avatar-wrapper">
