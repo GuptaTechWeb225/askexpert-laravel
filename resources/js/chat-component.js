@@ -1679,6 +1679,25 @@ export function adminExpertChatComponent() {
                 this.setupCallListenerForExpert(this.selectedExpertId);
             }
         },
+          createAgoraClient() {
+            const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+            client.on("user-published", async (user, mediaType) => {
+                await client.subscribe(user, mediaType);
+                if (mediaType === "video") {
+                    // Force wait for Alpine.js to show the div
+                    this.$nextTick(() => {
+                        const remoteDiv = document.getElementById('remote-media');
+                        if (remoteDiv) {
+                            user.videoTrack.play(remoteDiv);
+                        }
+                    });
+                }
+                if (mediaType === "audio") {
+                    user.audioTrack.play();
+                }
+            });
+            return client;
+        },
         async acceptCall() {
             if (this._joining || !this.selectedExpertId) return;
             this._joining = true;
