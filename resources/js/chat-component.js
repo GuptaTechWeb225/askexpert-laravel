@@ -1552,35 +1552,54 @@ export function adminExpertChatComponent() {
                         this.callStatusText = 'Connecting...';
                         this.callState = 'connecting';
 
-                        // Create or reuse client
+                        // Step 1: Client create ya reuse karo (remote listener already set hai)
                         if (!this.agoraClient) {
                             this.agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-                            // 🔥 Yeh block add karo – remote tracks ke liye
+                            // 🔥 Remote tracks listener – yeh sabse important hai
                             this.agoraClient.on("user-published", async (user, mediaType) => {
-                                console.log('Remote user published (in call-accepted):', user.uid, mediaType);
-                                await this.agoraClient.subscribe(user, mediaType);
+                                console.log('Remote user published → subscribing:', user.uid, mediaType);
 
-                                if (mediaType === "video") {
-                                    this.$nextTick(() => {
+                                try {
+                                    await this.agoraClient.subscribe(user, mediaType);
+
+                                    if (mediaType === "video") {
+                                        // Thoda wait karo DOM ready hone ka
+                                        await this.$nextTick();
                                         const remoteDiv = document.getElementById('remote-media');
                                         if (remoteDiv) {
-                                            remoteDiv.innerHTML = '';
+                                            remoteDiv.innerHTML = ''; // Purana clear
                                             user.videoTrack.play(remoteDiv);
+                                            console.log('✅ Remote video successfully playing in remote-media');
+                                        } else {
+                                            console.error('remote-media div not found in DOM!');
                                         }
-                                    });
-                                }
-                                if (mediaType === "audio") {
-                                    user.audioTrack.play();
+                                    }
+
+                                    if (mediaType === "audio") {
+                                        user.audioTrack.play();
+                                        console.log('Remote audio started');
+                                    }
+                                } catch (subErr) {
+                                    console.error('Subscribe failed for remote user:', user.uid, subErr);
                                 }
                             });
                         }
 
-                        const res = await axios.post(`/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`);
+                        // Step 2: Token le lo (sahi endpoint – admin ya expert ke hisab se adjust karo)
+                        const endpoint = window.isAdmin
+                            ? `/admin/expert-chat/${this.selectedExpertId}/generate-token`
+                            : `/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`;
+
+                        const res = await axios.post(endpoint);
                         const { token, channel, uid, app_id } = res.data;
 
+                        console.log('Joining Agora channel:', channel, 'with UID:', uid);
+
+                        // Step 3: Join channel
                         await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
 
+                        // Step 4: Apne tracks publish karo
                         let tracks = [];
                         try {
                             if (this.isVideo) {
@@ -1589,7 +1608,8 @@ export function adminExpertChatComponent() {
                                 tracks = [await AgoraRTC.createMicrophoneAudioTrack()];
                             }
                         } catch (e) {
-                            throw new Error("Could not access mic/camera");
+                            console.error('Mic/Camera access failed:', e);
+                            throw new Error("Could not access microphone/camera");
                         }
 
                         this.localAudioTrack = tracks[0];
@@ -1600,10 +1620,12 @@ export function adminExpertChatComponent() {
                             if (localDiv) {
                                 localDiv.innerHTML = '';
                                 this.localVideoTrack.play(localDiv);
+                                console.log('Local video playing');
                             }
                         }
 
                         await this.agoraClient.publish(tracks.filter(Boolean));
+                        console.log('Local tracks published successfully');
 
                         this.callState = 'connected';
                         this.inCall = true;
@@ -1611,7 +1633,7 @@ export function adminExpertChatComponent() {
                         this.startTimer();
                     } catch (err) {
                         console.error('❌ Agora join failed in call-accepted:', err);
-                        toastr.error('Connection failed: ' + err.message);
+                        toastr.error('Connection failed: ' + (err.message || 'Unknown error'));
                         this.endCall();
                     } finally {
                         this._joining = false;
@@ -1697,6 +1719,47 @@ export function adminExpertChatComponent() {
             if (this.selectedExpertId) {
                 this.setupCallListenerForExpert(this.selectedExpertId);
             }
+        },
+
+        ensureAgoraClient() {
+            if (this.agoraClient) {
+                console.log('Agora client already exists, reusing');
+                return this.agoraClient;
+            }
+
+            const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+            client.on("user-published", async (user, mediaType) => {
+                console.log('Remote user published:', user.uid, mediaType);
+
+                try {
+                    await client.subscribe(user, mediaType);
+
+                    if (mediaType === "video") {
+                        this.$nextTick(() => {
+                            const remoteDiv = document.getElementById('remote-media');
+                            if (remoteDiv) {
+                                remoteDiv.innerHTML = '';
+                                user.videoTrack.play(remoteDiv);
+                                console.log('Remote video playing in remote-media');
+                            } else {
+                                console.warn('remote-media div not found');
+                            }
+                        });
+                    }
+
+                    if (mediaType === "audio") {
+                        user.audioTrack.play();
+                        console.log('Remote audio playing');
+                    }
+                } catch (err) {
+                    console.error('Subscribe failed for remote user:', user.uid, err);
+                }
+            });
+
+            this.agoraClient = client;
+            console.log('Agora client created with remote tracks listener');
+            return client;
         },
         createAgoraClient() {
             if (this.agoraClient) {
