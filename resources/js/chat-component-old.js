@@ -24,6 +24,7 @@ export function chatComponent(chatId) {
         timerInterval: null,
         _dummy: false,
         formattedDuration: 0,
+        callAcceptedWhisperSent: false,
 
 
         initiateCall(withVideo) {
@@ -117,7 +118,17 @@ export function chatComponent(chatId) {
         init() {
             this.scrollToBottom();
             this.markAllAsRead();
+            this.callAcceptedWhisperSent = false;
             window.Echo.private(`chat.${chatId}`)
+
+
+
+                .subscribed(() => {
+                    console.log('✅ SUCCESSFULLY SUBSCRIBED to chat.' + chatId);
+                })
+                .error((error) => {
+                    console.error('❌ CHANNEL SUBSCRIPTION FAILED for chat.' + chatId, error);
+                })
                 .listen('ChatMessageSent', (e) => {
                     if (e.message.sender_type !== 'user') {
                         this.appendMessage(e.message);
@@ -250,52 +261,51 @@ export function chatComponent(chatId) {
             this.checkExpertOnline();
             setInterval(() => this.checkExpertOnline(), 10000);
         },
-        async acceptCall() {
+         async acceptCall() {
             if (this._joining) return;
             this._joining = true;
 
             try {
+                this.stopRingtone();
                 this.callState = 'connecting';
-                this.callStatusText = 'Connecting...';
+                this.callStatusText = 'Connecting…';
 
                 const res = await axios.post(`/chat/${chatId}/generate-token`);
                 const { token, channel, uid } = res.data;
 
                 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
                 client.on("user-published", async (user, mediaType) => {
-
-                    try {
-                        await client.subscribe(user, mediaType);
-
-                        if (mediaType === "video") {
-                            // Timeout thoda delay deta hai taaki DOM ready ho jaye
-                            setTimeout(() => {
-                                const remoteDiv = document.getElementById('remote-media');
-                                if (remoteDiv) {
-                                    remoteDiv.innerHTML = '';
-                                    user.videoTrack.play(remoteDiv);
-                                }
-                            }, 500);
-                        }
-                        if (mediaType === "audio") {
-                            user.audioTrack.play();
-                        }
-                    } catch (subErr) {
-                        console.warn('Subscribe failed, retrying in 1s...', subErr);
-                        setTimeout(async () => {
-                            try {
-                                await client.subscribe(user, mediaType);
-                                console.log('Retry subscribe success');
-                            } catch (retryErr) {
-                                console.error('Retry also failed:', retryErr);
+                    await client.subscribe(user, mediaType);
+                    if (mediaType === "video") {
+                        setTimeout(() => {
+                            const remoteDiv = document.getElementById('remote-media');
+                            if (remoteDiv) {
+                                remoteDiv.innerHTML = '';
+                                user.videoTrack.play(remoteDiv);
                             }
-                        }, 1000);
+                        }, 500);
                     }
+                    if (mediaType === "audio") {
+                        user.audioTrack.play();
+                    }
+                });
+
+                client.on("user-unpublished", (user, mediaType) => {
+                    console.log('❌ Remote user unpublished:', user.uid, mediaType);
+                    if (mediaType === "video") {
+                        document.getElementById('remote-media').innerHTML = '';
+                    }
+                });
+
+                client.on("user-left", (user) => {
+                    console.log('👋 Remote user left:', user.uid);
+                    this.resetCallUI();
                 });
 
                 // Join
                 await client.join(window.AGORA_APP_ID, channel, token, uid);
+
+                // Tracks create & publish
                 const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
                 const micTrack = tracks[0];
                 const camTrack = this.isVideo ? tracks[1] : null;
@@ -313,18 +323,20 @@ export function chatComponent(chatId) {
                 this.videoEnabled = !!camTrack;
                 this.callState = 'connected';
                 this.callStatusText = 'Connected';
-                this.stopRingtone();
                 this.startTimer();
                 window.Echo.private(`chat.${chatId}`).whisper('call-accepted', { chatId });
 
+                console.log('✅ Agora fully connected');
+
             } catch (err) {
-                console.error('❌ Call failed:', err);
-                alert('Call failed: ' + err.message);
-                this.endCall();
+                console.error('❌ Agora error:', err);
+                this.resetCallUI();
+                alert('Call failed: ' + (err.message || 'Unknown error'));
             } finally {
                 this._joining = false;
             }
         },
+
         cancelCall() {
             this.stopRingtone();
             window.Echo.private(`chat.${chatId}`).whisper('call-cancelled', { chatId });
@@ -568,7 +580,6 @@ export function chatComponent(chatId) {
 
 export function expertChatComponent(chatId) {
 
-    console.log('Expert Chat ID:', chatId, typeof chatId);
 
     if (typeof chatId === 'object') {
         console.error('❌ chatId object aa raha hai:', chatId);
@@ -600,8 +611,6 @@ export function expertChatComponent(chatId) {
         timerInterval: null,
         localAudioTrack: null,
         localVideoTrack: null,
-        agoraClient: null,
-
 
         initiateCall(withVideo) {
             if (this.inCall) return;
@@ -680,6 +689,7 @@ export function expertChatComponent(chatId) {
             this.markAllAsRead();
 
             window.Echo.private(`chat.${chatId}`)
+
                 .listen('ChatMessageSent', (e) => {
                     if (e.message.sender_type === 'user') {
                         this.appendMessage(e.message);
@@ -708,31 +718,62 @@ export function expertChatComponent(chatId) {
 
                 })
 
+
                 .listenForWhisper('call-accepted', async () => {
-                    if (this._joining) return;
+                    if (this._joining) {
+                        console.warn('[Expert] Already joining in progress - ignoring duplicate call-accepted');
+                        return;
+                    }
                     this._joining = true;
 
+                    const startTime = Date.now();
+                    console.log(`[Expert ${new Date().toISOString()}] call-accepted whisper RECEIVED`);
+
+                    await new Promise(r => setTimeout(r, 800)); // safety delay - adjust 500–1200ms if needed
+
                     try {
-                        console.log('Call accepted by remote side – connecting...');
-                        this.stopRingtone();
-                        this.callStatusText = 'Connecting...';
-                        this.callState = 'connecting';
+                        console.log(`[Expert] Step 1: Generating token... (time: ${Date.now() - startTime}ms)`);
+                        const res = await axios.post(`/chat/${chatId}/generate-token`);
+                        const { token, channel, uid, app_id, role } = res.data;  // ← role bhi log karo!
+
+                        console.log(`[Expert] Step 2: Token received`, {
+                            timestamp: new Date().toISOString(),
+                            uid: uid,
+                            uidType: typeof uid,
+                            channel: channel,
+                            roleFromBackend: role,          // ← yeh check karna zaroori
+                            timeTaken: Date.now() - startTime
+                        });
 
                         if (!this.agoraClient) {
+                            console.log('[Expert] Creating new Agora client');
                             this.agoraClient = this.createAgoraClient();
                         }
 
-                        const res = await axios.post(`/chat/${chatId}/generate-token`);
-                        const { token, channel, uid, app_id } = res.data;
+                        const clientState = this.agoraClient.connectionState;
+                        console.log(`[Expert] Current client state before join: ${clientState}`);
 
-                        if (this.agoraClient && this.agoraClient.connectionState === 'CONNECTED') {
-                            console.log('Already joined channel – skipping join, only publish tracks');
+                        if (clientState === 'CONNECTED') {
+                            console.log('[Expert] Already connected → skipping join, only publishing tracks');
+                        } else if (clientState === 'CONNECTING') {
+                            console.warn('[Expert] Still connecting → waiting extra 1s');
+                            await new Promise(r => setTimeout(r, 1000));
                         } else {
-                            console.log('Joining Agora channel:', channel, 'with UID:', uid);
-                            await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+                            console.log(`[Expert] Step 3: Joining channel with UID ${uid}...`);
+                            try {
+                                await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
+                                console.log(`[Expert] Join SUCCESS - UID: ${uid}`);
+                            } catch (joinErr) {
+                                console.error('[Expert] JOIN FAILED - Detailed error:', {
+                                    code: joinErr.code,
+                                    message: joinErr.message,
+                                    reason: joinErr.reason || 'N/A',
+                                    fullError: joinErr
+                                });
+                                throw joinErr;
+                            }
                         }
 
-                        // Apne tracks publish karo (agar pehle publish nahi hue)
                         let tracks = [];
                         try {
                             if (this.isVideo) {
@@ -768,10 +809,17 @@ export function expertChatComponent(chatId) {
                         this.callStatusText = 'Connected';
                         this.startTimer();
                     } catch (err) {
-                        console.error('❌ expert side Agora join failed:', err);
-                        toastr.error('Connection failed: ' + (err.message || 'Unknown error'));
+                        console.error('[Expert] Full accept flow FAILED:', {
+                            error: err,
+                            code: err.code,
+                            message: err.message,
+                            stack: err.stack?.substring(0, 300)
+                        });
+                        toastr.error('Connection failed: ' + (err.message || 'Unknown'));
+                        this.endCall?.();
                     } finally {
                         this._joining = false;
+                        console.log(`[Expert] Accept flow completed in ${Date.now() - startTime}ms`);
                     }
                 })
                 .listenForWhisper('call-cancelled', () => {
@@ -1348,6 +1396,7 @@ Steps:
             client.on("user-published", async (user, mediaType) => {
                 await client.subscribe(user, mediaType);
                 if (mediaType === "video") {
+                    // Force wait for Alpine.js to show the div
                     this.$nextTick(() => {
                         const remoteDiv = document.getElementById('remote-media');
                         if (remoteDiv) {
