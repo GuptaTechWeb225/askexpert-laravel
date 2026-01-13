@@ -1507,7 +1507,7 @@ export function adminExpertChatComponent() {
         callDuration: 0,
         timerInterval: null,
         _dummy: false,
-        formattedDuration: 0,
+        formattedDuration: '00:00',
 
         setupCallListenerForExpert(expertId) {
             const channel = `admin-chat.${expertId}`;
@@ -1589,7 +1589,7 @@ export function adminExpertChatComponent() {
                         this.callState = 'connected';
                         this.inCall = true;
                         this.callStatusText = 'Connected';
-                        this.startTimer();
+                this.startTimer();
                     } catch (err) {
                         console.error('❌ Admin side Agora join failed:', err);
                         toastr.error('Connection failed: ' + err.message);
@@ -1979,16 +1979,6 @@ export function adminExpertChatComponent() {
                 this.localVideoTrack.setEnabled(this.videoEnabled);
             }
         },
-
-        startTimer() {
-            this.callDuration = 0;
-            if (this.timerInterval) clearInterval(this.timerInterval);
-            this.timerInterval = setInterval(() => {
-                this.callDuration++;
-                console.log('Admin timer tick:', this.callDuration);
-            }, 1000);
-        },
-
         playRingtone() {
             const ringtone = document.getElementById('ringtone');
             if (ringtone) {
@@ -2334,7 +2324,7 @@ export function expertAdminChatComponent() {
             window.Echo.private(`admin-chat.${expertId}`).whisper('call-ended', { chatId: expertId });
             this.endCall();
         },
-  get formattedDuration() {
+        get formattedDuration() {
             const mins = Math.floor(this.callDuration / 60);
             const secs = this.callDuration % 60;
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
