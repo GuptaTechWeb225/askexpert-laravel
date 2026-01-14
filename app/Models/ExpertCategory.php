@@ -53,7 +53,7 @@ class ExpertCategory extends Model
     {
         return $query->where('is_active', true);
     }
-    protected $appends = ['icon_url', 'cms_image_url', 'card_image_url'];
+    protected $appends = ['icon_url', 'cms_image_url', 'card_image_url', 'active_experts_count'];
 
     public function getIconUrlAttribute(): ?string
     {
@@ -95,6 +95,10 @@ public function expertsCount(): int
         return $query->where('is_refundable', true);
     }
 
+    public function getActiveExpertsCountAttribute()
+{
+    return $this->experts()->count();  // yeh relation already hai tumhare model mein
+}
 
     public function scopeSearch($query, $keyword)
     {

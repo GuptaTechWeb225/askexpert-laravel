@@ -17,6 +17,10 @@
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 38px;
     }
+    #questionsSection {
+    scroll-margin-top: 90px; /* header height ke hisaab se */
+}
+
 </style>
 @endpush
 
@@ -25,7 +29,6 @@
 $buttons = app('App\Http\Controllers\Admin\Cms\HomeController')::getSectionDataStatic('quick_buttons');
 $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectionDataStatic('my_questions')[1] ?? [];
 @endphp
-@section('content')
 <section class="hero-section">
     <img src="{{ asset($hero['bg_image'] ?? 'assets/img/home-hero.png') }}" class="bg-img">
     <div class="overlay"></div>
@@ -51,11 +54,9 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
         </div>
     </div>
 </section>
-<section class="container table-section my-3 py-3">
+<section class="container table-section my-3 py-3"  id="questionsSection">
     <div class="row mt-3">
         <div class="col-lg-12">
-
-            <!-- Filter Section -->
             <div class="bg-white shadow-sm rounded p-3 mb-3">
                 <form id="questionsFilterForm" method="GET">
                     <div class="row align-items-center g-3">
@@ -70,8 +71,6 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                                 @endforeach
                             </select>
                         </div>
-
-                        <!-- Status -->
                         <div class="col-md-3">
                             <select name="q_status" class="form-select" id="qStatusSelect">
                                 <option value="">All Status</option>
@@ -80,11 +79,10 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                                 <option value="ended" {{ request('q_status') == 'ended' ? 'selected' : '' }}>Ended</option>
                             </select>
                         </div>
- <div class="col-md-3 ">
+                       <div class="col-md-3 ">
                             <button type="submit" class="btn btn--primary me-2">Apply Filter</button>
                             <a href="{{ request()->url() }}" class="btn btn-secondary">Reset</a>
                         </div>
-                        <!-- Search -->
                         <div class="col-md-3">
                             <div class="input-group">
                                 <input type="text" name="q_search" class="form-control" placeholder="Search question" 
@@ -94,14 +92,9 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                                 </button>
                             </div>
                         </div>
-
-                        <!-- Buttons -->
-                       
                     </div>
                 </form>
             </div>
-
-            <!-- Questions Table -->
             <div class="table-responsive shadow-sm rounded">
                 <table class="table table-borderless align-middle text-nowrap mb-0">
                     <thead class="border-bottom">
@@ -116,7 +109,7 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($questions as $index => $question)
+                        @foreach($questions as $index => $question)
                         <tr>
                             <td>{{ $questions->firstItem() + $index }}</td>
                             <td>{{ Str::limit(optional($question->firstMessage)->message, 60) }}</td>
@@ -136,19 +129,16 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                                 </a>
                             </td>
                         </tr>
-                        @empty
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">No questions found</td>
-                        </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
-
-            <!-- Pagination -->
             <div class="custom-pagination-wrapper d-flex justify-content-end mt-4">
                 {{ $questions->appends(request()->except('page'))->links() }}
             </div>
+               @if(count($questions)==0)
+        @include('layouts.back-end._empty-state',['text'=>'No questions found'],['image'=>'default'])
+        @endif
         </div>
     </div>
 </section>
@@ -178,4 +168,22 @@ $(document).ready(function() {
     });
 });
 </script>
+
+<script>
+window.addEventListener('load', function () {
+    setTimeout(() => {
+        const section = document.getElementById('questionsSection');
+        if (!section) return;
+
+        const yOffset = -90;
+        const y = section.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+        window.scrollTo({
+            top: y,
+            behavior: 'smooth'
+        });
+    }, 300);
+});
+</script>
+
 @endpush

@@ -121,14 +121,6 @@ export function chatComponent(chatId) {
             this.callAcceptedWhisperSent = false;
             window.Echo.private(`chat.${chatId}`)
 
-
-
-                .subscribed(() => {
-                    console.log('✅ SUCCESSFULLY SUBSCRIBED to chat.' + chatId);
-                })
-                .error((error) => {
-                    console.error('❌ CHANNEL SUBSCRIPTION FAILED for chat.' + chatId, error);
-                })
                 .listen('ChatMessageSent', (e) => {
                     if (e.message.sender_type !== 'user') {
                         this.appendMessage(e.message);
@@ -141,12 +133,9 @@ export function chatComponent(chatId) {
                     try {
                         this.callStatusText = 'Connecting...';
                         this.callState = 'connecting';
-
-
                         if (!this.agoraClient) {
                             this.agoraClient = this.createAgoraClient();
                         }
-
                         const res = await axios.post(`/chat/${chatId}/generate-token`);
                         const { token, channel, uid, app_id } = res.data;
 
@@ -155,7 +144,6 @@ export function chatComponent(chatId) {
                         let tracks = [];
                         try {
                             if (this.isVideo) {
-                                // Pehle dono try karo
                                 tracks = await AgoraRTC.createMicrophoneAndCameraTracks().catch(async (e) => {
                                     console.warn("Camera failed, falling back to audio only", e);
                                     this.isVideo = false;
@@ -610,15 +598,15 @@ export function expertChatComponent(chatId) {
         localAudioTrack: null,
         localVideoTrack: null,
 
-      
+
         init() {
 
             if (this._initialized) return;
             this._initialized = true;
-  console.log('🧹 Leaving old Echo channel if exists');
-    window.Echo.leave(`private-chat.${chatId}`);
+            console.log('🧹 Leaving old Echo channel if exists');
+            window.Echo.leave(`private-chat.${chatId}`);
 
-    console.log('🟢 Binding Echo listeners');
+            console.log('🟢 Binding Echo listeners');
 
             console.log('🟢 Expert chat initialized ONCE');
             this.scrollToBottom();
@@ -658,10 +646,10 @@ export function expertChatComponent(chatId) {
                 .listenForWhisper('call-accepted', async () => {
                     console.log('🔔 Whisper received: call-accepted');
 
-                     if (this.inCall || this._joining || this.agoraClient) {
-        console.warn('⛔ Duplicate call-accepted ignored');
-        return;
-    }
+                    if (this.inCall || this._joining || this.agoraClient) {
+                        console.warn('⛔ Duplicate call-accepted ignored');
+                        return;
+                    }
 
 
                     this._joining = true;
@@ -807,7 +795,7 @@ export function expertChatComponent(chatId) {
                 this.showEndedMessage();
             }
         },
-          initiateCall(withVideo) {
+        initiateCall(withVideo) {
             if (this.inCall) return;
 
             this.isVideo = withVideo;

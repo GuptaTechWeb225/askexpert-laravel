@@ -170,10 +170,26 @@ $customerSocialLogin = $web_config['customer_login_options']['social_login'] ?? 
                                         required>                                         <div class="invalid-feedback">{{ translate('please_enter_valid_email_address') }}!</div>
                </div>
 
-                        <div class="mb-3 p-0">
-                            <label for="password" class="form-label">Password</label>
-                            <input  class="form-control" type="password" name="password" id="password" placeholder="******" required>
-                        </div>
+                      <div class="mb-3 p-0">
+    <label for="password" class="form-label">Password</label>
+                                <div class="password-toggle rtl">
+
+    <input class="form-control auth-password-input"
+           type="password"
+           name="password"
+           id="password"
+           placeholder="******"
+           required>
+
+    <label class="password-toggle-btn">
+        <input class="custom-control-input" type="checkbox">
+        <i class="tio-hidden password-toggle-indicator"></i>
+        <span class="sr-only">{{ translate('show_password') }}</span>
+    </label>
+    </div>
+
+</div>
+
 
 
                   <div class="mb-3 p-0 w-100">
@@ -284,6 +300,21 @@ $customerSocialLogin = $web_config['customer_login_options']['social_login'] ?? 
     });
 });
 
+</script>
+<script>
+$(document).on('change', '.password-toggle-btn input[type="checkbox"]', function () {
+    const wrapper = $(this).closest('.password-toggle');
+    const input = wrapper.find('input[type="password"], input[type="text"]');
+    const icon = wrapper.find('.password-toggle-indicator');
+
+    if (this.checked) {
+        input.attr('type', 'text');
+        icon.removeClass('tio-hidden').addClass('tio-visible');
+    } else {
+        input.attr('type', 'password');
+        icon.removeClass('tio-visible').addClass('tio-hidden');
+    }
+});
 </script>
 
 </body>

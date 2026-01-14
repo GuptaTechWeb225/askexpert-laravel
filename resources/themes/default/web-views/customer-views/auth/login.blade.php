@@ -161,7 +161,7 @@ background-color: #ffc107 !important;
                                 <label class="form-label font-semibold">
                                     {{ translate('password') }}
                                     <span class="input-required-icon">*</span>
-                                </label>
+                                </label> 
                                 <div class="password-toggle rtl">
                                     <input class="form-control text-align-direction auth-password-input" name="password" type="password" id="si-password" placeholder="{{ translate('enter_password')}}" required>
                                     <label class="password-toggle-btn">
@@ -271,6 +271,23 @@ background-color: #ffc107 !important;
 });
 
     </script>
+
+    <script>
+$(document).on('change', '.password-toggle-btn input[type="checkbox"]', function () {
+    const wrapper = $(this).closest('.password-toggle');
+    const input = wrapper.find('input[type="password"], input[type="text"]');
+    const icon = wrapper.find('.password-toggle-indicator');
+
+    if (this.checked) {
+        input.attr('type', 'text');
+        icon.removeClass('tio-hidden').addClass('tio-visible');
+    } else {
+        input.attr('type', 'password');
+        icon.removeClass('tio-visible').addClass('tio-hidden');
+    }
+});
+</script>
+
 </body>
 
 </html>

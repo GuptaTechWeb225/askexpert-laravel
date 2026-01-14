@@ -12,6 +12,10 @@ enum Pages
         URI => 'my/home',
         VIEW => ''
     ];
+    const ALL_EXPERTS = [
+        URI => 'all/experts',
+        VIEW => ''
+    ];
     const USER_QUESTIONS = [
         URI => 'my/questions',
         VIEW => ''
@@ -93,6 +97,11 @@ enum Pages
     ];
     const CATEGOREY_VIEW = [
         URI => 'category',
+        VIEW => ''
+    ];
+
+     const CATEGOREY_VIEW_EXPERT = [
+        URI => '/expert/category',
         VIEW => ''
     ];
     

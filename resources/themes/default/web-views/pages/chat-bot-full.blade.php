@@ -1,129 +1,85 @@
-@php($announcement = getWebConfig(name: 'announcement'))
+<!DOCTYPE html>
+<html lang="en">
 
-@if (isset($announcement) && $announcement['status'] == 1)
-<div class="text-center position-relative px-4 py-1 d--none" id="announcement"
-    style="background-color: {{ $announcement['color'] }};color:{{$announcement['text_color']}}">
-    <span>{{ $announcement['announcement'] }} </span>
-    <span class="__close-announcement web-announcement-slideUp">X</span>
-</div>
-@endif
-@vite(['resources/js/app.js'])
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ask Expert - Fullscreen Chat</title>
 
-<div class="header-top">
-    <a class="text-decoration-none text-white"
-        href="{{ 'mailto:'.getWebConfig(name: 'company_email') }}">
-        <span><i class="fa fa-envelope  me-2 mt-2 mb-2"></i> {{getWebConfig(name: 'company_email')}} </span>
-    </a>
-</div>
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ $web_config['fav_icon']['path'] }}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ $web_config['fav_icon']['path'] }}">
 
-<header>
-    <nav class="navbar navbar-expand-lg custom-navbar fixed-top">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('home') }}">
-                <img class="__inline-11" src="{{ getStorageImages(path: $web_config['web_logo'], type: 'logo') }}" alt="{{$web_config['company_name']}}">
-            </a>
+    <link rel="stylesheet" href="{{ theme_asset('public/assets/front-end/css/theme.css') }}">
+    <link rel="stylesheet" href="{{ theme_asset('public/assets/front-end/css/cat-chatboat.css') }}">
+    <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
+    <link rel="stylesheet" href="{{dynamicAsset(path: 'public/assets/back-end/css/bootstrap.min.css')}}">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/style.css') }}">
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-         
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav mx-auto gap-3">
-                    @if(auth('customer')->check())
-                    <li class="nav-item"><a class="nav-link {{request()->is('my/home') ? 'active' : ''}}" href="{{ route('user.home') }}">Home</a></li>
-                    <li class="nav-item"><a class="nav-link {{request()->is('my/questions') ? 'active' : ''}}" href="{{ route('user.questions') }}">My Questions</a></li>
-                    <li class="nav-item"><a class="nav-link {{request()->is('my/experts') ? 'active' : ''}}" href="{{route('user.experts')}}">My Experts</a></li>
-                    <li class="nav-item"><a class="nav-link {{request()->is('help') ? 'active' : ''}}" href="{{ route('help') }}">Help</a></li>
-                    @else
-                    <li class="nav-item"><a class="nav-link {{request()->is('/') ? 'active' : ''}}" href="{{ route('home') }}">Home</a></li>
-                    <li class="nav-item"><a class="nav-link {{request()->is('about-us') ? 'active' : ''}}" href="{{ route('about-us') }}">About Us</a></li>
-                    <li class="nav-item"><a class="nav-link {{request()->is('price') ? 'active' : ''}}" href="{{route('price')}}">Pricing</a></li>
-                    <li class="nav-item"><a class="nav-link {{request()->is('expert') ? 'active' : ''}}" href="{{ route('expert') }}">Become an Expert</a></li>
-                    <li class="nav-item"><a class="nav-link {{request()->is('help') ? 'active' : ''}}" href="{{ route('help') }}">Help</a></li>
-                    @endif
-                </ul>
-                <div class="d-lg-none mt-3">
-                    @if(!auth('customer')->check())
-                    <a href="{{ route('customer.auth.login') }}" class="btn btn-login w-100">
-                        Log in
-                    </a>
-                    @endif
-                </div>
+  <style>
+      :root {
+        --base: {{$web_config['primary_color'] ?? '#000000'}};
+      }
+    </style>
+  <style>
 
-            </div>             
-            <div class="d-flex align-items-center ms-auto gap-2">
-                @if(auth('customer')->check())
-                <div class="dropdown">
-                    <a class="navbar-tool" type="button" data-bs-toggle="dropdown" aria-haspopup="true"
-                        aria-expanded="false">
-                        <div class="navbar-tool-icon-box bg-secondary">
-                            <div class="navbar-tool-icon-box bg-secondary">
-                                <img class="img-profile rounded-circle __inline-14" alt=""
-                                    src="{{ getStorageImages(path: auth('customer')->user()->image_full_url, type: 'avatar') }}">
-                            </div>
-                        </div>
-                        <div class="navbar-tool-text text-dark">
-                            <small class=" text-primary">
-                                {{ translate('hello')}}, {{ Str::limit(auth('customer')->user()->f_name, 10) }}
-                            </small>
-                            {{ translate('dashboard')}}
-                        </div>
-                    </a>
-                    <div class="dropdown-menu __auth-dropdown dropdown-menu-{{Session::get('direction') === " rtl" ? 'left' : 'right'
-                        }}" aria-labelledby="dropdownMenuButton">
+.chat-fullscreen {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+}
 
-                        <a class="dropdown-item " href="{{route('user-account')}}"> {{
-                            translate('my_Profile')}}</a>
+/* HEADER & FOOTER fixed */
+.chat-header {
+  flex-shrink: 0;
+}
 
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="{{route('customer.auth.logout')}}">{{
-                            translate('logout')}}</a>
-                    </div>
-                </div>
-                @else
-                <a href="{{ route('customer.auth.login') }}" class="btn btn-login">Log in</a>
-                @endif
+.chat-footer {
+  flex-shrink: 0;
+}
 
-            </div>
+.ec-expert-chat-area-1 {
+  flex: 1;               
+  overflow-y: auto;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
 
-               <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-        </div>
-    </nav>
-</header>
+#bot-typing-indicator {
+  flex-shrink: 0;
+}
 
-<div class="chat-floating-icon">
-    <div class="chat-bubble-img">
-        <img src="{{ asset('assets/front-end/img/msg-hii.png') }}" alt="Chat Bubble">
-    </div>
-    <div class="avatar-ring" id="chat-icon">
-        <img src="{{ asset('assets/front-end/img/chat-avtar.png') }}" alt="User Avatar">
-    </div>
-</div>
-<div class="chat-popup" id="chat-popup" x-data="categoryBotChatbot()" x-init="init()">
+.chat-fullscreen {
+  min-height: 100svh;
+}
 
-    <!-- HEADER -->
+ 
+  </style>
+</head>
+
+<body>
+
+  <div class="chat-fullscreen"  x-data="categoryBotChatbot()" x-init="init()">
+    <!-- Header -->
     <div class="chat-header">
-        <div class="bot-info">
-            <img src="{{ asset('assets/front-end/img/chat-avtar.png') }}" class="avatar">
-            <div class="bot-details">
-                <div class="bot-name">AskExpert Chat Bot</div>
-                <div class="bot-status"><span class="active-dot"></span> Active</div>
-            </div>
+      <div class="bot-info">
+        <img src="{{ asset('assets/front-end/img/chat-avtar.png') }}" alt="Bot Avatar">
+        <div class="ml-2">
+          <div class="bot-name">AskExpert Chat Bot</div>
+          <div class="bot-status"><span class="active-dot"></span> Active</div>
         </div>
-        <div class="header-icons">
-              <span class="tooltip-icon" data-tooltip="Full Screen">
-              <a href="{{ route('chatbot.full') }}">
-                <img src="{{ asset('assets/front-end/img/full-screen.png')}}" alt="" class="header-icon-img">
-              </a>
-            </span>
-            <span class="tooltip-icon close-btn" data-tooltip="Close" id="close-chat">X</span>
-        </div>
+      </div>
     </div>
 
+  
     <!-- CHAT AREA -->
-    <div class="ec-expert-chat-area" id="bot-chat-area"></div>
-
-    <!-- TYPING -->
-    <div id="bot-typing-indicator" class="mb-3 px-3" style="display:none;">
+    <div class="ec-expert-chat-area-1" id="bot-chat-area"> </div>
+<div id="bot-typing-indicator" class="mb-3 px-3" style="display:none;">
         <img src="{{ asset('assets/front-end/img/chat-avtar.png') }}" class="ec-message-avatar me-3">
         <div>
             <p class="mb-0 text-muted small">AskExpert Chatbot</p>
@@ -132,6 +88,7 @@
             </div>
         </div>
     </div>
+   
 
     <div class="chat-footer ec-expert-input-footer" id="bot-chat-footer">
         <input
@@ -149,10 +106,8 @@
             <i class="fa-solid fa-paper-plane"></i>
         </button>
     </div>
-</div>
+  </div>
 
-
-@push('script')
 <script>
     window.isCustomerLoggedIn = {{auth('customer') -> check() ? 'true' : 'false'}};
     window.pendingQuestionForPayment = '';
@@ -191,9 +146,12 @@
                 const msgDiv = document.createElement('div');
                 msgDiv.className = 'ec-message-container ec-user-side';
                 msgDiv.innerHTML = `
+                
                 <div class="ec-message ec-user">
                     <p>${text}</p>
                 </div>
+                 <img src="{{ asset('assets/front-end/img/placeholder/user.png') }}"
+                     class="ec-message-avatar me-3">
             `;
 
                 chatArea.appendChild(msgDiv);
@@ -279,7 +237,7 @@
 
                     if (data.escalate || this.messageCount >= 6) {
                         botText = `
-                        OK. Got it. I'm sending you to a secure page to join askExpert.
+                       OK. Got it. I'm sending you to a secure page to join askExpert. While you're filling out that form, I'll tell the Expert about your situation and then connect you two.
                         <a href="javascript:void(0)"
                            @click="proceedToPayment()"
                            style="color:#0066cc; font-weight:bold">
@@ -326,4 +284,6 @@
         }));
     });
 </script>
-@endpush
+</body>
+
+</html>

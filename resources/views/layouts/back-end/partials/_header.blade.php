@@ -7,7 +7,6 @@ $notifications = Notifications::getNotifications($adminId, [0]);
 @php($direction = Session::get('direction'))
 <div id="headerMain" class="d-none">
     <header id="header" class="navbar navbar-expand-lg navbar-fixed navbar-height navbar-flush navbar-container shadow">
-
         <div class="navbar-nav-wrap">
             <div class="navbar-brand-wrapper d-none d-sm-block d-xl-none">
                 @php($ecommerceLogo = getWebConfig('company_web_logo'))
@@ -160,7 +159,6 @@ $notifications = Notifications::getNotifications($adminId, [0]);
                 </ul>
             </div>
         </div>
-
     </header>
 </div>
 <div id="headerFluid" class="d-none"></div>

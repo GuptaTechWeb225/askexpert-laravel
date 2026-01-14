@@ -34,6 +34,11 @@ class ChatbotController extends Controller
         ]);
     }
 
+      public function chatBotFull()
+    {
+        return view(VIEW_FILE_NAMES['chat_bot_full']);
+    }
+
     public function message(Request $request)
     {
         $request->validate([

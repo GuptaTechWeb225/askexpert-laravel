@@ -76,7 +76,7 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
     <div class="container mb-5">
         <div class="d-flex justify-content-between align-items-center mb-5">
             <h2 class="section-title mb-0">Top Experts Recommended For You</h2>
-            <div><a href="{{ route('user.experts') }}" class="btn btn-primary px-4">View All</a></div>
+            <div><a href="{{ route('user.allexpert') }}" class="btn btn-primary px-4">View All</a></div>
         </div>
         <div id="expertSwiper" class="swiper expert-swiper">
             <div class="swiper-wrapper">
@@ -106,8 +106,14 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                             <i class="fa-solid fa-star"></i>
                             <i class="fa-solid fa-star"></i>
                         </div>
-                        <a href="{{ route('category.view', $expert->category_id ?? 1)}}"
-                            class="btn btn-primary w-100 mb-0 mt-3">Start New Session</a>
+                        <a href="{{ route('category.view.expert', [
+                                        'category' => $expert->category_id ?? 1,
+                                        'expert_id' => $expert->id
+                                    ]) }}"
+                            class="btn btn-primary w-100 mb-0 mt-3">
+                            Start New Session
+                        </a>
+
                     </div>
                 </div>
                 @endforeach
@@ -133,7 +139,7 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                             <i class="fa-solid fa-star"></i>
                             <i class="fa-solid fa-star"></i>
                         </div>
-                        <a href="../before-login/chat/chat-boat-full-screen.html"
+                        <a href="{{ route('chatbot.full') }}"
                             class="btn btn-primary w-100 mb-0 mt-3">Start New Session</a>
                     </div>
                 </div>
@@ -283,7 +289,7 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                 <p>If you have any problem go to help cente</p>
             </div>
             <div class="col-12 col-md-4 mt-3 mt-md-0 text-center text-md-end">
-                <a class="mb-0 mt-3 px-4">Start New Session</a>
+                <a href="{{ route('chatbot.full') }}" class="mb-0 mt-3 px-4">Start New Session</a>
             </div>
         </div>
     </div>

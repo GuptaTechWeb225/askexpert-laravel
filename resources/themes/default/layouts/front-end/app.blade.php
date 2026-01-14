@@ -12,7 +12,6 @@
     <meta name="msvalidate.01" content="{{getWebConfig('bing_webmaster_code')}}">
     <meta name="baidu-site-verification" content="{{getWebConfig('baidu_webmaster_code')}}">
     <meta name="yandex-verification" content="{{getWebConfig('yandex_webmaster_code')}}">
-
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ $web_config['fav_icon']['path'] }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ $web_config['fav_icon']['path'] }}">
@@ -44,7 +43,6 @@
     @include(VIEW_FILE_NAMES['robots_meta_content_partials'])
 
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/cat-chatboat.css') }}" />
-    <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/home.css') }}" />
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/responsive1.css') }}" />
     <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/swiper-bundle.min.css') }}">
     <link
@@ -54,6 +52,8 @@
     crossorigin="anonymous"
     referrerpolicy="no-referrer"
 />
+    <link rel="stylesheet" href="{{ theme_asset(path: 'public/assets/front-end/css/home.css') }}" />
+
 
 
     <style>

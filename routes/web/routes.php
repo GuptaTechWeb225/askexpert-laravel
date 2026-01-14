@@ -38,16 +38,7 @@ use App\Http\Controllers\Payment_Methods\BkashPaymentController;
 use App\Http\Controllers\Payment_Methods\PaystackController;
 
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
+
 
 Route::get('/test', function () {
     return view('admin-views.deal.clearance-sale.priority-setup');
@@ -111,6 +102,7 @@ Route::group(['namespace' => 'Web', 'middleware' => ['maintenance_mode', 'guestC
 
     Route::post('/chat/mark-read', [ChatController::class, 'markRead'])->name('chat.mark-read');
     Route::post('/chatbot/start', [ChatbotController::class, 'start'])->name('chatbot.start');
+    Route::get('/chatbot/full', [ChatbotController::class, 'chatBotFull'])->name('chatbot.full');
     Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
     Route::post('/chat/{chat}/generate-token', [ChatController::class, 'generateAgoraToken'])->name('chat.generate-token');
     Route::post('/chat/{chat}/start-call', [ChatController::class, 'startCall'])->name('chat.start-call'); 
@@ -151,6 +143,7 @@ Route::group(['namespace' => 'Web', 'middleware' => ['maintenance_mode', 'guestC
     Route::controller(PageController::class)->group(function () {
         Route::get(Pages::ABOUT_US[URI], 'getAboutUsView')->name('about-us');
         Route::get(Pages::USER_HOME[URI], 'getUserHomeView')->name('user.home')->middleware('customer');
+        Route::get(Pages::ALL_EXPERTS[URI], 'getAllExpertView')->name('user.allexpert');
         Route::get(Pages::USER_QUESTIONS[URI], 'getUserQuestionsView')->name('user.questions')->middleware('customer');
         Route::get(Pages::USER_EXPERTS[URI], 'getUserExpertsView')->name('user.experts')->middleware('customer');
         Route::get(Pages::PRICE[URI], 'getPricesView')->name('price');
@@ -168,6 +161,7 @@ Route::group(['namespace' => 'Web', 'middleware' => ['maintenance_mode', 'guestC
         Route::get(Pages::KNOW_ALL[URI], 'knowledgeAll')->name('knowledge-base.all');
         Route::get(Pages::KNOW_READ[URI] . '/{id}', 'knowledgeRead')->name('knowledge-base.read');
         Route::get(Pages::CATEGOREY_VIEW[URI] . '/{id}', 'categorieView')->name('category.view');
+        Route::get(Pages::CATEGOREY_VIEW_EXPERT[URI], 'categorieExpertView')->name('category.view.expert');
     });
 });
 

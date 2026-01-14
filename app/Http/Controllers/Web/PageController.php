@@ -55,6 +55,18 @@ class PageController extends Controller
             ->get();
         return view(VIEW_FILE_NAMES['user_home'], compact('experts'));
     }
+    public function getAllExpertView(): View
+    {
+        $robotsMetaContentData = $this->robotsMetaContentRepo->getFirstWhere(params: ['page_name' => 'user-expert']);
+        if (!$robotsMetaContentData) {
+            $robotsMetaContentData = $this->robotsMetaContentRepo->getFirstWhere(params: ['page_name' => 'default']);
+        }
+        $experts = Expert::where('status', 'approved')
+            ->inRandomOrder()
+            ->take(10)
+            ->get();
+        return view(VIEW_FILE_NAMES['all_experts'], compact('experts'));
+    }
     public function getUserQuestionsView(Request $request): View
     {
         $robotsMetaContentData = $this->robotsMetaContentRepo
@@ -208,7 +220,44 @@ class PageController extends Controller
 
         $expert = Expert::where('category_id', $id)
             ->where('status', 'approved')
-            ->where('is_active', true)
+            ->first();
+        if (!$expert) {
+            $generalCategory = ExpertCategory::where('name', 'General')->first();
+
+            if ($generalCategory) {
+                $expert = Expert::where('category_id', $generalCategory->id)
+                    ->where('status', 'approved')
+                    ->where('is_active', true)
+                    ->first();
+            }
+        }
+        if (!$expert) {
+            $expert = Expert::where('status', 'approved')
+                ->where('is_active', true)
+                ->first();
+        }
+        return view(
+            VIEW_FILE_NAMES['categorie_view'],
+            compact('categorie', 'categories', 'popular_questions', 'expert')
+        );
+    }
+    public function categorieExpertView(Request $request): View
+    {
+        $robotsMetaContentData = $this->robotsMetaContentRepo
+            ->getFirstWhere(params: ['page_name' => 'price'])
+            ?? $this->robotsMetaContentRepo->getFirstWhere(params: ['page_name' => 'default']);
+        $expertId = $request->expert_id ?? 1;
+        $id = $request->category;
+        $categories = ExpertCategory::active()
+            ->withCount('experts')
+            ->get();
+        $popular_questions = $this->getSectionItems('popular_questions');
+
+        $categorie = ExpertCategory::active()->findOrFail($id);
+
+        $expert = Expert::where('id', $expertId)
+            ->where('category_id', $id)
+            ->where('status', 'approved')
             ->first();
         if (!$expert) {
             $generalCategory = ExpertCategory::where('name', 'General')->first();
@@ -324,6 +373,4 @@ class PageController extends Controller
         $pageTitleBanner = $this->businessSettingRepo->whereJsonContains(params: ['type' => 'banner_terms_conditions'], value: ['status' => '1']);
         return view(VIEW_FILE_NAMES['terms_conditions_page'], compact('termsCondition', 'pageTitleBanner', 'robotsMetaContentData'));
     }
-
-   
 }

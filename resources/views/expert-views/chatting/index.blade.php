@@ -99,7 +99,6 @@
                                 @endforeach
                             </div>
 
-                            <!-- Footer -->
                             <div class="chat-footer p-3 bg-light border-top"
                                 style="position: sticky; bottom: 0; z-index: 10;">
                                 <input type="file" id="imageInput" style="display:none" accept="image/*" @change="handleFileUpload">

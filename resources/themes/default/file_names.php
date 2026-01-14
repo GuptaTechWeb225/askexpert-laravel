@@ -68,6 +68,8 @@
         'products__ajax_partials' => 'web-views.products._ajax-products',
         'all_brands' => 'web-views.products.brands',
         'contacts' => 'web-views.pages.contact-us',
+        'chat_bot_full' => 'web-views.pages.chat-bot-full',
+        'all_experts' => 'web-views.pages.all-expert',
         'flash_deals' => 'web-views.deals',
         'shop_view_page' => 'web-views.seller-view.shopview',
         'faq' => 'web-views.pages.help-topics',

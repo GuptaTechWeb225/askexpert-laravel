@@ -117,7 +117,7 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($chatExperts as $index => $chat)
+                        @foreach($chatExperts as $index => $chat)
                         <tr>
                             <td>{{ $chatExperts->firstItem() + $index }}</td>
                             <td>{{ $chat->expert->f_name ?? '-' }} {{ $chat->expert->l_name ?? '' }}</td>
@@ -135,11 +135,7 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
                                 </a>
                             </td>
                         </tr>
-                        @empty
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">No expert conversations found</td>
-                        </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
@@ -147,6 +143,9 @@ $hero = app('App\Http\Controllers\Admin\Cms\AfterLoginCmsController')::getSectio
             <div class="custom-pagination-wrapper d-flex justify-content-end mt-4">
                 {{ $chatExperts->appends(request()->except('chat_experts_page'))->links() }}
             </div>
+             @if(count($chatExperts)==0)
+        @include('layouts.back-end._empty-state',['text'=>'No expert found'],['image'=>'default'])
+        @endif
         </div>
     </div>
     </section>

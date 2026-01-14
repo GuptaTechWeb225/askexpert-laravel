@@ -67,8 +67,7 @@ $experts = $data['experts'] ?? [];
                     class="card-image">                <div class="slide-content">
                     <a href="{{ route('category.view', $cat->id) }}"> <strong class="d-block mb-2 text-dark">{{ $cat['name'] ?? '' }}</strong>
                     </a>
-                    <span class="text-muted">{{ $cat['expert_count'] ?? 0 }} Expert</span>
-                </div>
+<span class="text-muted">{{ $cat->active_experts_count ?? 0 }}  Experts</span>                </div>
             </div>
             @endforeach
         </div>
