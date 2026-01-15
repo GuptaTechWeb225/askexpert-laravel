@@ -228,6 +228,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
             Route::get(Expert::EXPERT_CHATS[URI], 'index')->name('index');
             Route::get(Expert::EXPERT_MASSAGE[URI] . '/{expertId}', 'getMessages');
             Route::post(Expert::MASSAGE_SEND[URI], 'sendMessage');
+            Route::post(Expert::MASSAGE_READ[URI], 'markRead');
         });
     });
     Route::group(['prefix' => 'expert', 'as' => 'expert.'], function () {

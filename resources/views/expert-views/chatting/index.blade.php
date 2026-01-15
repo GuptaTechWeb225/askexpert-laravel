@@ -197,5 +197,6 @@
 <script>
     window.EXPERT_ID = {{auth('expert') -> id()}};
     window.EXPERT_AVATAR = "{{ getStorageImages(path: auth('expert')->user()->image_full_url, type: 'avatar') }}";
+    window.ADMIN_AVATAR = "{{ getStorageImages(path: $superAdmin->image_full_url, type: 'avatar') }}";
 </script>
 @endsection

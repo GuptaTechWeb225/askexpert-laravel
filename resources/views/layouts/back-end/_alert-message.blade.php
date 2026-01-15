@@ -31,3 +31,31 @@
     </div>
 </div>
 
+<div id="expertChatModal" class="expert-chat-modal">
+    <div class="expert-chat-content">
+        <div class="d-flex align-items-start gap-2">
+            <img width="32"
+                 src="{{ asset('assets/front-end/img/placeholder/user.png') }}"
+                 alt="chat">
+
+            <div class="flex-grow-1">
+                <h6 class="mb-1 fw-bold">New Chat Request</h6>
+                <p class="mb-2 text-muted" id="expertChatMessage">
+                    You have a new chat
+                </p>
+
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-link p-0"
+                            onclick="hideExpertChatModal()">
+                        Hide
+                    </button>
+
+                    <button class="btn btn-sm btn--primary"
+                            id="expertChatViewBtn">
+                        Click to View
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

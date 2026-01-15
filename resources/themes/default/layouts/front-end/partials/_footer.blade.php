@@ -41,10 +41,9 @@
 
         @if (!empty($web_config['social_media']))
         <div class="col-1 col-md-1 mb-4">
-          <h6 class="fw-bold footer-heading">Links</h6>
+          <h6 class="fw-bold footer-heading text-nowrap">Links</h6>
           <div class="list-unstyled text-secondary small d-flex flex-column">
 
-            {{-- TWITTER --}}
             @php $twitter = $web_config['social_media']->firstWhere('name', 'twitter'); @endphp
             <li>
               <a href="{{ $twitter->link ?? '#' }}" target="_blank" class="text-primary fs-5">

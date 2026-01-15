@@ -93,7 +93,7 @@ $notifications = Notifications::getExpertNotifications($expertId, [0]);
                                 @forelse($notifications as $notification)
                                 <a class="dropdown-item" href="">
                                     <strong>{{ $notification->title }}</strong><br>
-                                    <small>{{ \Illuminate\Support\Str::limit($notification->message, 80) }}</small>
+                                    <small class="text-wrap">{{ \Illuminate\Support\Str::limit($notification->message, 80) }}</small>
                                 </a>
                                 @empty
                                 <p class="dropdown-item">No notifications yet</p>

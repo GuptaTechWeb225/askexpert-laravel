@@ -34,3 +34,12 @@ Broadcast::channel('admin-chat.{expertId}', function ($user, $expertId) {
     }
     return false;
 });
+
+Broadcast::channel('expert-chat.{expertId}', function ($user, $expertId) {
+
+    if (auth('expert')->check()) {
+        return (int) auth('expert')->id() === (int) $expertId;
+    }
+
+    return false;
+});

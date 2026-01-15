@@ -7,7 +7,6 @@
 @section('content')
 <div class="content container-fluid">
     <div class="main-content">
-        <!-- banner card -->
         <div class="mt-4">
             <div class="banner-container d-flex justify-content-between position-relative" style="background-image: url('{{ asset('assets/back-end/img/home-banner-bg-1.jpg') }}');">
                 <div class="banner-content">
@@ -34,7 +33,6 @@
 
         <div class="py-2 mt-3">
             <div class="row g-2">
-                <!-- Card 1 -->
                 <div class="col-md-3 col-sm-6">
                     <div class="card shadow-sm px-4 py-3 border-light rounded-4">
                         <p class="fs-5 mb-0">Assigned Questions</p>
@@ -149,7 +147,6 @@
 
 @push('script_2')
 <script src="{{dynamicAsset(path: 'public/assets/back-end/js/apexcharts.js')}}"></script>
-<script src="{{dynamicAsset(path: 'public/assets/back-end/js/vendor/dashboard.js')}}"></script>
 <script>
     $(document).on('click', '.toggle-status-btn', function() {
         let currentStatus = $(this).data('status'); // 1 means Online, 0 means Offline

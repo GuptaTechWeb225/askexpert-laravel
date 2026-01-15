@@ -23,7 +23,7 @@
                             <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
                         </select>
                     </div>
-                    <div class="col-md-4 text-end">
+                    <div class="col-md-4 ml-auto text-end">
                 <div class="input-group input-group-merge input-group-custom">
                             <input type="text" name="search" class="form-control" placeholder="Search by name or email" value="{{ request('search') }}">
                             <button class="btn btn--primary" type="submit">
@@ -109,7 +109,7 @@
 <!-- Approve Refund Modal -->
 <div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel">
     <div class="modal-dialog modal-dialog-scrollable modal-md">
-        <div class="modal-content border border-success rounded-4">
+        <div class="border border-success modal-content overflow-auto rounded-4">
             <div class="modal-header bg-light">
                 <h5 class="modal-title fw-bold" id="approveModalLabel">Choose Refund Type</h5>
     <button type="button" class="btn-close btn btn-status" data-bs-dismiss="modal"> <i class="tio-clear"></i> </button>

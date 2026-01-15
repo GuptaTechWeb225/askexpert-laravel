@@ -9,6 +9,7 @@ use App\Models\AdminExpertMessage;
 use App\Models\ChatMessage;
 use App\Models\ExpertEarning;
 use App\Models\Admin;
+use App\Models\Expert;
 use Illuminate\Http\Request;
 use App\Events\ChatMessageSent;
 use App\Events\AdminExpertMessageSent;
@@ -33,88 +34,88 @@ class ExpertChatController extends Controller
     ) {}
 
 
-   public function generateAgoraToken($expertId)  
-{
-    Log::info('Agora Token Request Started for Admin-Expert Chat', [
-        'expert_id' => $expertId,
-        'expert_auth' => auth('expert')->check(),
-        'admin_auth'  => auth('admin')->check()
-    ]);
-
-    $user = null;
-    $role = null;
-    $guard = null;
-
-    // Sirf expert ya admin allowed
-    if (auth('expert')->check()) {
-        $user = auth('expert')->user();
-        $role = 'expert';
-        $guard = 'expert';
-    } elseif (auth('admin')->check()) {
-        $user = auth('admin')->user();
-        $role = 'admin';
-        $guard = 'admin';
-    }
-
-    if (!$user) {
-        Log::warning('Unauthorized Agora token request - only admin/expert allowed');
-        return response()->json(['error' => 'Unauthorized - Only Admin/Expert allowed'], 401);
-    }
-
-    $userId = $user->id;
-    $appId  = config('services.agora.app_id');
-    $appCert = config('services.agora.app_certificate');
-
-    if (!$appId || !$appCert) {
-        Log::error('Agora config missing');
-        return response()->json(['error' => 'Agora configuration missing'], 500);
-    }
-
-    // Channel name: expert ID pe based (dono taraf same rahega)
-    $channelName = 'admin_chat_' . $expertId;
-
-    // Agora UID (integer)
-    $uid = intval($userId);
-
-    $expireTimeInSeconds = 3600; // 1 hour
-    $currentTimestamp    = now()->timestamp;
-    $privilegeExpiredTs  = $currentTimestamp + $expireTimeInSeconds;
-
-    try {
-        $token = RtcTokenBuilder::buildTokenWithUid(
-            $appId,
-            $appCert,
-            $channelName,
-            $uid,
-            RtcTokenBuilder::RolePublisher,  // Dono taraf publisher
-            $privilegeExpiredTs
-        );
-
-        Log::info('Agora Token Generated Successfully', [
-            'channel' => $channelName,
-            'uid'     => $uid,
-            'role'    => $role,
-            'guard'   => $guard,
-            'app_id'   => $appId
+    public function generateAgoraToken($expertId)
+    {
+        Log::info('Agora Token Request Started for Admin-Expert Chat', [
+            'expert_id' => $expertId,
+            'expert_auth' => auth('expert')->check(),
+            'admin_auth'  => auth('admin')->check()
         ]);
 
-        return response()->json([
-            'token'    => $token,
-            'app_id'   => $appId,
-            'channel'  => $channelName,
-            'uid'      => $uid
-        ]);
-    } catch (\Throwable $e) {
-        Log::error('Agora Token Generation Failed', [
-            'error' => $e->getMessage(),
-            'role'  => $role
-        ]);
+        $user = null;
+        $role = null;
+        $guard = null;
 
-        return response()->json([
-            'error' => 'Failed to generate Agora token'
-        ], 500);
+        // Sirf expert ya admin allowed
+        if (auth('expert')->check()) {
+            $user = auth('expert')->user();
+            $role = 'expert';
+            $guard = 'expert';
+        } elseif (auth('admin')->check()) {
+            $user = auth('admin')->user();
+            $role = 'admin';
+            $guard = 'admin';
+        }
+
+        if (!$user) {
+            Log::warning('Unauthorized Agora token request - only admin/expert allowed');
+            return response()->json(['error' => 'Unauthorized - Only Admin/Expert allowed'], 401);
+        }
+
+        $userId = $user->id;
+        $appId  = config('services.agora.app_id');
+        $appCert = config('services.agora.app_certificate');
+
+        if (!$appId || !$appCert) {
+            Log::error('Agora config missing');
+            return response()->json(['error' => 'Agora configuration missing'], 500);
+        }
+
+        // Channel name: expert ID pe based (dono taraf same rahega)
+        $channelName = 'admin_chat_' . $expertId;
+
+        // Agora UID (integer)
+        $uid = intval($userId);
+
+        $expireTimeInSeconds = 3600; // 1 hour
+        $currentTimestamp    = now()->timestamp;
+        $privilegeExpiredTs  = $currentTimestamp + $expireTimeInSeconds;
+
+        try {
+            $token = RtcTokenBuilder::buildTokenWithUid(
+                $appId,
+                $appCert,
+                $channelName,
+                $uid,
+                RtcTokenBuilder::RolePublisher,  // Dono taraf publisher
+                $privilegeExpiredTs
+            );
+
+            Log::info('Agora Token Generated Successfully', [
+                'channel' => $channelName,
+                'uid'     => $uid,
+                'role'    => $role,
+                'guard'   => $guard,
+                'app_id'   => $appId
+            ]);
+
+            return response()->json([
+                'token'    => $token,
+                'app_id'   => $appId,
+                'channel'  => $channelName,
+                'uid'      => $uid
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Agora Token Generation Failed', [
+                'error' => $e->getMessage(),
+                'role'  => $role
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to generate Agora token'
+            ], 500);
+        }
     }
-}
 
 
     public function view(ChatSession $chat)
@@ -131,11 +132,22 @@ class ExpertChatController extends Controller
     }
     public function massagesChat()
     {
-        Log::info('this 2 is called');
 
         $expertId = auth('expert')->id();
         if (!$expertId) {
             abort(403, 'Unauthorized');
+        }
+        $expert = Expert::findOrFail($expertId);
+
+        if (!$expert->is_online) {
+            $expert->update([
+                'is_online' => true,
+                'last_active_at' => now(),
+            ]);
+        } else {
+            $expert->update([
+                'last_active_at' => now(),
+            ]);
         }
         $chat = AdminExpertChat::where('expert_id', $expertId)->first();
         $superAdmin = Admin::where('id', 1)->first();

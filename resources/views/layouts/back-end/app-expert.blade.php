@@ -34,7 +34,9 @@ use App\Utils\Helpers;
     <link rel="stylesheet" href="{{dynamicAsset(path: 'public/assets/back-end/css/daterangepicker.css')}}">
     <link rel="stylesheet" href="{{dynamicAsset(path: 'public/assets/back-end/css/style.css')}}">
         <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
+
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+
 
     @if (Session::get('direction') === 'rtl')
     <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/menurtl.css')}}">
@@ -86,11 +88,8 @@ use App\Utils\Helpers;
 
     <main id="content" role="main" class="main pointer-event">
         @yield('content')
-
         @include('layouts.back-end.partials-expert._footer')
-
         @include('layouts.back-end.partials-expert._modals')
-
         @include('layouts.back-end.partials-expert._toggle-modal')
         @include('layouts.back-end._translator-for-js')
         @include('layouts.back-end.partials-expert._sign-out-modal')

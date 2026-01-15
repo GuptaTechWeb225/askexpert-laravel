@@ -74,7 +74,7 @@
                                     <strong class="{{Session::get('direction') === "rtl" ? 'ml-1' : 'mr-1'}}">{{translate('subject')}}: </strong>
                                     <div><strong>{{$contact->subject}}</strong></div>
                                 </div>
-                                <div class="flex-start">
+                                <div class="flex-start flex-md-column">
                                     <strong class="{{Session::get('direction') === "rtl" ? 'ml-1' : 'mr-1'}}">{{translate('message')}}: </strong>
                                     <div>{{$contact->message}}</div>
                                 </div>

@@ -72,22 +72,19 @@ protected function backupRestore()
         }
     }
 
-    protected function buildCommand(string $type, bool $usePassword = false): string
-    {
-        if ($type === 'db') {
-            $cmd = 'backup:run --only-db';
-        } elseif ($type === 'files') {
-            $cmd = 'backup:run --only-files';
-        } else {
-            $cmd = 'backup:run';
-        }
-
-        if ($usePassword && env('BACKUP_ARCHIVE_PASSWORD')) {
-            $cmd .= ' --password="' . addslashes(env('BACKUP_ARCHIVE_PASSWORD')) . '"';
-        }
-
-        return $cmd;
+   protected function buildCommand(string $type): string
+{
+    if ($type === 'db') {
+        return 'backup:run --only-db';
     }
+
+    if ($type === 'files') {
+        return 'backup:run --only-files';
+    }
+
+    return 'backup:run';
+}
+
 public function download($file)
 {
     // $file aa raha hai jaise: Buio/backup-2025-12-08-...

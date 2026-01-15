@@ -50,8 +50,8 @@ class PageController extends Controller
             $robotsMetaContentData = $this->robotsMetaContentRepo->getFirstWhere(params: ['page_name' => 'default']);
         }
         $experts = Expert::where('status', 'approved')
+            ->where('is_online', true)
             ->inRandomOrder()
-            ->take(10)
             ->get();
         return view(VIEW_FILE_NAMES['user_home'], compact('experts'));
     }
@@ -62,8 +62,7 @@ class PageController extends Controller
             $robotsMetaContentData = $this->robotsMetaContentRepo->getFirstWhere(params: ['page_name' => 'default']);
         }
         $experts = Expert::where('status', 'approved')
-            ->inRandomOrder()
-            ->take(10)
+            ->where('is_online', true)
             ->get();
         return view(VIEW_FILE_NAMES['all_experts'], compact('experts'));
     }

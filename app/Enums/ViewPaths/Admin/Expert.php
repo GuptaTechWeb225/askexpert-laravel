@@ -28,6 +28,10 @@ enum  Expert
         URI => 'messages',
         VIEW => '',
     ];
+    const MASSAGE_READ = [
+        URI => 'mark-read',
+        VIEW => '',
+    ];
     const MASSAGE_SEND = [
         URI => 'send',
         VIEW => '',

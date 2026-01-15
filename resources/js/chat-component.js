@@ -1567,10 +1567,10 @@ export function adminExpertChatComponent() {
         formattedDuration: 0,
 
         setupCallListenerForExpert(expertId) {
+            this.markAllAsRead()
             const channel = `admin-chat.${expertId}`;
             console.log('[Admin] Setting up call & message listener for channel:', channel);
 
-            // Purana channel leave kar do (duplicate avoid)
             if (this.currentChannel && this.currentChannel !== channel) {
                 window.Echo.leave(this.currentChannel);
                 console.log('[Admin] Left old channel:', this.currentChannel);
@@ -1580,7 +1580,6 @@ export function adminExpertChatComponent() {
 
             const privateChannel = window.Echo.private(channel);
 
-            // Subscription success/fail debug
             privateChannel.subscribed(() => {
                 console.log('[Admin DEBUG] ✅ FULLY SUBSCRIBED to:', channel);
             }).error((error) => {
@@ -1738,9 +1737,10 @@ export function adminExpertChatComponent() {
             this.searchResults = window.ALL_EXPERTS;
 
             this.scrollToBottom();
-            this.markAllAsRead();
             if (this.selectedExpertId) {
                 this.setupCallListenerForExpert(this.selectedExpertId);
+            this.markAllAsRead();
+
             }
         },
 
@@ -2158,9 +2158,6 @@ export function adminExpertChatComponent() {
             axios.post('/admin/expert-chat/mark-read', { expert_id: this.selectedExpertId });
         },
 
-        markAsRead(messageId) {
-            axios.post('/admin/expert-chat/mark-specific-read', { message_id: messageId });
-        },
 
         async searchExperts() {
             if (!this.searchQuery.trim()) {
@@ -2595,7 +2592,7 @@ export function expertAdminChatComponent() {
             }
 
             div.innerHTML = `
-                ${!isExpert ? '<img src="/assets/admin-avatar.jpg" class="message-avatar">' : ''}
+                ${!isExpert ? '<img src="' + window.ADMIN_AVATAR + '" class="message-avatar">' : ''}
                 <div class="message-bubble ${isExpert ? 'user' : 'bot'}">
                     ${content}
                     <div class="message-meta">
@@ -2654,7 +2651,7 @@ export function expertAdminChatComponent() {
         },
 
         markAllAsRead() {
-            axios.post('/expert/massages/admin-chat/mark-read');
+            axios.post('expert/massages/admin-chat/mark-read');
         },
 
     }

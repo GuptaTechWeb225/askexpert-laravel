@@ -146,6 +146,7 @@
 <script src="{{dynamicAsset(path: 'public/assets/back-end/js/custom.js')}}"></script>
 <script src="{{dynamicAsset(path: 'public/assets/back-end/js/app-script.js')}}"></script>
 
+
 {!! Toastr::message() !!}
 
 @if ($errors->any())

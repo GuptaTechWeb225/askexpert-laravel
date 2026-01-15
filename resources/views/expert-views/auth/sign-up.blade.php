@@ -141,16 +141,52 @@
                     <label class="form-label">Phone Number <span class="text-danger">*</span></label>
                     <input name="phone" id="phone" type="tel" class="form-control" placeholder="Enter Phone number" required>
                 </div>
+<!-- Password -->
 <div class="col-md-6">
-    <label class="form-label">Password <span class="text-danger">*</span></label>
-    <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
+    <label class="form-label">
+        Password <span class="text-danger">*</span>
+    </label>
+
+    <div class="input-group">
+        <input
+            type="password"
+            name="password"
+            id="password"
+            class="form-control"
+            placeholder="Enter Password"
+            required
+        >
+        <span class="input-group-text"
+              style="cursor:pointer"
+              onclick="togglePassword('password', this)">
+            <i class="fa-solid fa-eye"></i>
+        </span>
+    </div>
 </div>
 
 <!-- Confirm Password -->
 <div class="col-md-6">
-    <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
-    <input type="password" name="password_confirmation" class="form-control" placeholder="Confirm Password" required>
+    <label class="form-label">
+        Confirm Password <span class="text-danger">*</span>
+    </label>
+
+    <div class="input-group">
+        <input
+            type="password"
+            name="password_confirmation"
+            id="password_confirmation"
+            class="form-control"
+            placeholder="Confirm Password"
+            required
+        >
+        <span class="input-group-text"
+              style="cursor:pointer"
+              onclick="togglePassword('password_confirmation', this)">
+            <i class="fa-solid fa-eye"></i>
+        </span>
+    </div>
 </div>
+
                 <!-- Category -->
                 <div class="col-md-6">
                     <label class="form-label">Category <span class="text-danger">*</span></label>
@@ -326,6 +362,22 @@ $("#expert-register-form").on("submit", function (e) {
 });
 
 
+</script>
+<script>
+function togglePassword(inputId, el) {
+    const input = document.getElementById(inputId);
+    const icon = el.querySelector('i');
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
 </script>
 
 </body>

@@ -28,6 +28,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use App\Events\CustomerStatusUpdateEvent;
 use App\Enums\ViewPaths\Admin\Expert;
 use App\Models\ExpertEarning;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ExpertApprovedMail;
+use App\Mail\ExpertRejectedMail;
+
 
 class ExpertController extends Controller
 {
@@ -94,7 +98,7 @@ class ExpertController extends Controller
 
         $categories = ExpertCategory::all();
 
-        return view(Expert::EXPERTS[VIEW], compact('experts', 'totalExperts', 'categories','onlineExperts','pendingExperts','blockExperts'));
+        return view(Expert::EXPERTS[VIEW], compact('experts', 'totalExperts', 'categories', 'onlineExperts', 'pendingExperts', 'blockExperts'));
     }
 
 
@@ -117,10 +121,10 @@ class ExpertController extends Controller
 
     public function expertView(Request $request, $id): View|RedirectResponse
     {
-      $expert = $this->expertRepo->getFirstWhere(
-        params: ['id' => $id],
-        relations: ['reviews.user', 'category'] // Relations load karein
-    );
+        $expert = $this->expertRepo->getFirstWhere(
+            params: ['id' => $id],
+            relations: ['reviews.user', 'category'] // Relations load karein
+        );
         return view(Expert::EXPERT_VIEW[VIEW], compact('expert'));
         Toastr::error(translate('Expert_Not_Found'));
 
@@ -211,6 +215,10 @@ class ExpertController extends Controller
             ]
         );
 
+        try {
+            Mail::to($expert->email)->send(new ExpertApprovedMail($expert));
+        } catch (\Exception $e) {
+        }
         Toastr::success(translate('Expert_application_approved_successfully'));
 
         return redirect()->back();
@@ -233,6 +241,12 @@ class ExpertController extends Controller
         $expert->reject_reason = $request->reject_reason; // <-- fixed
         $expert->save();
 
+        try {
+            Mail::to($expert->email)->send(
+                new ExpertRejectedMail($expert, $request->reject_reason)
+            );
+        } catch (\Exception $e) {
+        }
         Toastr::success(translate('Expert_application_rejected_successfully'));
         return redirect()->back();
     }

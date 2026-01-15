@@ -26,6 +26,7 @@ use Stripe\InvoiceItem;
 use App\Utils\Notifications;
 use App\Models\Admin;
 use Stripe\PaymentIntent;
+use App\Events\ExpertNewChatEvent;
 
 class AskExpertController extends Controller
 {
@@ -122,24 +123,12 @@ class AskExpertController extends Controller
         $matched = collect($result['recommendations'])->first();
         $category = ExpertCategory::findOrFail($matched['category_id']);
 
-        Log::info('[Expert Availability] Recommendations received', [
-            'recommendations' => $result['recommendations'] ?? null,
-        ]);
-
         $expertIds = collect($result['recommendations'] ?? [])
             ->pluck('expert_id')
             ->toArray();
 
-        Log::info('[Expert Availability] Expert IDs extracted', [
-            'expert_ids' => $expertIds,
-        ]);
-
         $expert = $availabilityService->findAvailableExpert($expertIds);
-Log::info('[Expert Availability] Available expert result', [
-    'expert_found' => $expert ? true : false,
-    'expert_id'    => $expert->id ?? null,
-    'expert_name'  => $expert->name ?? null,
-]);
+
         $expertId = $expert?->id;
 
         $needsJoining = !$user->hasPaidJoiningFee();
@@ -147,7 +136,6 @@ Log::info('[Expert Availability] Available expert result', [
         $activeSubscription = UserSubscription::where('user_id', $user->id)
             ->where('active', true)
             ->first();
-
         if (!$activeSubscription || $activeSubscription->current_period_end < now()) {
             $needsMembership = true;
             $subscriptionToExtend = $activeSubscription;
@@ -404,8 +392,6 @@ Log::info('[Expert Availability] Available expert result', [
                     "Question has been assigned to expert {$expert->f_name} {$expert->l_name}",
                     [['type' => 'admin', 'id' => 1]]
                 );
-
-                // Expert
                 $notificationRepo->notifyRecipients(
                     $chat->id,
                     ChatSession::class,
@@ -414,7 +400,6 @@ Log::info('[Expert Availability] Available expert result', [
                     [['type' => 'expert', 'id' => $expert->id]]
                 );
 
-                // User
                 $notificationRepo->notifyRecipients(
                     $chat->id,
                     ChatSession::class,
@@ -423,8 +408,6 @@ Log::info('[Expert Availability] Available expert result', [
                     [['type' => 'user', 'id' => $user->id]]
                 );
             } else {
-                // 🚨 CASE 2: NO EXPERT — ONLY ADMIN
-
                 $notificationRepo->notifyRecipients(
                     $chat->id,
                     ChatSession::class,
@@ -432,6 +415,14 @@ Log::info('[Expert Availability] Available expert result', [
                     "A paid chat has been created. Please assign an expert.",
                     [['type' => 'admin', 'id' => 1]]
                 );
+            }
+
+            if ($expert) {
+                event(new ExpertNewChatEvent(
+                    $chat->id,
+                    $user->f_name . ' ' . $user->l_name,
+                    $expert->id
+                ));
             }
             session(['expert_chat_after_payment' => $chat->id]);
         } catch (\Exception $e) {

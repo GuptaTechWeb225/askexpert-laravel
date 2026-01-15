@@ -147,7 +147,7 @@
                                         <button
                                             class="btn btn-sm"
                                             type="button"
-                                            data-bs-toggle="dropdown"
+                                            data-toggle="dropdown"
                                             aria-expanded="false">
                                             <i class="fa-solid fa-ellipsis-vertical"></i>
                                         </button>
