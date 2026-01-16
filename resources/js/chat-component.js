@@ -37,6 +37,36 @@ export function chatComponent(chatId) {
             this.callStatusText = 'Calling...';
             this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'Expert' };
 
+            const callType = withVideo ? 'Video' : 'Voice';
+            const icon = withVideo ? '🎥' : '📞';
+            const messageText = `${icon} Started a ${callType} Call`;
+
+            let formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('message', messageText);
+
+            axios.post('/chat/send-message', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+                .then((res) => {
+                    console.log('[User] Call notification sent successfully:', res.data);
+
+                    if (res.data.message_data) {
+                        this.appendMessage(res.data.message_data);
+                    }
+                })
+                .catch(err => {
+                    console.error('[User] Call notification failed:', err);
+
+                    this.appendMessage({
+                        id: 'temp-call-' + Date.now(),
+                        sender_type: 'user',
+                        message: messageText,
+                        sent_at: new Date().toISOString(),
+                        is_read: false
+                    });
+                });
+
             const modalEl = document.getElementById('callModal');
             this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
             this.callBootstrapModal.show();
@@ -804,6 +834,31 @@ export function expertChatComponent(chatId) {
             this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'User' };
             this.callInitiator = 'user';
 
+            const callType = withVideo ? 'Video' : 'Voice';
+            const icon = withVideo ? '🎥' : '📞';
+            const messageText = `${icon} Expert started a ${callType} Call`;
+
+            let formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('message', messageText);
+
+            axios.post('/expert/chat/send-message', formData)
+                .then(res => {
+                    console.log('[Expert] Call notification sent:', res.data);
+                    if (res.data.message_data) {
+                        this.appendMessage(res.data.message_data);
+                    }
+                })
+                .catch(err => {
+                    console.error('[Expert] Failed to send call notification:', err);
+                    this.appendMessage({
+                        id: 'temp-' + Date.now(),
+                        sender_type: 'expert',
+                        message: messageText,
+                        sent_at: new Date().toISOString(),
+                        is_read: false
+                    });
+                });
             $('#callModal').modal('show');
             this.playRingtone?.();
 
@@ -1691,6 +1746,35 @@ export function adminExpertChatComponent() {
             this.callStatusText = 'Calling Expert...';
             this.callerInfo = { avatar: window.ADMIN_AVATAR, name: 'You (Admin)' };
 
+
+            const callType = withVideo ? 'Video' : 'Voice';
+            const icon = withVideo ? '🎥' : '📞';
+            const messageText = `${icon} Admin started a ${callType} Call`;
+
+            let formData = new FormData();
+            formData.append('expert_id', this.selectedExpertId);
+            formData.append('message', messageText);
+
+
+            axios.post('/admin/expert-chat/send', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+                .then(res => {
+                    console.log('[AdminChat] Call notification sent successfully:', res.data);
+                    if (res.data.message_data) {
+                        this.appendMessage(res.data.message_data);
+                    }
+                })
+                .catch(err => {
+                    console.error('[AdminChat] Call notification failed:', err);
+                    this.appendMessage({
+                        id: 'temp-call-' + Date.now(),
+                        sender_type: 'admin',
+                        message: messageText,
+                        sent_at: new Date().toISOString(),
+                        is_read: false
+                    });
+                });
             const modalEl = document.getElementById('callModal');
             this.callBootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
             this.callBootstrapModal.show();
@@ -2236,6 +2320,36 @@ export function expertAdminChatComponent() {
             this.callState = 'ringing';
             this.callStatusText = 'Calling...';
             this.callerInfo = { avatar: window.AUTH_USER_AVATAR, name: 'Expert' };
+
+
+            const callType = withVideo ? 'Video' : 'Voice';
+            const icon = withVideo ? '🎥' : '📞';
+            const messageText = `${icon} Expert started a ${callType} Call`;
+
+            let formData = new FormData();
+            formData.append('message', messageText);
+
+            axios.post('/expert/massages/admin-chat/send', formData)
+                .then(res => {
+                    console.log('[Expert] Call notification sent successfully:', res.data);
+
+                    if (res.data.message_data) {
+                        this.appendMessage(res.data.message_data);
+                    }
+                    window.Echo.private(`admin-chat.${expertId}`).whisper('new-message-from-expert', {
+                        message: res.data.message_data
+                    });
+                })
+                .catch(err => {
+                    console.error('[Expert] Call notification failed:', err);
+
+                    this.appendMessage({
+                        id: 'temp-call-' + Date.now(),
+                        sender_type: 'expert',
+                        message: messageText,
+                        sent_at: new Date().toISOString()
+                    });
+                });
 
             $('#callAdminModal').modal('show');
 

@@ -57,8 +57,14 @@ class AskExpertController extends Controller
         $email = $request->email;
         $question = $request->question;
 
-        $user = User::where('email', $email)->first();
+        $user = User::withTrashed()->where('email', $email)->first();
 
+        if ($user && $user->trashed()) {  // ya $user->deleted_at !== null
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account has been deleted from the system.'
+            ], 410); 
+        }
         if (!$user) {
             $name = explode('@', $email)[0];
             $password = Str::random(16);
@@ -133,7 +139,7 @@ class AskExpertController extends Controller
             $expertIds,
             $category->id,
             'text_chat',
-            $user->id 
+            $user->id
         );
 
         $expertId = '';
