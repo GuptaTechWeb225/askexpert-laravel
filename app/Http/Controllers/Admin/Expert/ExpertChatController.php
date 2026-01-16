@@ -18,42 +18,47 @@ class ExpertChatController extends Controller
 
     ) {}
 
-    public function index()
-    {
-        $adminId = auth('admin')->id();
+  public function index()
+{
+    $adminId = auth('admin')->id();
 
-        // Experts jinke sath admin ki chat hui hai
-        $activeExpertIds = AdminExpertChat::where('admin_id', $adminId)
-            ->pluck('expert_id');
+    // Active expert IDs
+    $activeExpertIds = AdminExpertChat::where('admin_id', $adminId)
+        ->pluck('expert_id');
 
-        // Experts load unread_count aur last chat timestamp ke saath
-        $experts = Expert::withCount([
-            'messages as unread_count' => function ($q) use ($adminId) {
-                $q->where('sender_type', 'expert')
-                    ->where('is_read', 0)
-                    ->whereHas('chat', function ($q2) use ($adminId) {
-                        $q2->where('admin_id', $adminId);
-                    });
-            }
-        ])
-            ->whereIn('id', $activeExpertIds)
-            ->with(['chats' => function ($q) use ($adminId) {
-                // Last chat with this admin
-                $q->where('admin_id', $adminId)
-                    ->latest('updated_at')
-                    ->limit(1);
-            }])
-            ->get()
-            ->sortByDesc(function ($expert) {
-                // Sort by last chat updated_at
-                return optional($expert->chats->first())->updated_at;
-            })
-            ->values(); // reindex collection
+    $experts = Expert::withCount([
+        'messages as unread_count' => function ($q) use ($adminId) {
+            $q->where('sender_type', 'expert')
+                ->where('is_read', 0)
+                ->whereHas('chat', function ($q2) use ($adminId) {
+                    $q2->where('admin_id', $adminId);
+                });
+        }
+    ])
+    ->whereIn('id', $activeExpertIds)
 
-        $allExperts = Expert::all();
+    // 👇 load LAST MESSAGE TIME PER EXPERT
+    ->with(['messages' => function ($q) use ($adminId) {
+        $q->whereHas('chat', function ($q2) use ($adminId) {
+            $q2->where('admin_id', $adminId);
+        })
+        ->latest('sent_at')
+        ->limit(1);
+    }])
 
-        return view(ExpertPath::EXPERT_CHATS[VIEW], compact('experts', 'allExperts'));
-    }
+    ->get()
+
+    // 👇 SORT BY sent_at
+    ->sortByDesc(function ($expert) {
+        return optional($expert->messages->first())->sent_at;
+    })
+    ->values();
+
+    $allExperts = Expert::all();
+
+    return view(ExpertPath::EXPERT_CHATS[VIEW], compact('experts', 'allExperts'));
+}
+
 
 
     public function getMessages($expertId)

@@ -17,4 +17,10 @@ class AdminExpertChat extends Model
     {
         return $this->belongsTo(Expert::class);
     }
+
+    public function lastMessage()
+    {
+        return $this->hasOne(AdminExpertMessage::class)
+            ->latest('sent_at');
+    }
 }
