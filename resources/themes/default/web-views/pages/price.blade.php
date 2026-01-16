@@ -43,7 +43,9 @@ $buttons = app('App\Http\Controllers\Admin\Cms\HomeController')::getSectionDataS
                 <div class="card price-card h-100">
                     <div class="price-card-header">
                         <h4>{{ $categorie->name }}</h4>
+                        <div class="image-container">
                             <img src="{{ $categorie->card_image_url }}" alt="{{ $categorie->name }}">
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
@@ -56,9 +58,8 @@ $buttons = app('App\Http\Controllers\Admin\Cms\HomeController')::getSectionDataS
                     <a href="{{ route('category.view', $categorie->id) }}" class="btn btn-outline-primary w-100">Ask a {{ $categorie->name }}</a>
                 </div>
             </div>
+            @endforeach
         </div>
-        @endforeach
-    </div>
     </div>
 </section>
 <section class="difference-section">
