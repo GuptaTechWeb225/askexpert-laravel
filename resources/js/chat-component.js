@@ -1611,7 +1611,7 @@ export function adminExpertChatComponent() {
                             this.agoraClient = this.createAgoraClient();
                         }
 
-                        const res = await axios.post(`/expert/massages/admin-chat/${chatId}/generate-token`);
+                        const res = await axios.post(`/expert/massages/admin-chat/${this.selectedExpertId}/generate-token`);
                         const { token, channel, uid, app_id } = res.data;
 
                         await this.agoraClient.join(app_id || window.AGORA_APP_ID, channel, token, uid);
