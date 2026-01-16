@@ -28,7 +28,6 @@ class ExpertChatController extends Controller
               ->where('admin_id', $adminId);
         })
 
-        // 🔥 LAST MESSAGE TIME (sent_at)
         ->addSelect([
             'last_sent_at' => AdminExpertMessage::select('sent_at')
                 ->join(
