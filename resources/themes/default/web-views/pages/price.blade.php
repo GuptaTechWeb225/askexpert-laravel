@@ -45,15 +45,15 @@ $buttons = app('App\Http\Controllers\Admin\Cms\HomeController')::getSectionDataS
                         <h4>{{ $categorie->name }}</h4>
                         <img src="{{ $categorie->card_image_url }}" alt="{{ $categorie->name }}">
                     </div>
-                </div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ $categorie->name }}</h5>
-                    <p class="price">${{ $categorie->monthly_subscription_fee }}<span class="fs-6">/month</span></p>
-                    <p class="join-fee">(plus ${{ $categorie->joining_fee }} join fee)</p>
-                    <p class="description">
-                        {{ \Illuminate\Support\Str::limit(strip_tags($categorie->card_description), 45, '...') }}
-                    </p>
-                    <a href="{{ route('category.view', $categorie->id) }}" class="btn btn-outline-primary w-100">Ask a {{ $categorie->name }}</a>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ $categorie->name }}</h5>
+                        <p class="price">${{ $categorie->monthly_subscription_fee }}<span class="fs-6">/month</span></p>
+                        <p class="join-fee">(plus ${{ $categorie->joining_fee }} join fee)</p>
+                        <p class="description">
+                            {{ \Illuminate\Support\Str::limit(strip_tags($categorie->card_description), 45, '...') }}
+                        </p>
+                        <a href="{{ route('category.view', $categorie->id) }}" class="btn btn-outline-primary w-100">Ask a {{ $categorie->name }}</a>
+                    </div>
                 </div>
             </div>
             @endforeach
