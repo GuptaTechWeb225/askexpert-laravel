@@ -59,7 +59,7 @@ class AskExpertController extends Controller
 
         $user = User::withTrashed()->where('email', $email)->first();
 
-        if ($user && $user->trashed()) {  // ya $user->deleted_at !== null
+        if ($user && $user->trashed()) {  
             return response()->json([
                 'success' => false,
                 'message' => 'Your account has been deleted from the system.'

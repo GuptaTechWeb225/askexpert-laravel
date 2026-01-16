@@ -18,41 +18,44 @@ class ExpertChatController extends Controller
 
     ) {}
 
-  public function index()
+ public function index()
 {
     $adminId = auth('admin')->id();
 
-    // Active expert IDs
-    $activeExpertIds = AdminExpertChat::where('admin_id', $adminId)
-        ->pluck('expert_id');
-
-    $experts = Expert::withCount([
-        'messages as unread_count' => function ($q) use ($adminId) {
-            $q->where('sender_type', 'expert')
-                ->where('is_read', 0)
-                ->whereHas('chat', function ($q2) use ($adminId) {
-                    $q2->where('admin_id', $adminId);
-                });
-        }
-    ])
-    ->whereIn('id', $activeExpertIds)
-
-    // 👇 load LAST MESSAGE TIME PER EXPERT
-    ->with(['messages' => function ($q) use ($adminId) {
-        $q->whereHas('chat', function ($q2) use ($adminId) {
-            $q2->where('admin_id', $adminId);
+    $experts = Expert::whereIn('id', function ($q) use ($adminId) {
+            $q->select('expert_id')
+              ->from('admin_expert_chats')
+              ->where('admin_id', $adminId);
         })
-        ->latest('sent_at')
-        ->limit(1);
-    }])
 
-    ->get()
+        // 🔥 LAST MESSAGE TIME (sent_at)
+        ->addSelect([
+            'last_sent_at' => AdminExpertMessage::select('sent_at')
+                ->join(
+                    'admin_expert_chats',
+                    'admin_expert_chats.id',
+                    '=',
+                    'admin_expert_messages.admin_expert_chat_id'
+                )
+                ->whereColumn('admin_expert_chats.expert_id', 'experts.id')
+                ->where('admin_expert_chats.admin_id', $adminId)
+                ->latest('sent_at')
+                ->limit(1)
+        ])
 
-    // 👇 SORT BY sent_at
-    ->sortByDesc(function ($expert) {
-        return optional($expert->messages->first())->sent_at;
-    })
-    ->values();
+        ->withCount([
+            'messages as unread_count' => function ($q) use ($adminId) {
+                $q->where('sender_type', 'expert')
+                    ->where('is_read', 0)
+                    ->whereHas('chat', function ($q2) use ($adminId) {
+                        $q2->where('admin_id', $adminId);
+                    });
+            }
+        ])
+
+        // 🔥 REAL SORT — DB LEVEL
+        ->orderByDesc('last_sent_at')
+        ->get();
 
     $allExperts = Expert::all();
 
