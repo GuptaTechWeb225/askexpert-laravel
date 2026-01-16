@@ -36,11 +36,11 @@
         <div class="row g-3 mt-2">
             <div class="col-md-4">
                 <label>Customer Name</label>
-                <input type="text" class="form-control" value="{{ $refund->user->f_name }} {{ $refund->user->l_name }}" disabled>
+                <input type="text" class="form-control" value="{{ $refund->user?->f_name }} {{ $refund->user?->l_name }}" disabled>
             </div>
             <div class="col-md-4">
                 <label>Email</label>
-                <input type="text" class="form-control" value="{{ $refund->user->email }}" disabled>
+                <input type="text" class="form-control" value="{{ $refund->user?->email }}" disabled>
             </div>
         </div>
 

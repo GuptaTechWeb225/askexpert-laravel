@@ -9,29 +9,52 @@ use App\Models\AdminExpertChat;
 use App\Models\AdminExpertMessage;
 use Illuminate\Http\Request;
 use App\Events\AdminExpertMessageSent;
+use App\Contracts\Repositories\AdminNotificationRepositoryInterface;
 
 class ExpertChatController extends Controller
 {
-    // Admin/ExpertChatController.php (ya jo bhi tera controller hai)
+    public function __construct(
+        private readonly AdminNotificationRepositoryInterface   $notificationRepo,
+
+    ) {}
 
     public function index()
     {
-
         $adminId = auth('admin')->id();
 
-        $activeExpertIds = AdminExpertChat::where('admin_id', 1) // ya auth('admin')->id()
+        // Experts jinke sath admin ki chat hui hai
+        $activeExpertIds = AdminExpertChat::where('admin_id', $adminId)
             ->pluck('expert_id');
 
-        $experts = Expert::withCount(['messages as unread_count' => function ($q) use ($adminId) {
-            $q->where('sender_type', 'expert')
-                ->where('is_read', 0)
-                ->whereHas('chat', function ($q2) use ($adminId) {
-                    $q2->where('admin_id', $adminId);
-                });
-        }])->whereIn('id', $activeExpertIds)->get();
+        // Experts load unread_count aur last chat timestamp ke saath
+        $experts = Expert::withCount([
+            'messages as unread_count' => function ($q) use ($adminId) {
+                $q->where('sender_type', 'expert')
+                    ->where('is_read', 0)
+                    ->whereHas('chat', function ($q2) use ($adminId) {
+                        $q2->where('admin_id', $adminId);
+                    });
+            }
+        ])
+            ->whereIn('id', $activeExpertIds)
+            ->with(['chats' => function ($q) use ($adminId) {
+                // Last chat with this admin
+                $q->where('admin_id', $adminId)
+                    ->latest('updated_at')
+                    ->limit(1);
+            }])
+            ->get()
+            ->sortByDesc(function ($expert) {
+                // Sort by last chat updated_at
+                return optional($expert->chats->first())->updated_at;
+            })
+            ->values(); // reindex collection
+
         $allExperts = Expert::all();
+
         return view(ExpertPath::EXPERT_CHATS[VIEW], compact('experts', 'allExperts'));
     }
+
 
     public function getMessages($expertId)
     {
@@ -84,6 +107,22 @@ class ExpertChatController extends Controller
 
         broadcast(new AdminExpertMessageSent($msg))->toOthers();
 
+
+        $expertId = $chat->expert_id ?? 1;
+        $title = 'New Admin Massage';
+        $message = "Admin send you a massage.";
+
+        $recipients = [
+            ['type' => 'expert', 'id' =>  $expertId],
+        ];
+
+        $this->notificationRepo->notifyRecipients(
+            1,
+            Expert::class,
+            $title,
+            $message,
+            $recipients
+        );
         return response()->json([
             'success' => true,
             'message_data' => $msg
@@ -102,11 +141,13 @@ class ExpertChatController extends Controller
         if ($chat) {
             AdminExpertMessage::where('admin_expert_chat_id', $chat->id)
                 ->where('sender_type', 'expert')
+                ->where('is_read', 0)
                 ->update(['is_read' => 1]);
         }
 
         return response()->json(['success' => true]);
     }
+
 
     public function markSpecificRead(Request $request)
     {

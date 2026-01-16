@@ -1087,7 +1087,7 @@ label {
 }
 
 .dropdown-menu {
-    width: 16rem;
+    max-width: 20rem;
 }
 
 .search-card {
@@ -4980,7 +4980,7 @@ select {
 }
 
 .__w-16rem {
-    width: 16rem;
+    max-width: 22rem;
 }
 
 .__pb-13px {
@@ -8690,6 +8690,7 @@ select.form-select {
 }
 
 .message-bubble {
+    max-width: 70%;
     padding: 8px 12px;
     border-radius: 7.5px;
     position: relative;

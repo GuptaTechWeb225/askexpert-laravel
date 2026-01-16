@@ -271,84 +271,109 @@ class UserProfileController extends Controller
             'message' => 'Refund request submitted successfully. We will review it soon.'
         ]);
     }
-
     public function cancelAutoRenew(Request $request, $subscriptionId)
     {
         $subscription = UserSubscription::where('id', $subscriptionId)
             ->where('user_id', auth('customer')->id())
             ->where('active', true)
             ->firstOrFail();
-        $notificationRepo = app(\App\Contracts\Repositories\AdminNotificationRepositoryInterface::class);
 
+        $notificationRepo = app(\App\Contracts\Repositories\AdminNotificationRepositoryInterface::class);
 
         if (!$subscription->stripe_subscription_id) {
             $subscription->update(['auto_renew' => false]);
-            $notificationRepo->notifyRecipients(
-                $subscription->id,
-                UserSubscription::class,
-                "Auto Renew Cancelled",
-                "User cancelled auto-renew for subscription #{$subscription->id}",
-                [
-                    ['type' => 'admin', 'id' => 1]
-                ]
-            );
-
-            // 🔔 Customer notification
-            $notificationRepo->notifyRecipients(
-                $subscription->id,
-                UserSubscription::class,
-                "Auto Renew Cancelled",
-                "Your subscription auto-renew has been cancelled successfully.",
-                [
-                    ['type' => 'user', 'id' => auth('customer')->id()]
-                ]
-            );
-            return response()->json([
-                'success' => true,
-                'message' => translate('Auto_renew_cancelled_successfully')
-            ]);
+            $this->sendNotifications($subscription, $notificationRepo);
+            return $this->successResponse('Auto_renew_cancelled_successfully');
         }
 
         try {
             $config = $this->payment_config('stripe', 'payment_config');
-            if (!$config) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payment configuration not found'
-                ], 500);
-            }
 
+            if (!$config) {
+                throw new \Exception('Stripe payment configuration not found in database');
+            }
             $config_values = $config->mode === 'live'
-                ? json_decode($config->live_values)
-                : json_decode($config->test_values);
+                ? json_decode($config->live_values, false)
+                : json_decode($config->test_values, false);
+
+            if (empty($config_values->api_key)) {
+                throw new \Exception('Stripe API key is missing in configuration');
+            }
 
             \Stripe\Stripe::setApiKey($config_values->api_key);
 
             $stripeSub = \Stripe\Subscription::retrieve($subscription->stripe_subscription_id);
-            $cancelAtPeriodEnd = !$stripeSub->cancel_at_period_end;
+
+            if ($stripeSub->status === 'canceled') {
+                $subscription->update(['auto_renew' => false]);
+                $this->sendNotifications($subscription, $notificationRepo, 'Subscription is already canceled.');
+                return $this->successResponse('Subscription already canceled. Auto-renew turned off locally.');
+            }
+
+            if ($stripeSub->cancel_at_period_end) {
+                $subscription->update(['auto_renew' => false]);
+                $this->sendNotifications($subscription, $notificationRepo, 'Auto-renew already scheduled to cancel.');
+                return $this->successResponse('Subscription auto-renew already scheduled to cancel.');
+            }
+
+            $allowedStatuses = ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'incomplete_expired'];
+
+            if (!in_array($stripeSub->status, $allowedStatuses)) {
+                $subscription->update(['auto_renew' => false]);
+                $this->sendNotifications($subscription, $notificationRepo, 'Cannot schedule cancellation. Subscription is in state: ' . $stripeSub->status);
+                return $this->successResponse('Cannot cancel auto-renew. Subscription is already in terminal state.');
+            }
 
             \Stripe\Subscription::update($subscription->stripe_subscription_id, [
-                'cancel_at_period_end' => $cancelAtPeriodEnd,
-            ]);
-            $subscription->update([
-                'auto_renew' => !$cancelAtPeriodEnd,
+                'cancel_at_period_end' => true,
             ]);
 
-            $message = $cancelAtPeriodEnd
-                ? translate('Auto_renew_cancelled_successfully') . ' ' . translate('Your subscription will end on') . ' ' . Carbon::createFromTimestamp($stripeSub->current_period_end)->format('M d, Y')
-                : translate('Auto_renew_enabled_successfully');
+            $subscription->update(['auto_renew' => false]);
+
+            $endDate = Carbon::createFromTimestamp($stripeSub->current_period_end)->format('M d, Y');
+            $message = translate('Auto_renew_cancelled_successfully') . ' Your subscription will end on ' . $endDate;
+
+            $this->sendNotifications($subscription, $notificationRepo, $message);
 
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'will_end_on' => $cancelAtPeriodEnd ? Carbon::createFromTimestamp($stripeSub->current_period_end)->format('M d, Y') : null
+                'will_end_on' => $endDate
             ]);
-        } catch (\Exception $e) {
-            Log::error('Stripe subscription cancel/renew failed: ' . $e->getMessage());
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            Log::error('Stripe subscription cancel failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => translate('Failed to update subscription. Please try again or contact support.')
+                'message' => $e->getMessage() ?: 'Failed to update subscription. Please contact support.'
+            ], 400);
+        } catch (\Exception $e) {
+            Log::error('Unexpected error in cancelAutoRenew: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong. Please try again or contact support.'
             ], 500);
         }
+    }
+    private function sendNotifications($subscription, $notificationRepo, $message = null)
+    {
+        $message = $message ?? translate('Auto_renew_cancelled_successfully');
+
+        // Admin
+        $notificationRepo->notifyRecipients(
+            $subscription->id,
+            UserSubscription::class,
+            "Auto Renew Cancelled",
+            $message,
+            [['type' => 'admin', 'id' => 1]]
+        );
+
+        // Customer
+        $notificationRepo->notifyRecipients(
+            $subscription->id,
+            UserSubscription::class,
+            "Auto Renew Cancelled",
+            $message,
+            [['type' => 'user', 'id' => auth('customer')->id()]]
+        );
     }
 }

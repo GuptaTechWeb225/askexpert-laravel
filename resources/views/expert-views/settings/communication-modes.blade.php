@@ -151,4 +151,54 @@
         })
     });
 </script>
+
+<script>
+$(document).ready(function() {
+
+    // Har row ke saare checkboxes ko pakadte hain
+    $('.table tbody tr').each(function() {
+
+        const $row = $(this);
+
+        // Is row ke 3 checkboxes
+        const $available   = $row.find('input[name*="\\[available\\]"]');
+        const $onBreak     = $row.find('input[name*="\\[on_break\\]"]');
+        const $vacation    = $row.find('input[name*="\\[vacation_mode\\]"]');
+
+        // Jab bhi koi checkbox change ho
+        $row.find('.switcher_input').on('change', function() {
+
+            // Agar ye wala check ho raha hai
+            if (this.checked) {
+
+                // Baaki dono ko forcefully off kar do
+                if (this === $available[0]) {
+                    $onBreak.prop('checked', false);
+                    $vacation.prop('checked', false);
+                }
+                else if (this === $onBreak[0]) {
+                    $available.prop('checked', false);
+                    $vacation.prop('checked', false);
+                }
+                else if (this === $vacation[0]) {
+                    $available.prop('checked', false);
+                    $onBreak.prop('checked', false);
+                }
+            }
+        });
+    });
+
+    // Optional: Form submit se pehle last check (safety)
+    $('form').on('submit', function(e) {
+        $('.table tbody tr').each(function() {
+            const checkedCount = $(this).find('.switcher_input:checked').length;
+            if (checkedCount > 1) {
+                alert("Ek row mein sirf ek option select kar sakte ho bhai!");
+                e.preventDefault();
+                return false;
+            }
+        });
+    });
+});
+</script>
 @endpush

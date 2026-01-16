@@ -10,7 +10,7 @@
             @foreach($typeList as $key => $label)
             <li class="{{ $currentType == $key ? 'active' : 'text-dark' }}">
                 <a href="{{ route('admin.content-management.help', ['section' => $key]) }}"
-                   class="nav-link {{ $currentType == $key ? 'active' : 'text-dark' }}">
+                    class="nav-link {{ $currentType == $key ? 'active' : 'text-dark' }}">
                     {{ $label }}
                 </a>
             </li>
@@ -34,9 +34,9 @@
         <form id="editForm" method="POST" enctype="multipart/form-data">
             @csrf @method('POST')
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle">Edit</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body" id="modalBody"></div>
                 <div class="modal-footer">
@@ -71,24 +71,45 @@
             data: new FormData(this),
             processData: false,
             contentType: false,
-            success: () => { toastr.success('Saved!'); modal.hide(); location.reload(); },
+            success: () => {
+                toastr.success('Saved!');
+                modal.hide();
+                location.reload();
+            },
             error: () => toastr.error('Failed')
         });
     });
-    window.deleteItem = function(section, itemId) {
-        Swal.fire({
-            title: 'Delete?', icon: 'warning', showCancelButton: true,
-            confirmButtonText: 'Yes', cancelButtonText: 'No'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: `{{ url('admin/help-cms') }}/${section}/${itemId}`,
-                    method: 'DELETE',
-                    data: { _token: "{{ csrf_token() }}" },
-                    success: () => { toastr.success('Deleted!'); location.reload(); }
-                });
-            }
-        });
-    };
+  window.deleteItem = function(section, itemId) {
+
+    Swal.fire({
+        title: 'Delete?',
+        text: 'This action cannot be undone!',
+        type: 'warning',              
+        showCancelButton: true,
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'No'
+    }).then((result) => {
+        if (result.value) {            
+            let url = `{{ url('admin/help-cms/destroy') }}/${section}/${itemId}`;
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    _method: 'DELETE'
+                },
+                success: function() {
+                    toastr.success('Deleted!');
+                    location.reload();
+                },
+                error: function(xhr) {
+                    toastr.error('Delete failed');
+                }
+            });
+        } else {
+        }
+    });
+};
 </script>
 @endpush

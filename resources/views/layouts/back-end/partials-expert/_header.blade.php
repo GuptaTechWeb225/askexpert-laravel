@@ -91,7 +91,7 @@ $notifications = Notifications::getExpertNotifications($expertId, [0]);
                             <div id="notificationDropdown" class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-right navbar-dropdown-menu py-2" style="border: 1px solid #ccc;">
 
                                 @forelse($notifications as $notification)
-                                <a class="dropdown-item" href="">
+                                <a class="dropdown-item" href="{{ route('expert.notifications.list') }}">
                                     <strong>{{ $notification->title }}</strong><br>
                                     <small class="text-wrap">{{ \Illuminate\Support\Str::limit($notification->message, 80) }}</small>
                                 </a>

@@ -2,7 +2,6 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h6 class="mb-0">Why Join</h6>
-    <button onclick="openModal('why_join',0,true)" class="btn btn-sm btn-success"><i class="tio-add"></i> Add New</button>
 </div>
 
 <table class="table table-hover table-borderless">
@@ -18,7 +17,6 @@
             <td>{{ $i['description'] ?? '-' }}</td>
             <td class="text-center">
                 <button onclick="openModal('why_join',{{ $id }})" class="btn btn-sm btn-outline-warning"><i class="tio-edit"></i></button>
-                <button onclick="deleteItem('why_join',{{ $id }})" class="btn btn-sm btn-outline-danger"><i class="tio-delete"></i></button>
             </td>
         </tr>
         @endforeach

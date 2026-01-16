@@ -114,13 +114,13 @@ class   AdminRefundController extends BaseController
             $totalRefundAmount += $refundRequest->requested_amount;
         }
 
-        if (in_array('joining_fee', $refundTypes)) {
-            $joiningPaid = UserPayment::where('user_id', $refundRequest->user_id)
-                ->where('type', 'joining_fee')
-                ->whereNotNull('paid_at')
-                ->sum('amount');
-            $totalRefundAmount += $joiningPaid;
-        }
+        // if (in_array('joining_fee', $refundTypes)) {
+        //     $joiningPaid = UserPayment::where('user_id', $refundRequest->user_id)
+        //         ->where('type', 'joining_fee')
+        //         ->whereNotNull('paid_at')
+        //         ->sum('amount');
+        //     $totalRefundAmount += $joiningPaid;
+        // }
 
         if ($totalRefundAmount > 0) {
             try {
@@ -142,8 +142,6 @@ class   AdminRefundController extends BaseController
                         'admin_note' => $request->admin_note ?? ''
                     ]
                 ]);
-
-                Log::info('Refund created', ['refund ammount' => $totalRefundAmount]);
             } catch (\Exception $e) {
                 Log::error('Refund failed: ' . $e->getMessage());
                 return response()->json([

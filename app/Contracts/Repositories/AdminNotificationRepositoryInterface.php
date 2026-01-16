@@ -28,7 +28,8 @@ interface AdminNotificationRepositoryInterface
     public function getForExpert(int $expertId, array $statuses = [0, 1], int $limit = 5): Collection;
     public function getForAdmin(int $adminId, array $statuses = [0], int $limit = 5): Collection;
     public function getForUser(int $employeeId, int $limit = 5): Collection;
-    public function getAllForAdmin(int $employeeId, array $filters = [], int $paginate = 20);
+    public function getAllForAdmin(int $adminId, array $filters = [], int $paginate);
+    public function getAllForExpert(int $expertId, array $filters = [], int $paginate);
 
     // customer UI
     public function getForCustomer(int $customerId, array $statuses = [0, 1], int $limit = 5): Collection;

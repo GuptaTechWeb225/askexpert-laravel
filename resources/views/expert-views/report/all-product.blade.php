@@ -12,7 +12,7 @@
                 {{translate('product_report')}}
             </h2>
         </div>
-        @include('restaurant-views.report.product-report-inline-menu')
+        @include('expert-views.report.product-report-inline-menu')
         <div class="card mb-2">
             <div class="card-body">
                 <form action="" id="form-data" method="GET">

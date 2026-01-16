@@ -5,9 +5,9 @@
 <div class="card shadow-sm border-0">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-bold">Why Love AskExpert</h6>
-        <a href="{{ route('admin.home-cms.add', 'why_love') }}" class="btn btn-success btn-sm">
+        <!-- <a href="{{ route('admin.home-cms.add', 'why_love') }}" class="btn btn-success btn-sm">
             <i class="tio-add"></i> Add New
-        </a>
+        </a> -->
     </div>
 
     <div class="card-body p-0">
@@ -41,7 +41,7 @@
                                         class="btn btn-sm btn-primary me-1" title="Edit">
                                     <i class="tio-edit"></i>
                                 </button>
-
+<!-- 
                                 <form method="POST" 
                                       action="{{ route('admin.home-cms.destroy', ['why_love', $i + 1]) }}" 
                                       style="display:inline">
@@ -51,7 +51,7 @@
                                             onclick="return confirm('Are you sure you want to delete this item?')">
                                         <i class="tio-delete"></i>
                                     </button>
-                                </form>
+                                </form> -->
                             </td>
                         </tr>
                     @empty

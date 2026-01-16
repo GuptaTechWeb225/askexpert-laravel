@@ -53,25 +53,43 @@ class PricingController extends Controller
         return view('admin-views.content-management.pricing.partials.edit-modal-form', compact('section', 'item_id', 'data'));
     }
 
-    public function update(Request $request, $section, $item_id = 0)
-    {
-        $inputs = $request->except(['_token', '_method']);
+public function update(Request $request, $section, $item_id = 0)
+{
+    $inputs = $request->except(['_token', '_method']);
 
-        foreach ($inputs as $key => $value) {
-            if ($request->hasFile($key)) {
-                $file = $request->file($key);
-                $path = $file->store('pricing_cms', 'public');
-                $value = 'storage/' . $path;
-            }
+    // ✅ PRICING FAQ CREATE CASE
+    if ($section === 'faq' && $item_id == 0) {
 
-            PricingCms::updateOrCreate(
-                ['section' => $section, 'item_id' => $item_id, 'cms_key' => $key],
-                ['value' => $value, 'sort_order' => 0, 'status' => 1]
-            );
+        // last item_id nikaalo
+        $lastItemId = PricingCms::where('section', 'faq')->max('item_id');
+        $item_id = $lastItemId ? $lastItemId + 1 : 1; // 👈 always +1
+    }
+
+    foreach ($inputs as $key => $value) {
+
+        if ($request->hasFile($key)) {
+            $file = $request->file($key);
+            $path = $file->store('pricing_cms', 'public');
+            $value = 'storage/' . $path;
         }
 
-        return back()->with('success', 'Updated!');
+        PricingCms::updateOrCreate(
+            [
+                'section' => $section,
+                'item_id' => $item_id,
+                'cms_key' => $key
+            ],
+            [
+                'value' => $value,
+                'sort_order' => 0,
+                'status' => 1
+            ]
+        );
     }
+
+    return back()->with('success', 'Saved!');
+}
+
 
     public function destroy($section, $item_id)
     {

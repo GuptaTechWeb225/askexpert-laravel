@@ -15,6 +15,7 @@ use App\Enums\ViewPaths\Admin\Customer;
 use App\Enums\ViewPaths\Admin\Employee;
 use App\Enums\ViewPaths\Admin\Dashboard;
 use App\Enums\ViewPaths\Admin\ErrorLogs;
+use App\Enums\ViewPaths\Admin\Notifications;
 use App\Enums\ViewPaths\Admin\HelpTopic;
 use App\Enums\ViewPaths\Admin\Recaptcha;
 use App\Enums\ViewPaths\Admin\BackupRestore;
@@ -91,6 +92,7 @@ use App\Http\Controllers\Admin\Cms\AfterLoginCmsController;
 use App\Http\Controllers\Admin\Cms\AboutController;
 use App\Http\Controllers\Admin\Cms\HelpController;
 use App\Http\Controllers\Admin\ExpertCategoryController;
+use App\Http\Controllers\Admin\TaskNotificationsController;
 use App\Http\Controllers\Admin\AdminRefundController;
 use App\Http\Controllers\Admin\Cms\ExpertCmsController;
 use App\Http\Controllers\Admin\Expert\ExpertController;
@@ -170,7 +172,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
         Route::group(['prefix' => 'about-cms', 'as' => 'about-cms.'], function () {
             Route::get('/edit-data/{section}/{item_id}', 'editData');
             Route::post('/{section}/{item_id?}', 'update')->name('update');
-            Route::delete('/{section}/{item_id}', 'destroy')->name('destroy');
+            Route::delete('/destroy/{section}/{item_id}', 'destroy')->name('destroy');
             Route::post('/toggle-status', 'toggleStatus')->name('toggle-status');
         });
     });
@@ -186,7 +188,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
         Route::group(['prefix' => 'help-cms', 'as' => 'help-cms.'], function () {
             Route::get('/edit-data/{section}/{item_id?}',  'editData');
             Route::post('/{section}/{item_id?}',  'update')->name('update');
-            Route::delete('/{section}/{item_id}',  'destroy')->name('destroy');
+            Route::delete('/destroy/{section}/{item_id}',  'destroy')->name('destroy');
         });
     });
 
@@ -250,7 +252,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
     Route::group(['prefix' => 'backup', 'as' => 'backup.'], function () {
         Route::controller(BackupController::class)->group(function () {
             Route::get(BackupRestore::INDEX[URI], 'index')->name('index');
-            Route::post(BackupRestore::DOWNLOAD[URI] . '/{file}', 'download')->name('download');
+            Route::get(BackupRestore::DOWNLOAD[URI] . '/{file}', 'download')->where('file', '.*')->name('download');
             Route::post(BackupRestore::DELETE[URI] . '/{file}', 'delete')->name('delete');
             Route::post(BackupRestore::RUN[URI], 'run')->name('run');
         });
@@ -597,7 +599,13 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
             Route::post(Currency::DEFAULT[URI], 'updateSystemCurrency')->name('system-currency-update');
         });
     });
-
+   Route::group(['prefix' => 'notifications', 'as' => 'notifications.'], function () {
+        Route::controller(TaskNotificationsController::class)->group(function () {
+            Route::get(Notifications::LIST[URI], 'list')->name('list');
+            Route::get(Notifications::VIEW[URI] . '/{id}', 'view')->name('view');
+            Route::get(Notifications::TICKET_VIEW[URI] . '/{id}', 'getConversationReview')->name('ticket');
+        });
+    });
     Route::group(['prefix' => 'addon', 'as' => 'addon.', 'middleware' => ['module:system_settings']], function () {
         Route::controller(AddonController::class)->group(function () {
             Route::get(AddonSetup::VIEW[URI], 'index')->name('index');

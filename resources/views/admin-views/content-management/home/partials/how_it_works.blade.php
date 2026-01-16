@@ -5,9 +5,9 @@
 <div class="card shadow-sm border-0">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-bold"></h6>
-        <a href="{{ route('admin.home-cms.add', 'how_it_works') }}" class="btn btn-success btn-sm">
+        <!-- <a href="{{ route('admin.home-cms.add', 'how_it_works') }}" class="btn btn-success btn-sm">
             <i class="tio-add"></i> Add New
-        </a>
+        </a> -->
     </div>
 
     <div class="card-body p-0">
@@ -41,7 +41,7 @@
                                     <i class="tio-edit"></i>
                                 </button>
 
-                                <form method="POST" 
+                                <!-- <form method="POST" 
                                       action="{{ route('admin.home-cms.destroy', ['how_it_works', $i]) }}" 
                                       style="display:inline">
                                     @csrf 
@@ -50,7 +50,7 @@
                                             onclick="return confirm('Are you sure you want to delete this step?')">
                                         <i class="tio-delete"></i>
                                     </button>
-                                </form>
+                                </form> -->
                             </td>
                         </tr>
                     @empty

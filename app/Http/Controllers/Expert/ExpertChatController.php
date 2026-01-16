@@ -285,7 +285,8 @@ class ExpertChatController extends Controller
             ->firstOrFail();
 
         $action = $request->action;
-        $expert = auth('expert')->user();
+        $expertId = auth('expert')->id();
+        $expert = Expert::findOrFail($expertId);
         $reason = $request->reason ?? null;
 
         DB::transaction(function () use ($chat, $action, $expert, $reason) {
@@ -316,6 +317,7 @@ class ExpertChatController extends Controller
                     }
 
                     if ($action === 'block') {
+                        $expert->blockUser($chat->user_id);
                         logActivity('Expert blocked the user', $expert, []);
                     }
                     break;
@@ -359,8 +361,6 @@ class ExpertChatController extends Controller
                         $message,
                         $recipients
                     );
-
-                    // Activity log
                     $logMessage = $action === 'miscategorized'
                         ? 'Reported chat as miscategorized'
                         : 'Opted out from chat';

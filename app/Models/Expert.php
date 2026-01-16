@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\StorageTrait;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
+use Carbon\Carbon;
 
 class Expert extends Authenticatable
 {
@@ -149,6 +149,57 @@ class Expert extends Authenticatable
     public function earnings()
     {
         return $this->hasMany(ExpertEarning::class);
+    }
+
+    public function isModeAvailable(string $mode): bool
+    {
+        $modeRow = $this->communicationModes()
+            ->where('mode', $mode)
+            ->first();
+
+        if (!$modeRow) {
+            return true;
+        }
+
+        return $modeRow->available
+            && !$modeRow->on_break
+            && !$modeRow->vacation_mode;
+    }
+    public function blockedUsers()
+    {
+        return $this->hasMany(ExpertBlockedUser::class);
+    }
+
+
+    public function hasBlockedUser(int $userId): bool
+    {
+        return $this->blockedUsers()->where('user_id', $userId)->exists();
+    }
+    public function blockUser(int $userId)
+    {
+        return ExpertBlockedUser::updateOrCreate(
+            ['expert_id' => $this->id, 'user_id' => $userId],
+        );  
+    }
+    public function isAvailableNow(): bool
+    {
+        $today = strtolower(now()->format('l')); // 'thursday'
+        $availability = $this->availability()
+            ->where('day', $today)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$availability) {
+            return true;
+        }
+
+        $now = now();
+
+        // Convert start and end time to today ke datetime
+        $start = Carbon::parse($availability->start_time);
+        $end   = Carbon::parse($availability->end_time);
+
+        return $now->between($start, $end);
     }
 
     public function getTotalEarnedAttribute()

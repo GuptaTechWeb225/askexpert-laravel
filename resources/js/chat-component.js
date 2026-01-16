@@ -1739,7 +1739,7 @@ export function adminExpertChatComponent() {
             this.scrollToBottom();
             if (this.selectedExpertId) {
                 this.setupCallListenerForExpert(this.selectedExpertId);
-            this.markAllAsRead();
+                this.markAllAsRead();
 
             }
         },
@@ -2155,7 +2155,22 @@ export function adminExpertChatComponent() {
         markAllAsRead() {
             if (!this.selectedExpertId) return;
 
-            axios.post('/admin/expert-chat/mark-read', { expert_id: this.selectedExpertId });
+            axios.post('/admin/expert-chat/mark-read', { expert_id: this.selectedExpertId })
+                .then(res => {
+                    if (res.data.success) {
+                        // Update badge locally
+                        const expertItem = document.querySelector(`.expert-item[data-id="${this.selectedExpertId}"]`);
+                        if (expertItem) {
+                            const badge = expertItem.querySelector('.badge');
+                            if (badge) badge.remove(); // badge remove
+                        }
+
+                        // Update your Alpine activeExperts array
+                        const expert = this.activeExperts.find(e => e.id === this.selectedExpertId);
+                        if (expert) expert.unread_count = 0;
+                    }
+                })
+                .catch(err => console.error('Mark as read failed:', err));
         },
 
 

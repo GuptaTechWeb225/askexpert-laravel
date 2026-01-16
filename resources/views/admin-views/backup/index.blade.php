@@ -152,7 +152,7 @@
                                             <i class="fa-solid fa-ellipsis-vertical"></i>
                                         </button>
 
-                                        <ul class="dropdown-menu dropdown-menu-end">
+                                        <ul class="dropdown-menu  __auth-dropdown dropdown-menu-end">
                                             <li>
                                                 <a class="dropdown-item"
                                                     href="{{ route('admin.backup.download',$backup['file']) }}">
@@ -178,8 +178,6 @@
 
                     </table>
                 </div>
-
-
                 @if(count($backups)==0)
                 @include('layouts.back-end._empty-state',['text'=>'No_Data_found'],['image'=>'default'])
                 @endif
@@ -198,5 +196,42 @@
         });
     });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('backupForm');
+    const loading = document.getElementById('loading');
 
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        loading.classList.remove('d-none'); 
+
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            loading.classList.add('d-none'); 
+
+            if (data.status === 'success') {
+                toastr.success(data.message);
+            } else {
+                toastr.error(data.message);
+            }
+        })
+        .catch(error => {
+            loading.classList.add('d-none'); 
+            console.error(error);
+            toastr.error('Something went wrong!');
+        });
+    });
+});
+</script>
 @endpush

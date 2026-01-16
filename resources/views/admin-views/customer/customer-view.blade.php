@@ -37,20 +37,16 @@
                     <h2 class="mb-1 text-dark fs-24 text-center">
                         {{ $customer->f_name . ' ' . $customer->l_name }}
                     </h2>
-
                     <hr class="border border-1 border-muted w-100 mt-3">
-
                     <div class="d-flex">
-                        {{-- Call --}}
                         @if($customer->phone)
                         <a href="tel:{{ $customer->phone }}" class="btn btn-outline--primary mr-3 mt-2" title="Call Customer">
                             <i class="fa-solid fa-phone-volume"></i>
                         </a>
                         @endif
 
-                        {{-- Message --}}
-                        @if($customer->phone)
-                        <a href="sms:{{ $customer->phone }}" class="btn btn-outline--primary mr-3 mt-2" title="Send Message">
+                        @if($customer->email)
+                        <a href="mailto:{{ $customer->email }}" class="btn btn-outline--primary mr-3 mt-2" title="Send Message">
                             <i class="fa-regular fa-message"></i>
                         </a>
                         @endif
@@ -60,7 +56,6 @@
             </div>
         </div>
 
-        <!-- Right Profile -->
         <div class="col-lg-8 col-md-7">
             <div class="card shadow-sm border border-2 border-light rounded h-100">
                 <div class="view-profile-right p-4 h-100">
@@ -93,18 +88,35 @@
 
                         <div class="col-md-6">
                             <label class="form-label">Subscription</label>
-                           <input type="text"
-       class="form-control"
-       value="{{ $customer->hasAnyActiveMembership() ? 'Active' : 'Expired' }}"
-       readonly>
-
+                            <input type="text"
+                                class="form-control"
+                                value="{{ $customer->hasAnyActiveMembership() ? 'Active' : 'Expired' }}"
+                                readonly>
                         </div>
-
                         <div class="col-md-6">
                             <label class="form-label">Status</label>
                             <input type="text" class="form-control"
                                 value="{{ $customer->is_active ? 'Active' : 'Inactive' }}" readonly>
                         </div>
+                        @if ($customer->hasAnyActiveMembership())
+
+                        <div class="col-md-6">
+                            <label class="form-label">Subscription Fee</label>
+                            <input type="text"
+                                class="form-control"
+                                value="${{ $customer->monthly_subscription_fee ?? 0 }}"
+                                readonly>
+
+                        </div>
+                        @endif
+                        @if ($customer->payments())
+                        <div class="col-md-6">
+                            <label class="form-label">Joining Fee</label>
+                            <input type="text" class="form-control"
+                                value="${{ $customer->joining_fee_amount ?? 0  }}" readonly>
+                        </div>
+                        @endif
+
                     </div>
                 </div>
             </div>
@@ -150,6 +162,7 @@
                                 <th>{{translate('Category')}}</th>
                                 <th>{{translate('Expert')}}</th>
                                 <th>{{translate('Mode')}}</th>
+                                <th>{{translate('Charge')}}</th>
                                 <th>{{translate('Status')}}</th>
                                 <!-- <th>{{translate('Action')}}</th> -->
                             </tr>
@@ -173,6 +186,9 @@
                                     <span class="badge bg-info">
                                         {{ ucfirst($chat->mode ?? 'chat') }}
                                     </span>
+                                </td>
+                                <td>
+                                    ${{ ucfirst($chat->total_charged) }}
                                 </td>
 
                                 <td>

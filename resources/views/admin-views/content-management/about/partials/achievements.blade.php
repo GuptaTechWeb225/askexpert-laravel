@@ -38,10 +38,10 @@ $items = app('App\Http\Controllers\Admin\Cms\AboutController')::getSectionDataSt
                             class="btn btn-outline-warning btn-sm square-btn">
                             <i class="tio-edit"></i>
                         </button>
-                        <button onclick="deleteItem('achievements', {{ $id }})"
+                        <!-- <button onclick="deleteItem('achievements', {{ $id }})"
                             class="btn btn-outline-danger btn-sm square-btn">
                             <i class="tio-delete"></i>
-                        </button>
+                        </button> -->
                     </div>
                 </td>
             </tr>

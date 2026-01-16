@@ -63,6 +63,10 @@ return [
             ]) : [],
             'dump' => [
                 'dump_binary_path' => 'C:\laragonnew\bin\mysql\mysql-8.0.30-winx64\bin',
+                'use_single_transaction' => true,
+                'timeout' => 60,
+                'skip_lock_tables' => true,
+                'add_extra_option' => '--protocol=tcp',
             ],
         ],
 

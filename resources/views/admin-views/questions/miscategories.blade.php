@@ -17,11 +17,11 @@
 </div>
 @endif
 <style>
-.hs-unfold-content.dropdown-unfold {
-    position: absolute !important;
-    z-index: 1050 !important;
-    margin-left: -220px;
-}
+    .hs-unfold-content.dropdown-unfold {
+        position: absolute !important;
+        z-index: 1050 !important;
+        margin-left: -220px;
+    }
 </style>
 <div class="content container-fluid">
     <div class="mb-4">
@@ -132,7 +132,6 @@
                             {{ $session->started_at->format('d M Y, h:i A') }}
                         </td>
                         <td>
-                            <!-- Agar type hai toh daal, warna remove kar -->
                             <span class="badge badge-soft-info">Chat</span>
                         </td>
                         <td>
@@ -143,12 +142,14 @@
                             @endif
                         </td>
                         <td>
-                            @if($session->ended_at)
+                            @if($session->status == 'ended')
                             <span class="badge badge-soft-danger">Ended</span>
-                            @elseif($session->expert_id)
+                            @elseif($session->status == 'active')
                             <span class="badge badge-soft-success">Active</span>
-                            @else
+                            @elseif($session->status == 'waiting')
                             <span class="badge badge-soft-warning">Waiting</span>
+                            @else
+                            <span class="badge badge-soft-secondary">{{ ucfirst($session->status ?? 'N/A') }}</span>
                             @endif
                         </td>
                         <td class="text-center">
@@ -168,12 +169,14 @@
                                     <a class="dropdown-item" href="#" onclick="viewChatDetails({{ $session->id }})">
                                         <i class="fa-solid fa-eye me-2"></i> View Detail
                                     </a>
+                                    @if($session->status == 'waiting')
                                     <a class="dropdown-item" href="#" onclick="setSessionId({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignExpertModal">
                                         <i class="fa-solid fa-user-tie me-2"></i> Assign to Expert
                                     </a>
                                     <a class="dropdown-item" href="#" onclick="setSessionIdForCategory({{ $session->id }})" data-bs-toggle="modal" data-bs-target="#assignCategoryModal">
                                         <i class="fa-solid fa-handshake-angle me-2"></i> Assign Category
                                     </a>
+                                    @endif
                                 </div>
                             </div>
                         </td>
@@ -240,7 +243,6 @@
     </div>
 </div>
 
-<!-- Assign Category Modal -->
 <div class="modal fade" id="assignCategoryModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -361,13 +363,25 @@
                         if (res.success) {
                             Swal.fire('Success!', res.message, 'success');
                             $('#assignCategoryModal').modal('hide');
-                            location.reload(); // ya row update
+                            location.reload();
                         } else {
                             Swal.fire('Error!', res.message, 'error');
                         }
                     }
                 });
             }
+        });
+    });
+
+    $(document).ready(function() {
+        $('#assignExpertModal, #assignCategoryModal').on('shown.bs.modal', function() {
+            $('.js-select2-custom').select2('destroy');
+            $('.js-select2-custom').select2({
+                dropdownParent: $(this),
+                placeholder: "Select...",
+                allowClear: true,
+                width: '100%'
+            });
         });
     });
 </script>

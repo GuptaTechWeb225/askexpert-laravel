@@ -8,9 +8,7 @@ use App\Models\ExpertCms;
 
 class ExpertCmsController extends Controller
 {
-    /** --------------------------------------------------------------
-     *  INDEX – list of sections (hero, why_join …)
-     *  -------------------------------------------------------------- */
+
     public function index(Request $request)
     {
         $currentType = $request->get('section', 'hero');
@@ -24,13 +22,12 @@ class ExpertCmsController extends Controller
         $currentSection = (object)['is_active' => $status];
 
         return view('admin-views.content-management.expert.index', compact(
-            'currentType', 'typeList', 'currentSection'
+            'currentType',
+            'typeList',
+            'currentSection'
         ));
     }
 
-    /** --------------------------------------------------------------
-     *  SECTION LIST (used in admin menu & titles)
-     *  -------------------------------------------------------------- */
     private function getSectionList()
     {
         return [
@@ -42,9 +39,7 @@ class ExpertCmsController extends Controller
         ];
     }
 
-    /** --------------------------------------------------------------
-     *  STATIC helper – used on front-end & admin partials
-     *  -------------------------------------------------------------- */
+
     public static function getSectionDataStatic($section)
     {
         return ExpertCms::where('section', $section)
@@ -56,9 +51,7 @@ class ExpertCmsController extends Controller
             ->toArray();
     }
 
-    /** --------------------------------------------------------------
-     *  EDIT modal form (AJAX)
-     *  -------------------------------------------------------------- */
+
     public function editData($section, $item_id = 0)
     {
         $data = ExpertCms::where('section', $section)
@@ -67,7 +60,9 @@ class ExpertCmsController extends Controller
             ->toArray();
 
         return view('admin-views.content-management.expert.partials.edit-modal-form', compact(
-            'section', 'item_id', 'data'
+            'section',
+            'item_id',
+            'data'
         ));
     }
 
@@ -78,7 +73,14 @@ class ExpertCmsController extends Controller
     {
         $inputs = $request->except(['_token', '_method']);
 
+        // ✅ TESTIMONIALS CREATE LOGIC
+        if ($section === 'testimonials' && $item_id == 0) {
+            $lastItemId = ExpertCms::where('section', 'testimonials')->max('item_id');
+            $item_id = $lastItemId ? $lastItemId + 1 : 1;
+        }
+
         foreach ($inputs as $key => $value) {
+
             if ($request->hasFile($key)) {
                 $file = $request->file($key);
                 $path = $file->store('expert_cms', 'public');
@@ -86,29 +88,35 @@ class ExpertCmsController extends Controller
             }
 
             ExpertCms::updateOrCreate(
-                ['section' => $section, 'item_id' => $item_id, 'cms_key' => $key],
-                ['value' => $value, 'sort_order' => 0, 'status' => 1]
+                [
+                    'section'  => $section,
+                    'item_id'  => $item_id,
+                    'cms_key'  => $key
+                ],
+                [
+                    'value'      => $value,
+                    'sort_order' => 0,
+                    'status'     => 1
+                ]
             );
         }
 
-        return back()->with('success', 'Updated!');
+        return back()->with('success', 'Saved!');
     }
 
-    /** --------------------------------------------------------------
-     *  DELETE item (when item_id > 0)
-     *  -------------------------------------------------------------- */
     public function destroy($section, $item_id)
     {
         ExpertCms::where('section', $section)
             ->where('item_id', $item_id)
             ->delete();
 
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Deleted successfully']);
+        }
+
         return back()->with('success', 'Deleted!');
     }
 
-    /** --------------------------------------------------------------
-     *  TOGGLE whole section status
-     *  -------------------------------------------------------------- */
     public function toggleStatus(Request $request)
     {
         $type   = $request->input('type');

@@ -53,7 +53,7 @@
                                         <input type="text" class="js-form-search form-control search-bar-input search-product" placeholder="{{translate('search menu').'...'}}">
                                     </div>
                                     <div class="d-flex flex-column gap-3 max-h-40vh overflow-y-auto overflow-x-hidden search-result-box">
-                                        @include('restaurant-views.partials._search-product', ['products'=> $products])
+                                        @include('expert-views.partials._search-product', ['products'=> $products])
                                     </div>
                                 </div>
                             </div>

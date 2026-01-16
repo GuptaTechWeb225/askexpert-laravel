@@ -51,10 +51,7 @@
                                 class="btn btn-outline-warning btn-sm square-btn">
                                 <i class="tio-edit"></i>
                             </button>
-                            <button onclick="deleteItem('our_mission', {{ $id }})" 
-                                class="btn btn-outline-danger btn-sm square-btn">
-                                <i class="tio-delete"></i>
-                            </button>
+                          
                         </div>
                     </td>
                 </tr>

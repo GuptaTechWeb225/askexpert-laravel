@@ -57,10 +57,10 @@
                     @forelse($refunds as $index => $refund)
                     <tr>
                         <td>{{ $refunds->firstItem() + $index }}</td>
-                        <td>{{ $refund->user->f_name }} {{ $refund->user->l_name }}</td>
+                        <td>{{ $refund->user?->f_name ?? 'Not Found' }} {{ $refund->user?->l_name }}</td>
                         <td>User</td>
                         <td>#R{{ $refund->id }}</td>
-                        <td>{{ Str::limit($refund->chatSession->firstMessage?->message ?? 'N/A', 40) }}</td>
+                        <td>{{ Str::limit($refund->chatSession?->firstMessage?->message ?? 'N/A', 40) }}</td>
                         <td>{{ Str::limit($refund->reason, 30) }}</td>
                         <td>${{ number_format($refund->requested_amount, 2) }}</td>
                         <td>{{ $refund->created_at->format('M d, Y') }}</td>

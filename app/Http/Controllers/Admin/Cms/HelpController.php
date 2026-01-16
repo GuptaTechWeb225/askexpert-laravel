@@ -46,32 +46,64 @@ class HelpController extends Controller
             ->toArray();
     }
 
-    public function editData($section, $item_id = 0)
-    {
+  public function editData($section, $item_id = 0)
+{
+    // 🔹 HERO is always EDIT on item_id = 0
+    if ($section === 'hero') {
+        $data = HelpCms::where('section', $section)
+            ->where('item_id', 0)
+            ->pluck('value', 'cms_key')
+            ->toArray();
+    }
+    elseif ($item_id == 0) {
+        $data = [
+            'question' => '',
+            'answer' => '',
+            'sort_order' => 0,
+            'status' => 1,
+        ];
+    }
+    // 🔹 EDIT mode
+    else {
         $data = HelpCms::where('section', $section)
             ->where('item_id', $item_id)
             ->pluck('value', 'cms_key')
             ->toArray();
-
-        return view('admin-views.content-management.help.partials.edit-modal-form', compact('section', 'item_id', 'data'));
     }
+
+    return view(
+        'admin-views.content-management.help.partials.edit-modal-form',
+        compact('section', 'item_id', 'data')
+    );
+}
+
+
 
     public function update(Request $request, $section, $item_id = 0)
     {
         $inputs = $request->except(['_token', '_method']);
+
+        if ($item_id == 0 && !in_array($section, ['hero'])) {
+            $lastItemId = HelpCms::where('section', $section)->max('item_id') ?? 0;
+            $item_id = $lastItemId + 1;
+        }
+
         foreach ($inputs as $key => $value) {
             if ($request->hasFile($key)) {
                 $file = $request->file($key);
                 $path = $file->store('help_cms', 'public');
                 $value = 'storage/' . $path;
             }
+
             HelpCms::updateOrCreate(
                 ['section' => $section, 'item_id' => $item_id, 'cms_key' => $key],
                 ['value' => $value, 'sort_order' => 0, 'status' => 1]
             );
         }
-        return back()->with('success', 'Updated!');
+
+        return back()->with('success', 'Saved!');
     }
+
 
     public function destroy($section, $item_id)
     {

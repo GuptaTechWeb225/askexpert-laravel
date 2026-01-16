@@ -95,8 +95,8 @@ $notifications = Notifications::getNotifications($adminId, [0]);
                             <div id="notificationDropdown" class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-right navbar-dropdown-menu py-2" style="border: 1px solid #ccc;">
 
                                 @forelse($notifications as $notification)
-                                <a class="dropdown-item" href="">
-                                    <strong>{{ $notification->title }}</strong><br>
+                                <a class="dropdown-item" href="{{route('admin.notifications.list')}}">
+                                    <strong class="text-wrap">{{ $notification->title }}</strong><br>
                                     <small class="text-wrap">{{ \Illuminate\Support\Str::limit($notification->message, 80) }}</small>
                                 </a>
                                 @empty

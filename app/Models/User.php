@@ -161,6 +161,7 @@ class User extends Authenticatable
         'referred_by' => 'integer',
     ];
 
+
     // Old Relation: wish_list
 
 
@@ -181,7 +182,21 @@ class User extends Authenticatable
         }
         return $this->storageLink('profile', $value, $storage['value'] ?? 'public');
     }
-    protected $appends = ['image_full_url'];
+    protected $appends = ['image_full_url', 'monthly_subscription_fee', 'joining_fee_amount'];
+
+    public function getJoiningFeeAmountAttribute(): float
+    {
+        return (float) $this->payments()
+            ->where('type', 'joining_fee')
+            ->paid()
+            ->value('amount') ?? 0;
+    }
+    public function getMonthlySubscriptionFeeAttribute(): float
+    {
+        return (float) $this->subscriptions()
+            ->where('active', true)
+            ->value('monthly_fee') ?? 0;
+    }
 
     protected static function boot(): void
     {
@@ -248,6 +263,7 @@ class User extends Authenticatable
         // Agar multiple subscriptions mein se ek se le sakte ho
         return $this->subscriptions()->latest()->value('stripe_customer_id');
     }
+
 
     public function chatSessions(): HasMany
     {

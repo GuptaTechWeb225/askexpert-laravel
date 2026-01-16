@@ -45,6 +45,9 @@
 @endsection
 
 @push('script')
+
+<script src="{{ asset('assets/back-end/js/sweet_alert.js') }}"></script>
+
 <script>
     const modal = new bootstrap.Modal(document.getElementById('editModal'));
 
@@ -78,5 +81,37 @@
             status: $(this).is(':checked') ? 1 : 0
         });
     });
+
+      window.deleteItem = function(section, itemId) {
+
+        Swal.fire({
+            title: 'Delete?',
+            text: 'This action cannot be undone!',
+            type: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No'
+        }).then((result) => {
+            if (result.value) {
+                let url = `{{ url('admin/about-cms/destroy') }}/${section}/${itemId}`;
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        _method: 'DELETE'
+                    },
+                    success: function() {
+                        toastr.success('Deleted!');
+                        location.reload();
+                    },
+                    error: function(xhr) {
+                        toastr.error('Delete failed');
+                    }
+                });
+            } else {}
+        });
+    };
 </script>
 @endpush

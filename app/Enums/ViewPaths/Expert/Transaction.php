@@ -6,12 +6,12 @@ enum Transaction
 {
     const LIST = [
         URI => 'list',
-        VIEW => 'restaurant-views.transaction.list'
+        VIEW => 'expert-views.transaction.list'
     ];
 
     const VIEW = [
         URI => 'view',
-        VIEW => 'restaurant-views.transaction.analytics-view'
+        VIEW => 'expert-views.transaction.analytics-view'
     ];
     const EXPORT = [
         URI => 'export',

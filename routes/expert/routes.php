@@ -10,6 +10,8 @@ use App\Http\Controllers\Expert\Auth\ForgotPasswordController;
 use App\Http\Controllers\Expert\ExpertSettingsController;
 use App\Http\Controllers\Expert\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Expert\TaskNotificationsController;
+use App\Enums\ViewPaths\Expert\Notifications;
 
 
 
@@ -68,8 +70,16 @@ Route::group(['prefix' => 'expert', 'as' => 'expert.'], function () {
                 Route::get(Chat::QUESTIONS[URI], 'myQuestions')->name('all');
             });
         });
-    });
 
+       
+    });
+ Route::group(['prefix' => 'notifications', 'as' => 'notifications.'], function () {
+            Route::controller(TaskNotificationsController::class)->group(function () {
+                Route::get(Notifications::LIST[URI], 'list')->name('list');
+                Route::get(Notifications::VIEW[URI] . '/{id}', 'view')->name('view');
+                Route::get(Notifications::TICKET_VIEW[URI] . '/{id}', 'getConversationReview')->name('ticket');
+            });
+        });
     Route::group(['prefix' => 'settings', 'as' => 'settings.', 'middleware' => 'expert.auth'], function () {
         Route::get('availability', [ExpertSettingsController::class, 'availability'])->name('availability');
         Route::post('availability', [ExpertSettingsController::class, 'updateAvailability'])->name('availability.update');

@@ -143,6 +143,7 @@ class CustomerController extends BaseController
     {
         $customer = $this->customerRepo->getFirstWhere(
             params: ['id' => $id],
+            relations: [],
         );
 
         if (!$customer) {
@@ -176,6 +177,7 @@ class CustomerController extends BaseController
      * @param CustomerService $customerService
      * @return RedirectResponse
      */
+    
     public function delete($id, CustomerService $customerService): RedirectResponse
     {
         $customer = $this->customerRepo->getFirstWhere(params: ['id' => $id]);

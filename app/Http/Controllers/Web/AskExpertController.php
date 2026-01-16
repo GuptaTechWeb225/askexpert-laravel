@@ -25,6 +25,7 @@ use Stripe\Subscription;
 use Stripe\InvoiceItem;
 use App\Utils\Notifications;
 use App\Models\Admin;
+use App\Models\DispatchLog;
 use Stripe\PaymentIntent;
 use App\Events\ExpertNewChatEvent;
 
@@ -68,7 +69,7 @@ class AskExpertController extends Controller
                 'email' => $email,
                 'phone' => '',
                 'password' => bcrypt($password),
-                'is_active' => true, // Naya guest always active
+                'is_active' => true,
                 'email_verified_at' => now(),
                 'login_medium' => 'email',
             ]);
@@ -108,6 +109,7 @@ class AskExpertController extends Controller
         ExpertService $availabilityService
     ) {
         $request->validate(['question' => 'required']);
+        $dispatchMode = getWebConfig(name: 'dispatch_mode') ?? 'auto';
 
         $userId = auth('customer')->id();
         $user = User::find($userId);
@@ -127,10 +129,19 @@ class AskExpertController extends Controller
             ->pluck('expert_id')
             ->toArray();
 
-        $expert = $availabilityService->findAvailableExpert($expertIds);
+        $expert = $availabilityService->findAvailableExpert(
+            $expertIds,
+            $category->id,
+            'text_chat',
+            $user->id 
+        );
 
-        $expertId = $expert?->id;
-
+        $expertId = '';
+        if ($dispatchMode === 'auto') {
+            $expertId = $expert?->id;
+        } else {
+            $expertId = null;
+        }
         $needsJoining = !$user->hasPaidJoiningFee();
 
         $activeSubscription = UserSubscription::where('user_id', $user->id)
@@ -288,6 +299,8 @@ class AskExpertController extends Controller
     {
         Log::info('expert_chat_payment_success triggered');
         $data = json_decode($paymentRequest->additional_data);
+        $dispatchMode = getWebConfig(name: 'dispatch_mode') ?? 'auto';
+        $adminNotify = getWebConfig(name: 'admin_notification') == 1;
 
         $user = User::find($data->user_id);
         $expert = $data->expert_id
@@ -336,6 +349,15 @@ class AskExpertController extends Controller
                 'total_charged' => $data->expert_fee,
                 'started_at' => now()
             ]);
+
+            if ($dispatchMode === 'manual') {
+                DispatchLog::create([
+                    'question_id' => $chat->id,
+                    'user_id' => $user->id,
+                    'dispatch_mode' => $dispatchMode,
+                ]);
+            }
+
             if (!UserPayment::where('stripe_payment_intent_id', $paymentRequest->transaction_id)
                 ->where('type', 'expert_fee')->exists()) {
 
@@ -408,6 +430,7 @@ class AskExpertController extends Controller
                     [['type' => 'user', 'id' => $user->id]]
                 );
             } else {
+
                 $notificationRepo->notifyRecipients(
                     $chat->id,
                     ChatSession::class,
@@ -416,7 +439,15 @@ class AskExpertController extends Controller
                     [['type' => 'admin', 'id' => 1]]
                 );
             }
-
+            if ($dispatchMode === 'manual' && $adminNotify) {
+                $notificationRepo->notifyRecipients(
+                    $chat->id,
+                    ChatSession::class,
+                    "Dispatch Mode Is Manual Expert Assignment Required",
+                    "A paid chat has been created. Please assign an expert.",
+                    [['type' => 'admin', 'id' => 1]]
+                );
+            }
             if ($expert) {
                 event(new ExpertNewChatEvent(
                     $chat->id,

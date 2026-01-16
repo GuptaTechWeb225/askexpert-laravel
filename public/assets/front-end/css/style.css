@@ -2744,6 +2744,7 @@
    }
 
    .message-bubble {
+    max-width: 70%;
      padding: 8px 12px;
      border-radius: 7.5px;
      position: relative;
@@ -3093,3 +3094,20 @@
      right: 15px !important;
      top: 15px !important;
    }
+
+
+   .price-card-header .image-container {
+    width:50%;
+    height:150px;            
+    display: flex;
+    align-items: center;      
+    justify-content: center;    
+    overflow: hidden;
+}
+ 
+.price-card-header .image-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;  
+}
+ 

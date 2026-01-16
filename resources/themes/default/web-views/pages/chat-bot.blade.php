@@ -9,6 +9,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat with {{ $expert?->f_name }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ $web_config['fav_icon']['path'] }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ $web_config['fav_icon']['path'] }}">
     <link rel="stylesheet" href="{{ theme_asset('public/assets/front-end/css/theme.css') }}">
     <link rel="stylesheet" href="{{ theme_asset('public/assets/front-end/css/cat-chatboat.css') }}">
     <link rel="stylesheet" href="{{dynamicAsset(path:'public/assets/back-end/vendor/fontawesome-free/css/all.min.css')}}">
@@ -42,7 +44,7 @@
             alt="{{ $expert?->f_name }}"
             class="expert-avatar">
 
-          <div class="ms-2">
+          <div class="ml-2">
             <h6 class="expert-name text-white">{{ $expert?->f_name ?? 'System User' }} {{ $expert?->l_name }}</h6>
             <p class="online-status">
               <span class="online-dot" :class="{ 'online': expertOnline }"></span>
@@ -77,7 +79,7 @@
             <i class="fa-solid fa-video"></i>
           </button>
           <button class="btn btn-danger btn-sm" @click="endChat()">
-            <i class="fa-solid fa-phone-slash"></i>
+<i class="fas fa-comment-slash"></i>
           </button>
           @endif
         </div>
@@ -225,10 +227,10 @@
 
               <div class="star-rating mb-3">
                 <i class="fa fa-star fa-2x text-warning" data-rating="1"></i>
-                <i class="fa fa-star fa-2x text-warning" data-rating="2"></i>
-                <i class="fa fa-star fa-2x text-warning" data-rating="3"></i>
-                <i class="fa fa-star fa-2x text-warning" data-rating="4"></i>
-                <i class="fa fa-star fa-2x text-warning" data-rating="5"></i>
+                <i class="fa fa-star fa-2x" data-rating="2"></i>
+                <i class="fa fa-star fa-2x" data-rating="3"></i>
+                <i class="fa fa-star fa-2x" data-rating="4"></i>
+                <i class="fa fa-star fa-2x" data-rating="5"></i>
               </div>
               <input type="hidden" name="rating" id="selectedRating" required>
 

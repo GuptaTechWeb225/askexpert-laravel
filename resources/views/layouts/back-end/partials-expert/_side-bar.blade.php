@@ -82,6 +82,30 @@ $eCommerceLogo = getWebConfig(name: 'company_web_logo');
                                 </span>
                             </a>
                         </li>
+                          <li class="navbar-vertical-aside-has-menu {{Request::is('expert/notifications/list')?'active':''}}">
+                            <a class="js-navbar-vertical-aside-menu-link nav-link"
+                                title="{{translate('notifications')}}" href="{{route('expert.notifications.list')}}">
+                                <span class="nav-icon">
+                                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <g clip-path="url(#clip0_5926_1152)">
+                                            <path
+                                                d="M10 20.5C11.1046 20.5 12 19.6046 12 18.5H8C8 19.6046 8.89543 20.5 10 20.5ZM16 14.5V9.5C16 6.57436 14.3682 4.15379 11.75 3.53235V3C11.75 2.30964 11.1904 1.75 10.5 1.75C9.80964 1.75 9.25 2.30964 9.25 3V3.53235C6.63184 4.15379 5 6.57436 5 9.5V14.5L3 16.5V17.5H17V16.5L16 14.5Z"
+                                                fill="#fff"></path>
+                                        </g>
+                                        <defs>
+                                            <clipPath id="clip0_5926_1152">
+                                                <rect width="20" height="20" fill="white" transform="translate(0 0.5)">
+                                                </rect>
+                                            </clipPath>
+                                        </defs>
+                                    </svg>
+                                </span>
+                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
+                                    {{translate('notifications')}}
+                                </span>
+                            </a>
+                        </li>
 
                         <li class="nav-item">
                             <small class="nav-subtitle" title="">Settings</small>

@@ -119,6 +119,7 @@ class QuestionController extends Controller
         }
 
         $session->expert_id = $request->expert_id;
+        $session->status = 'active';
         $session->save();
 
         return response()->json(['success' => true, 'message' => 'Expert assigned successfully']);

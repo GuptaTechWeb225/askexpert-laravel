@@ -238,12 +238,68 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @foreach($dispatchLogs as $key => $log)
+                            <tr>
+                                <td>
+                                    {{ $dispatchLogs->firstItem() + $key }}
+                                </td>
 
+                                <td>
+                                    #{{ $log->question_id }}
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>{{ $log->user?->f_name }} {{ $log->user?->l_name }}</strong><br>
+                                        <small class="text-muted">{{ $log->user?->email }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-soft-info">
+                                        {{ ucfirst($log->dispatch_mode) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($log->chatSession?->expert)
+                                    <strong>
+                                        {{ $log->chatSession->expert->f_name }}
+                                        {{ $log->chatSession->expert->l_name }}
+                                    </strong>
+                                    @else
+                                    <span class="badge badge-soft-warning">
+                                        Not Assigned
+                                    </span>
+                                    @endif
+                                </td>
+                                <td>
+                                    {{ $log->created_at->format('d M Y') }}<br>
+                                    <small class="text-muted">
+                                        {{ $log->created_at->format('h:i A') }}
+                                    </small>
+                                </td>
+                                <td>
+
+                                    @if($log->chatSession?->ended_at)
+                                    <span class="badge badge-soft-danger">Ended</span>
+                                    @elseif($log->chatSession?->expert_id)
+                                    <span class="badge badge-soft-success">Active</span>
+                                    @else
+                                    <span class="badge badge-soft-warning">Waiting</span>
+                                    @endif
+                                </td>
+                            </tr>
+
+                            @endforeach
                         </tbody>
                     </table>
                 </div>
-                @include('layouts.back-end._empty-state',['text'=>'No_data_found'],['image'=>'default'])
-
+                <div class="table-responsive mt-4">
+                    <div class="px-4 d-flex justify-content-lg-end">
+                        {!! $dispatchLogs->links() !!}
+                    </div>
+                </div>
+                @if(count($dispatchLogs)==0)
+                @include('layouts.back-end._empty-state',['text'=>'No_Logs_found'],['image'=>'default'])
+                @endif
             </div>
         </div>
     </div>
