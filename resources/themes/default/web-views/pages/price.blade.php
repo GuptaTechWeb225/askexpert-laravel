@@ -43,9 +43,7 @@ $buttons = app('App\Http\Controllers\Admin\Cms\HomeController')::getSectionDataS
                 <div class="card price-card h-100">
                     <div class="price-card-header">
                         <h4>{{ $categorie->name }}</h4>
-                        <div class="image-container">
                             <img src="{{ $categorie->card_image_url }}" alt="{{ $categorie->name }}">
-                        </div>
                     </div>
                 </div>
                 <div class="card-body">
