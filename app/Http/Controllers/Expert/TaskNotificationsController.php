@@ -62,28 +62,4 @@ class TaskNotificationsController extends BaseController
         return view(Notifications::VIEW[VIEW], compact('notif'));
     }
 
-    /* ------------------------------------------------------------------
-     *  Example: fire a notification from anywhere (service, job, etc.)
-     * -----------------------------------------------------------------*/
-    /**
-     *  Usage:
-     *  app(TaskNotificationsController::class)->fireSupportTicketNotification($ticket);
-     */
-    public function fireSupportTicketNotification($ticket)
-    {
-        $recipients = [
-            ['type' => 'employee',   'id' => $ticket->assigned_admin_id],
-            ['type' => 'department', 'id' => $ticket->department_id],
-            ['type' => 'customer',   'id' => $ticket->customer_id],
-        ];
-
-        $this->notifRepo->notifyRecipients(
-            $ticket->id,
-            get_class($ticket),
-            'New support ticket #' . $ticket->code,
-            'Subject: ' . $ticket->subject,
-            route('admin.support-ticket.show', $ticket->id),
-            $recipients
-        );
-    }
 }

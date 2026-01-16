@@ -163,19 +163,24 @@ class AdminNotificationRepository implements AdminNotificationRepositoryInterfac
 
         return $query->orderByDesc('created_at')->paginate($paginate);
     }
-    public function getAllForExpert(int $expertId, array $filters = [], int $paginate = 20)
-    {
-        $query = $this->model->where(function ($q) use ($expertId) {
-            $q->where('notification_for', 1)->where('expert_id', $expertId)
-                ->orWhere('notification_for', 1);
-        });
-        if (!empty($filters['search'])) {
-            $query->where('title', 'like', '%' . $filters['search'] . '%')
-                ->orWhere('message', 'like', '%' . $filters['search'] . '%');
-        }
+   public function getAllForExpert(int $expertId, array $filters = [], int $paginate = 20)
+{
+    $query = $this->model
+        ->where('notification_for', 1)
+        ->where('expert_id', $expertId);
 
-        return $query->orderByDesc('created_at')->paginate($paginate);
+    if (!empty($filters['search'])) {
+        $query->where(function ($q) use ($filters) {
+            $q->where('title', 'like', '%' . $filters['search'] . '%')
+              ->orWhere('message', 'like', '%' . $filters['search'] . '%');
+        });
     }
+
+    return $query
+        ->orderByDesc('created_at')
+        ->paginate($paginate);
+}
+
     public function getForCustomer(int $customerId, array $statuses = [0, 1], int $limit = 50): Collection
     {
         return $this->model

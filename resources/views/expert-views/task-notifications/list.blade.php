@@ -26,37 +26,39 @@
                                 </tr>
                             </thead>
                             <tbody>
-                            @forelse($notifications as $i => $n)
+                                @forelse($notifications as $i => $n)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ \Illuminate\Support\Str::limit($n->title, 40) }}</td>
                                     <td>{{ \Illuminate\Support\Str::limit($n->message, 100) }}</td>
                                     <td>
                                         @if($n->notifiable_type)
-                                            {{ class_basename($n->notifiable_type) }}
+                                        {{ class_basename($n->notifiable_type) }}
                                         @else
-                                            {{ translate('General') }}
+                                        {{ translate('General') }}
                                         @endif
                                     </td>
                                     <td>{{ $n->created_at->diffForHumans() }}</td>
-                                   
+
                                 </tr>
-                            @empty
-                                <tr><td colspan="6" class="text-center">{{ translate('no_notifications_found') }}</td></tr>
-                            @endforelse
+                                @empty
+                                <tr>
+                                    <td colspan="6" class="text-center">{{ translate('no_notifications_found') }}</td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
 
-                      <div class="table-responsive mt-4">
-            <div class="px-4 d-flex justify-content-lg-end">
-                {!! $notifications->appends(request()->query())->links() !!}
-            </div>
-        </div>
+                    <div class="table-responsive mt-4">
+                        <div class="px-4 d-flex justify-content-lg-end">
+                            {!! $notifications->appends(request()->query())->links() !!}
+                        </div>
+                    </div>
 
-        @if($notifications->isEmpty())
-        @include('layouts.back-end._empty-state', ['text'=>'no_record_found','image'=>'default'])
-        @endif
+                    @if($notifications->isEmpty())
+                    @include('layouts.back-end._empty-state', ['text'=>'no_record_found','image'=>'default'])
+                    @endif
                 </div>
             </div>
         </div>
